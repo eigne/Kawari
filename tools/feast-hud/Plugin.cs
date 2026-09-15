@@ -21,6 +21,8 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private readonly ICommandManager commands;
     private readonly IGameGui gameGui;
     private readonly IObjectTable objects;
+    private readonly NativeDirector native;
+    private readonly FeastHotbars hotbars;
     private int respawnMs = -1;
     private long respawnReceived, deadSince;
     private bool wasDead;
@@ -33,10 +35,14 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private bool preview;
     private bool InArena => client.IsLoggedIn && client.TerritoryType == 745;
     public Plugin(IDalamudPluginInterface pi, IClientState client, IFramework framework,
-        IChatGui chat, ICommandManager commands, IGameGui gameGui, IObjectTable objects)
+        IChatGui chat, ICommandManager commands, IGameGui gameGui, IObjectTable objects,
+        IGameInteropProvider interop, IAddonLifecycle lifecycle, IPluginLog log, IPlayerState player, ITargetManager targets)
     {
         this.gameGui = gameGui; this.objects = objects;
         this.pi = pi; this.client = client; this.framework = framework; this.chat = chat; this.commands = commands;
+        native = new NativeDirector(client, objects, lifecycle, interop, log, targets);
+        try { hotbars = new FeastHotbars(pi, client, player, objects, interop); }
+        catch { native.Dispose(); throw; }
         // Bahnschrift is Windows' DIN-derived UI face. Bake real font glyphs rather
         // than magnifying ImGui's small default font.
         var fontPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "bahnschrift.ttf");
@@ -52,8 +58,17 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private void Control(string command, string args) { preview = args.Trim() == "preview" && !preview; state = null; nextPoll = 0; }
     private void Update(IFramework _)
     {
+        native.Update();
+        hotbars.Update();
+        if (native.Frame is { } frame)
+        {
+            var participant = frame.Players.FirstOrDefault(p => p.Id == objects.LocalPlayer?.EntityId);
+            state = frame.Summary with { Cap = participant?.MedalCapacity ?? 0 }; received = native.Received;
+            respawnMs = frame.RespawnSeconds * 1000; respawnReceived = native.Received;
+        }
         UpdateRespawnPrompt();
         if (!InArena) { state = null; nextPoll = 0; return; }
+        if (native.Frame != null) return;
         if (Environment.TickCount64 < nextPoll) return;
         nextPoll = Environment.TickCount64 + 1000;
         var ui = UIModule.Instance(); if (ui == null) return;
@@ -167,14 +182,18 @@ public sealed unsafe class Plugin : IDalamudPlugin
                 d.AddRectFilled(P(30, 68), P(30 + 150f * s.Fang / total, 70), ink);
                 d.AddRectFilled(P(590 - 150f * s.Claw / total, 68), P(590, 70), ink);
             }
-            var personal = stale ? "WAITING FOR MATCH DATA" : s!.Team == "spectator"
-                ? "SPECTATING" : $"CARRIED  {s.Medals} / {s.Cap}";
-            Text(personal, 161, 87, 11, muted, tracking: 1.1f);
-            Text(stale ? "" : $"ON FIELD  {s!.Ground}", 476, 87, 11, muted, tracking: 1.1f);
+            string Roster(byte team) => string.Join("   ", (native.Frame?.Players ?? [])
+                .Where(p => p.Team == team).Take(4).Select(p => $"{p.JobAbbreviation} {p.Medals}"));
+            Text(stale ? "WAITING FOR MATCH DATA" : preview ? "WHM 125   PLD 100   MNK 50   SMN 75" : Roster(1),
+                155, 87, 11, muted);
+            Text(stale ? "" : preview ? "WHM 100   PLD 125   SAM 100   BRD 75" : Roster(2),
+                465, 87, 11, muted);
         }
         ImGui.End();
     }
     public void Dispose() {
+        native.Dispose();
+        hotbars.Dispose();
         var addon = (AddonSelectYesno*)gameGui.GetAddonByName("SelectYesno", 1).Address;
         var agent = AgentRevive.Instance();
         if (addon != null && agent != null && modifiedDialog != 0 && addon->Id == modifiedDialog

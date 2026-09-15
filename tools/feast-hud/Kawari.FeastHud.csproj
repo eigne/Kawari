@@ -5,6 +5,8 @@
     <Reference Include="Dalamud.Bindings.ImGui" HintPath="$(DalamudLibPath)/Dalamud.Bindings.ImGui.dll" Private="false"/>
     <Reference Include="FFXIVClientStructs" HintPath="$(DalamudLibPath)/FFXIVClientStructs.dll" Private="false"/>
     <Reference Include="InteropGenerator.Runtime" HintPath="$(DalamudLibPath)/InteropGenerator.Runtime.dll" Private="false"/>
+    <Reference Include="Lumina" HintPath="$(DalamudLibPath)/Lumina.dll" Private="false"/>
+    <Reference Include="Lumina.Excel" HintPath="$(DalamudLibPath)/Lumina.Excel.dll" Private="false"/>
     <None Update="Kawari.FeastHud.json" CopyToOutputDirectory="PreserveNewest"/>
     <None Update="assets/**" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
