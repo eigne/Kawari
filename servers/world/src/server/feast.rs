@@ -3,6 +3,57 @@
 mod tests {
     use super::*;
     #[test]
+    fn feast_presentation_uses_current_actions_without_mutating_hp() {
+        let mut instance = Instance::default();
+        instance.insert_empty_actor(ObjectId(1));
+        let hp = instance
+            .find_actor(ObjectId(1))
+            .unwrap()
+            .get_common_spawn()
+            .health_points;
+        let mut event = Event {
+            kind: "cast".into(),
+            actor: 1,
+            target: 2,
+            amount: 1500,
+            message: "glare".into(),
+            ..Default::default()
+        };
+        assert!(matches!(
+            presentation(&instance, &event),
+            Some(ServerZoneIpcData::ActorCast {
+                action_id: 16533,
+                cast_time: 1.5,
+                target: ObjectId(2),
+                ..
+            })
+        ));
+        event.kind = "animation".into();
+        event.message = "cure2".into();
+        event.amount = 4000;
+        event.healing = true;
+        let Some(ServerZoneIpcData::ActionResult(result)) = presentation(&instance, &event) else {
+            panic!("Expected action result")
+        };
+        assert_eq!(result.action_id, 135);
+        assert_eq!(result.source_sequence, 0);
+        assert_eq!(result.target_id_again.object_id, ObjectId(2));
+        assert!(matches!(
+            result.effects[0].kind,
+            EffectKind::Heal { amount: 4000, .. }
+        ));
+        assert_eq!(
+            instance
+                .find_actor(ObjectId(1))
+                .unwrap()
+                .get_common_spawn()
+                .health_points,
+            hp
+        );
+        event.message = "unknown".into();
+        assert!(presentation(&instance, &event).is_none());
+    }
+    #[test]
     fn feast_white_mage_rules() {
         let lua = mlua::Lua::new();
         lua.globals()
@@ -116,7 +167,9 @@ use kawari::{
     common::{CharacterMode, ObjectId, Position},
     config::get_config,
     ipc::zone::{
-        ActorSetPos, ServerNoticeMessage, ServerZoneIpcData, ServerZoneIpcSegment, WarpType,
+        ActionEffect, ActionResult, ActionType, ActorControlCategory, ActorSetPos, DamageElement,
+        DamageKind, DamageType, EffectKind, ServerNoticeMessage, ServerZoneIpcData,
+        ServerZoneIpcSegment, WarpType,
     },
 };
 use mlua::{Function, Lua, LuaSerdeExt, Table};
@@ -159,6 +212,7 @@ struct Event {
     actor: u32,
     target: u32,
     amount: u32,
+    healing: bool,
     message: String,
     x: f32,
     y: f32,
@@ -277,6 +331,31 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
     for event in events {
         let target = ObjectId(event.target);
         match event.kind.as_str() {
+            "cast" | "animation" => {
+                let source = ObjectId(event.actor);
+                if let Some(packet) = presentation(instance, &event) {
+                    let mut network = network.lock();
+                    let mut packet = packet;
+                    if let ServerZoneIpcData::ActionResult(ref mut result) = packet {
+                        result.global_sequence = network.global_action_sequence;
+                        network.global_action_sequence =
+                            network.global_action_sequence.wrapping_add(1);
+                    }
+                    network.send_in_range_inclusive_instance(
+                        source,
+                        instance,
+                        FromServer::PacketSegment(ServerZoneIpcSegment::new(packet), source),
+                        DestinationNetwork::ZoneClients,
+                    );
+                }
+            }
+            "cancel" => {
+                network.lock().send_to_by_actor_id(
+                    target,
+                    FromServer::ActorControlSelf(ActorControlCategory::CancelCast {}),
+                    DestinationNetwork::ZoneClients,
+                );
+            }
             "interrupt" => instance.cancel_actor_tasks(target),
             "hp" | "mp" => {
                 if let Some(actor) = instance.find_actor_mut(target) {
@@ -342,6 +421,92 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
             _ => tracing::warn!(?event, "Unknown Feast effect"),
         }
     }
+}
+
+/// Existing client actions supply presentation only; Lua remains authoritative.
+fn animation_id(name: &str) -> Option<u32> {
+    Some(match name {
+        "cure" => 120,
+        "cure2" => 135,
+        "medica" => 124,
+        "glare" => 16533,
+        "dia" => 16532,
+        "solace" => 16531,
+        "rapture" => 16534,
+        "misery" => 16535,
+        "tetra" => 3570,
+        "assize" => 3571,
+        "temperance" => 16536,
+        "purify" => 7568,
+        "bolt" => 3,
+        "kit" => 140,
+        "repose" => 16560,
+        "protect" => 7432,
+        "rescue" => 7571,
+        "largesse" => 25861,
+        "attunement" => 7433,
+        "rain" => 208,
+        _ => return None,
+    })
+}
+
+fn presentation(instance: &Instance, event: &Event) -> Option<ServerZoneIpcData> {
+    let action_id = animation_id(&event.message)?;
+    let actor = instance.find_actor(ObjectId(event.actor))?;
+    let common = actor.get_common_spawn();
+    let target = kawari::common::ObjectTypeId {
+        object_id: ObjectId(event.target),
+        ..Default::default()
+    };
+    Some(if event.kind == "cast" {
+        ServerZoneIpcData::ActorCast {
+            spell_id: action_id as u16,
+            action_id,
+            action_type: ActionType::Action,
+            omen_delay: 0,
+            cast_time: event.amount as f32 / 1000.0,
+            target: target.object_id,
+            rotation: common.rotation,
+            interruptible: false,
+            ballista_entity_id: ObjectId::default(),
+            position: actor.position(),
+        }
+    } else {
+        let mut effects = [ActionEffect::default(); 8];
+        let amount = event.amount.min(u16::MAX as u32) as u16;
+        if amount > 0 {
+            effects[0].kind = if event.healing {
+                EffectKind::Heal {
+                    unk1: [0; 5],
+                    amount,
+                }
+            } else {
+                EffectKind::Damage {
+                    damage_kind: DamageKind::Normal,
+                    damage_type: DamageType::Magic,
+                    damage_element: DamageElement::Unaspected,
+                    bonus_percent: 0,
+                    unk3: 0,
+                    unk4: 0,
+                    amount,
+                }
+            };
+        }
+        ServerZoneIpcData::ActionResult(ActionResult {
+            animation_target_id: target,
+            target_id_again: target,
+            action_id,
+            spell_id: action_id as u16,
+            action_type: ActionType::Action,
+            animation_lock: kawari::common::ANIMATION_LOCK_TIME,
+            rotation: common.rotation,
+            effect_count: 1,
+            effects,
+            // Presentation only: HP/MP were already applied by the rules engine.
+            // Commands/plugin casts have no native ActionRequest sequence to acknowledge.
+            ..Default::default()
+        })
+    })
 }
 
 pub fn command(

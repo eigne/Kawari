@@ -138,4 +138,16 @@ test("cast interruption and shared GCD",function()
     assert(m.command(1,"dia",3,1):find("cooldown"))
     m.command(1,"dia",3,2.4);eq(m.actors[3].hp,19200)
 end)
+test("presentation follows cast completion and interruption",function()
+    local m=fresh();m.drain();m.command(1,"glare",3,0)
+    local events=m.drain();eq(#events,1);eq(events[1].kind,"cast")
+    eq(events[1].amount,1500);eq(events[1].target,3);eq(events[1].message,"glare")
+    m.advance(1.5);local animations=0
+    for _,e in ipairs(m.drain()) do if e.kind=="animation" then animations=animations+1;eq(e.target,3) end end
+    eq(animations,1)
+    m.command(1,"cure2",2,2.4);m.drain();m.actors[1].x=1;m.advance(3)
+    local cancelled=false
+    for _,e in ipairs(m.drain()) do assert(e.kind~="animation");if e.kind=="cancel" then cancelled=true end end
+    assert(cancelled);eq(m.actors[2].hp,1000)
+end)
 return count

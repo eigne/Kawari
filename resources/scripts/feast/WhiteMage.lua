@@ -194,7 +194,10 @@ function M.sync(snapshots,now)
             if snap.statuses.bolt then emit("speed",snap.id,snap.id,100) end
             snap.statuses={}
             local p=M.players[snap.id]
-            if p then p.pending=nil; p.lilies=0; p.blood=0; p.lily_time=0; p.combat_until=0 end
+            if p then
+                if p.pending then emit("cancel",snap.id,snap.id) end
+                p.pending=nil; p.lilies=0; p.blood=0; p.lily_time=0; p.combat_until=0
+            end
         end
     end
     for id in pairs(M.actors) do
@@ -238,12 +241,15 @@ end
 local function complete(id,name,target)
     local p=M.players[id]; local a=state(id); local d=actions[name]; local b=state(target)
     local err=error_for(id,name,target,true)
-    if err then emit("notice",id,id,0,err); return end
+    if err then emit("cancel",id,id); emit("notice",id,id,0,err); return end
     a.mp=a.mp-d.mp; if d.mp>0 then emit("mp",id,id,a.mp) end
     if d.lily then p.lilies=p.lilies-1; p.blood=math.min(3,p.blood+1) end
     if d.blood then p.blood=0 end
     if d.adrenaline then p.adrenaline=0 end
+    local before=b.hp
     d.run(a,b)
+    emit("animation",id,target,math.abs(b.hp-before),name)
+    M.events[#M.events].healing=b.hp>before
     emit("notice",id,id,0,"Feast "..name.." executed.")
 end
 function M.advance(now)
@@ -277,7 +283,7 @@ function M.advance(now)
             if p.pending then
                 local cast=p.pending
                 if M.blocked(id,false) or distance(a,cast.origin)>0.1 then
-                    p.pending=nil; emit("notice",id,id,0,"Cast interrupted.")
+                    p.pending=nil; emit("cancel",id,id); emit("notice",id,id,0,"Cast interrupted.")
                 elseif now>=cast.ends then
                     p.pending=nil; complete(id,cast.name,cast.target)
                 end
@@ -303,6 +309,7 @@ function M.command(id,text,target,now)
         return "Feast White Mage enabled (team fang). Use !whm list. Additional actions: protect, largesse."
     end
     if name=="off" then
+        emit("cancel",id,id)
         if has(id,"bolt") then emit("speed",id,id,100) end
         M.players[id]=nil; a.statuses={}; return "Feast White Mage disabled."
     end
@@ -345,6 +352,7 @@ function M.command(id,text,target,now)
     end
     if d.cast>0 then
         p.pending={name=name,target=target,ends=now+d.cast,origin={x=a.x,y=a.y,z=a.z}}
+        emit("cast",id,target,math.floor(d.cast*1000),name)
         return string.format("Casting Feast %s (%.1fs).",name,d.cast)
     end
     complete(id,name,target)
