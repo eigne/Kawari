@@ -90,6 +90,15 @@ idle gap during server tick/network delay. Movement interrupts preparation only
 before that deadline. A two-second grace timeout after the deadline clears a
 stranded pose if no completion packet arrives; logout/death/teardown also clear it.
 
+On successful completion, preparation VFX use the native VfxObject fade flag and
+a 0.25-second fade duration while the release starts. This is a visual overlap,
+not a delay to spell execution. Fading handles are separate from the next cast's
+active effects, so starting another cast does not cut off the previous fade.
+Native removal removes them from tracking; a 0.75-second fallback frees any that
+remain. Interruptions still remove active preparation effects immediately, and
+plugin unload clears both active and fading handles. The fade duration is a
+presentation choice, not a verified historical timing value.
+
 After updating the DLL, disable/re-enable Kawari Feast in Dalamud's plugin list.
 Verify each cast shows its preparation pose, moving midway stops it without a
 release, and a completed cast still plays its release when moving afterward.

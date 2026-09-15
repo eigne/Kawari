@@ -87,7 +87,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
         execute.Enable();
         actorCast.Enable();
         actionEffect.Enable();
-        log.Information("Feast casting presentation v6 loaded: sustained loop hands off directly to release.");
+        log.Information("Feast casting presentation v7 loaded: casting VFX fade smoothly into release.");
         framework.Update += Update;
         commands.AddHandler("/kfeast", new CommandInfo(Control) {
             HelpMessage = "status | restore (pause) | on. Feast slots automatically load in territory 745 as WHM."
@@ -99,6 +99,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
 
     private void Update(IFramework _)
     {
+        castEffects.Update();
         // Pose cleanup runs every frame, independently of the hotbar polling interval.
         if (castingActor != 0)
         {
@@ -199,8 +200,8 @@ public sealed unsafe class Plugin : IDalamudPlugin
         if (castingActor != 0 && (nint)actor == castingActor && header != null
             && header->ActionId == castingAction && header->ActionType == (byte)ActionType.Action)
         {
-            StopCastingPose();
-            log.Information("Feast cast completed: preparation cleared before release action {Action}", header->ActionId);
+            StopCastingPose(fadeEffects: true);
+            log.Information("Feast cast completed: pose cleared and effects fading before release action {Action}", header->ActionId);
         }
         actionEffect.Original(entityId, actor, position, header, effects, targets);
     }
@@ -219,9 +220,10 @@ public sealed unsafe class Plugin : IDalamudPlugin
         return loop;
     }
 
-    private void StopCastingPose()
+    private void StopCastingPose(bool fadeEffects = false)
     {
-        castEffects.Stop();
+        if (fadeEffects) castEffects.Complete();
+        else castEffects.Stop();
         var address = castingActor;
         var timeline = castingTimeline;
         var loop = castingLoop;

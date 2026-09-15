@@ -1,11 +1,12 @@
 using System.Runtime.InteropServices;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 
 namespace Kawari.Feast;
 
 /// Owns only effects created for the local Feast preparation phase.
-internal sealed class CastEffects : IDisposable
+internal sealed unsafe class CastEffects : IDisposable
 {
     // Native API documented by Dalamud-VFXEditor ResourceLoader.Vfx.cs/Constants.cs.
     // Both signatures were checked to match once in the supported 7.51h2 executable.
@@ -17,6 +18,8 @@ internal sealed class CastEffects : IDisposable
     private readonly CreateDelegate create;
     private readonly Hook<RemoveDelegate> remove;
     private readonly HashSet<nint> owned = [];
+    private readonly Dictionary<nint, long> fading = [];
+    private const float CompletionFadeSeconds = 0.25f;
     private readonly object gate = new();
     private readonly IPluginLog log;
 
@@ -53,7 +56,36 @@ internal sealed class CastEffects : IDisposable
             // The game may destroy effects itself on actor removal or natural expiry.
             // Forget those handles before forwarding, so later cleanup cannot double-free.
             owned.Remove(effect);
+            fading.Remove(effect);
             return remove.Original(effect, immediate);
+        }
+    }
+
+    public void Complete()
+    {
+        lock (gate)
+        {
+            foreach (var effect in owned.ToArray())
+            {
+                owned.Remove(effect);
+                // Native VfxObject fade units are 1/60 second, independent of FPS.
+                // Keep tracking until native removal or the fallback cleanup deadline.
+                fading[effect] = Environment.TickCount64 + 750;
+                var vfx = (VfxObject*)effect;
+                vfx->FadeOutFrames = CompletionFadeSeconds * 60;
+                vfx->SomeFlags |= 0x40;
+            }
+            log.Information("Feast casting VFX fading into release over {Seconds}s", CompletionFadeSeconds);
+        }
+    }
+
+    public void Update()
+    {
+        lock (gate)
+        {
+            var now = Environment.TickCount64;
+            foreach (var (effect, deadline) in fading.ToArray())
+                if (now >= deadline && fading.Remove(effect)) remove.Original(effect, 1);
         }
     }
 
@@ -71,6 +103,11 @@ internal sealed class CastEffects : IDisposable
     public void Dispose()
     {
         Stop();
+        lock (gate)
+        {
+            foreach (var effect in fading.Keys.ToArray())
+                if (fading.Remove(effect)) remove.Original(effect, 1);
+        }
         remove.Dispose();
     }
 }
