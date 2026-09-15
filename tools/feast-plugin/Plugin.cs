@@ -5,6 +5,8 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.Network;
+using FFXIVClientStructs.FFXIV.Client.Network;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
@@ -42,8 +44,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private readonly IDataManager data;
     private readonly Configuration config;
     private readonly Hook<ExecuteSlotDelegate> execute;
-    private readonly Hook<OpenCastBarDelegate> openCastBar;
-    private bool nativeCastingSeen;
+    private readonly Hook<ActorCastDelegate> actorCast;
     private nint castingActor;
     private ushort castingTimeline;
     private long castingEnds;
@@ -54,8 +55,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private long nextCheck;
     private long nextClick;
     private delegate byte ExecuteSlotDelegate(RaptureHotbarModule* module, HotbarSlot* slot);
-    private delegate void OpenCastBarDelegate(ActionManager* manager, BattleChara* actor,
-        ActionType type, uint actionId, uint spellId, uint extraParam, float elapsed, float total);
+    private delegate void ActorCastDelegate(uint entityId, ActorCastPacket* packet);
 
     public Plugin(IDalamudPluginInterface pi, IClientState client, IObjectTable objects,
         IPlayerState player, IFramework framework, IChatGui chat, ICommandManager commands,
@@ -67,10 +67,11 @@ public sealed unsafe class Plugin : IDalamudPlugin
         config = pi.GetPluginConfig() as Configuration ?? new Configuration();
         execute = interop.HookFromAddress<ExecuteSlotDelegate>(
             (nint)MemberFunctionPointers.ExecuteSlot, ExecuteSlot);
-        openCastBar = interop.HookFromAddress<OpenCastBarDelegate>(
-            (nint)ActionManager.MemberFunctionPointers.OpenCastBar, OpenCastBar);
+        actorCast = interop.HookFromAddress<ActorCastDelegate>(
+            (nint)PacketDispatcher.MemberFunctionPointers.HandleActorCastPacket, ActorCast);
         execute.Enable();
-        openCastBar.Enable();
+        actorCast.Enable();
+        log.Information("Feast casting presentation v2 loaded: ActorCast packet hook enabled.");
         framework.Update += Update;
         commands.AddHandler("/kfeast", new CommandInfo(Control) {
             HelpMessage = "status | restore (pause) | on. Feast slots automatically load in territory 745 as WHM."
@@ -86,14 +87,10 @@ public sealed unsafe class Plugin : IDalamudPlugin
         if (castingActor != 0)
         {
             var local = objects.LocalPlayer;
-            var sameActor = local != null && local.Address == castingActor;
-            var nativeCasting = sameActor && ((BattleChara*)castingActor)->CastInfo.IsCasting;
             if (!active || !Eligible || local == null || local.Address != castingActor
                 || Environment.TickCount64 >= castingEnds
-                || (nativeCastingSeen && !nativeCasting)
                 || System.Numerics.Vector3.DistanceSquared(local.Position, castingOrigin) > 0.01f)
                 StopCastingPose();
-            else nativeCastingSeen |= nativeCasting;
         }
         if (Environment.TickCount64 < nextCheck) return;
         nextCheck = Environment.TickCount64 + 250;
@@ -110,29 +107,31 @@ public sealed unsafe class Plugin : IDalamudPlugin
         }
     }
 
-    private void OpenCastBar(ActionManager* manager, BattleChara* actor, ActionType type,
-        uint actionId, uint spellId, uint extraParam, float elapsed, float total)
+    private void ActorCast(uint entityId, ActorCastPacket* packet)
     {
-        openCastBar.Original(manager, actor, type, actionId, spellId, extraParam, elapsed, total);
-        // ActorCast opens the bar, but command-driven local casts never ran UseAction's
-        // animation-start path. Repair presentation only after the server accepted a cast.
-        if (!active || !Eligible || actor == null || (nint)actor != objects.LocalPlayer?.Address
-            || type != ActionType.Action || total <= elapsed
-            || actionId is not (120 or 135 or 124 or 16533)) return;
+        actorCast.Original(entityId, packet);
+        var local = objects.LocalPlayer;
+        if (!active || !Eligible || local == null || local.EntityId != entityId || packet == null
+            || packet->ActionType != (byte)ActionType.Action || packet->CastTime <= 0
+            || packet->ActionId is not (120 or 135 or 124 or 16533)) return;
         try
         {
+            var actionId = packet->ActionId;
             var action = data.GetExcelSheet<Lumina.Excel.Sheets.Action>().GetRow(actionId);
             var timeline = checked((ushort)action.AnimationStart.Value.Name.RowId);
-            if (timeline == 0) return;
+            log.Information("Feast cast received: action {Action}, cast timeline row {Row}, animation {Timeline}, duration {Duration}",
+                actionId, action.AnimationStart.RowId, timeline, packet->CastTime);
+            if (timeline == 0) { log.Warning("Feast cast has no preparation timeline"); return; }
             StopCastingPose();
+            var actor = (BattleChara*)local.Address;
             castingActor = (nint)actor;
             castingTimeline = timeline;
-            castingOrigin = objects.LocalPlayer!.Position;
-            nativeCastingSeen = actor->CastInfo.IsCasting;
-            castingEnds = Environment.TickCount64 + (long)Math.Ceiling((total - elapsed) * 1000);
-            actor->Timeline.PlayActionTimeline(timeline);
-            log.Debug("Feast cast pose: action {Action}, timeline {Timeline}, duration {Duration}",
-                actionId, timeline, total - elapsed);
+            castingOrigin = local.Position;
+            castingEnds = Environment.TickCount64 + (long)Math.Ceiling(packet->CastTime * 1000);
+            actor->Timeline.TimelineSequencer.PlayTimeline(timeline);
+            log.Information("Feast cast animation requested; base={Base}, upper={Upper}",
+                actor->Timeline.TimelineSequencer.GetSlotTimeline(0),
+                actor->Timeline.TimelineSequencer.GetSlotTimeline(1));
         }
         catch (Exception error) { log.Error(error, "Could not start Feast casting pose"); }
     }
@@ -143,7 +142,6 @@ public sealed unsafe class Plugin : IDalamudPlugin
         var timeline = castingTimeline;
         castingActor = 0;
         castingTimeline = 0;
-        nativeCastingSeen = false;
         if (address == 0 || objects.LocalPlayer?.Address != address) return;
         var actor = (BattleChara*)address;
         // A completed ActionResult replaces the casting timeline with the release.
@@ -253,9 +251,9 @@ public sealed unsafe class Plugin : IDalamudPlugin
         framework.Update -= Update;
         commands.RemoveHandler("/kfeast");
         execute.Disable();
-        openCastBar.Disable();
+        actorCast.Disable();
         Restore();
         execute.Dispose();
-        openCastBar.Dispose();
+        actorCast.Dispose();
     }
 }
