@@ -41,6 +41,7 @@ mod tests {
         native_action(&mut instance, &network, id, &request, Some(57));
         let engine = instance.feast_whm.as_ref().unwrap();
         assert!(engine.enabled(id));
+        assert_eq!(engine.party_actions(id.0).unwrap(), vec![(1584, 0), (17832, 0), (18957, 0)]);
         assert_eq!(engine.native_requests[&id].sequence, 42);
         assert_eq!(
             instance
@@ -331,6 +332,14 @@ impl FeastWhiteMage {
         self.lua.from_value(self.function("drain")?.call(())?)
     }
 
+    pub fn party_actions(&self, id: u32) -> mlua::Result<Vec<(u16, u16)>> {
+        let rows: Table = self.function("party_actions")?.call((id, self.now()))?;
+        rows.sequence_values::<Table>().map(|row| {
+            let row = row?;
+            Ok((row.get(1)?, row.get(2)?))
+        }).collect()
+    }
+
     pub fn enabled(&self, id: ObjectId) -> bool {
         self.function("enabled")
             .and_then(|f| f.call(id.0))
@@ -465,6 +474,17 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                         DestinationNetwork::ZoneClients,
                     );
                 }
+            }
+            "reset_gcd" => {
+                // Zero-based normal spell GCD group (Action cooldown group 58).
+                // Only genuine interrupted casts emit this, not rejected inputs.
+                network.lock().send_to_by_actor_id(
+                    target,
+                    FromServer::ActorControlSelf(ActorControlCategory::SetCooldownTimer {
+                        cooldown_group: 57, unk1: 0, unk2: 0,
+                    }),
+                    DestinationNetwork::ZoneClients,
+                );
             }
             "cancel" => {
                 if let Some(engine) = instance.feast_whm.as_mut() {

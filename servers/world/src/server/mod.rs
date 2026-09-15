@@ -58,6 +58,7 @@ mod chat;
 mod director;
 mod effect;
 mod feast;
+mod feast_director;
 mod feast_match;
 mod feast_training;
 mod instance;

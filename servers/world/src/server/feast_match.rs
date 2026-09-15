@@ -418,6 +418,7 @@ pub struct Runtime {
     placed: BTreeSet<u32>,
     gate_viewers: BTreeMap<(u32, u32), bool>,
     medal_viewers: BTreeMap<(u32, u32), SharedGroupTimelineState>,
+    next_director_snapshot: f64,
 }
 
 // The start_col layer centers the two jails at x = +/-58, y = 0.25.
@@ -686,6 +687,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         placed: BTreeSet::new(),
         gate_viewers: BTreeMap::new(),
         medal_viewers: BTreeMap::new(),
+        next_director_snapshot: 0.0,
     });
     instance
         .feast_respawns
@@ -821,6 +823,10 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         for input in &inputs {
             super::feast::notice(network, ObjectId(input.id), message.clone());
         }
+    }
+    if now >= runtime.next_director_snapshot {
+        super::feast_director::send(instance, &runtime.rules, now, &mut network.lock());
+        runtime.next_director_snapshot = now + 0.25;
     }
     instance.feast_match = Some(runtime);
 }
@@ -989,6 +995,7 @@ pub fn reset_training(instance: &mut Instance, network: &Arc<Mutex<NetworkState>
         placed: BTreeSet::new(),
         gate_viewers: BTreeMap::new(),
         medal_viewers: BTreeMap::new(),
+        next_director_snapshot: 0.0,
     });
 }
 

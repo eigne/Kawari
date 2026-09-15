@@ -191,6 +191,18 @@ function M.blocked(id, movement)
     if movement then return has(id,"bind") or false end
     return has(id,"silence") or false
 end
+local function cancel_cast(id,name)
+    local p=M.players[id]
+    name=name or (p and p.pending and p.pending.name)
+    if p and name and actions[name].gcd then
+        -- Cast-start recast is provisional: interruption refunds it. Successful
+        -- casts keep their original timing, without an extra post-cast GCD.
+        p.gcd=0
+        emit("reset_gcd",id,id)
+    end
+    if p then p.pending=nil end
+    emit("cancel",id,id)
+end
 function M.sync(snapshots,now)
     M.now=now
     local present={}
@@ -205,7 +217,7 @@ function M.sync(snapshots,now)
             snap.statuses={}
             local p=M.players[snap.id]
             if p then
-                if p.pending then emit("cancel",snap.id,snap.id) end
+                if p.pending then cancel_cast(snap.id) end
                 p.pending=nil; p.lilies=0; p.blood=0; p.lily_time=0; p.combat_until=0
             end
         end
@@ -253,7 +265,7 @@ end
 local function complete(id,name,target,cast_origin)
     local p=M.players[id]; local a=state(id); local d=actions[name]; local b=state(target)
     local err=error_for(id,name,target,true,cast_origin)
-    if err then emit("cancel",id,id); emit("notice",id,id,0,err); return end
+    if err then cancel_cast(id,name); emit("notice",id,id,0,err); return end
     a.mp=a.mp-d.mp; if d.mp>0 then emit("mp",id,id,a.mp) end
     if d.lily then p.lilies=p.lilies-1; p.blood=math.min(3,p.blood+1) end
     if d.blood then p.blood=0 end
@@ -306,7 +318,7 @@ function M.advance(now)
                 local cast=p.pending
                 if M.blocked(id,false) or cast.moved_early
                     or (now<cast.ends-SLIDECAST_WINDOW and distance(a,cast.origin)>0.1) then
-                    p.pending=nil; emit("cancel",id,id); emit("notice",id,id,0,"Cast interrupted.")
+                    cancel_cast(id,cast.name); emit("notice",id,id,0,"Cast interrupted.")
                 elseif now>=cast.ends then
                     p.pending=nil; complete(id,cast.name,cast.target,cast.origin)
                 end
@@ -328,6 +340,18 @@ function M.recast(id,name,now)
     end
     return math.floor(math.max(0,total-remaining)*100),math.floor(total*100)
 end
+-- Party HUD reads authoritative cooldown deadlines, never client action guesses.
+function M.party_actions(id,now)
+    local p=M.players[id]; local result={}
+    if not p then return result end
+    for _,name in ipairs({"purify","repose","protect","rescue","largesse","attunement"}) do
+        if name=="purify" or p.loadout[name] then
+            local times=p.cooldowns[name] or {}
+            table.insert(result,{actions[name].id,math.ceil(math.max(0,(times[1] or now)-now)*10)})
+        end
+    end
+    return result
+end
 function M.drain()
     local result=M.events; M.events={}; return result
 end
@@ -346,7 +370,7 @@ function M.command(id,text,target,now)
     end
     if name=="off" then
         if has(id,"temperance") then emit("temperance_visual",id,id,0) end
-        emit("cancel",id,id)
+        cancel_cast(id)
         if has(id,"bolt") then emit("speed",id,id,100) end
         M.players[id]=nil; a.statuses={}; return "Feast White Mage disabled."
     end

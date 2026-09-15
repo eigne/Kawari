@@ -1,5 +1,44 @@
 # Feast White Mage prototype
 
+## Recheck against the user's archived guide (2026-09-15)
+
+Retrieved the exact April 9, 2022 Wayback snapshot again. Its HTML SHA-256 is
+`28CDAE962E8D958BB2CE86E1784374F375B69A0B166DA019DB96068E4A1577C4`, identical
+to the previously cached source. Checked all 20 PvP action rows against
+`resources/scripts/feast/WhiteMage.lua`: the declared effects, potencies, cast
+times, recasts, MP costs, ranges and charge counts agree with the action table
+below. This is a source-code comparison, not proof of complete live parity.
+
+Current duty uses native ActionRequest through **Kawari.FeastHud**, not the old
+Kawari.Feast chat-command plugin. The old plugin stays disabled. The client still
+uses current PvE action IDs for buttons and presentation, and the server maps
+them to Feast rules in territory745. Their retail tooltips and gauges are not
+reliable descriptions of the implemented Feast kit.
+
+| Feast action | Current client placeholder |
+| --- | --- |
+| Cure, Cure II, Medica, Glare, Dia | Corresponding PvE action |
+| Afflatus Solace, Rapture, Misery | Corresponding PvE action |
+| Tetragrammaton, Assize, Temperance | Corresponding PvE action |
+| Purify | Esuna |
+| Bolt | Sprint |
+| Medical Kit | Benediction |
+| Repose | Repose |
+| Protect | Divine Benison |
+| Rescue | Rescue |
+| Largesse | Aquaveil |
+| Attunement | Plenary Indulgence |
+| Empyrean Rain | Pulse of Life |
+
+Outstanding presentation work includes correct Feast labels/tooltips, gauges,
+charge display and historical assets. Gameplay limitations remain: potency is
+treated as fixed HP, Medical Kit/Attunement interpolation is an assumption, and
+adrenaline generation/passive regeneration and full combat-system parity are not
+finished. The user's requested cancelled-cast GCD refund is now implemented;
+the action table specifies recast values but does not document cancellation rules.
+
+The older setup section below describes the earlier command-based prototype.
+
 This implements the **pre-6.1 Feast** kit from the [official White Mage guide archived April 9, 2022](https://web.archive.org/web/20220409040536/https://na.finalfantasyxiv.com/jobguide/whitemage/#pvp).
 The archived page's PvP section was last updated January 25, 2022. Historical action IDs were checked against the [6.08 action table](https://github.com/xivapi/ffxiv-datamining/blob/bc1a1de27e7bf00adba0a0cc362402459c55b7c0/csv/Action.csv).
 
