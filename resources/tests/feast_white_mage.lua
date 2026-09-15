@@ -133,7 +133,7 @@ test("range, MP, ally/enemy, dead target, and loadout validation",function()
     assert(m.command(1,"loadout protect protect",0,0):find("distinct"))
 end)
 test("cast interruption and shared GCD",function()
-    local m=fresh();m.command(1,"glare",3,0);m.actors[1].x=1;m.advance(1)
+    local m=fresh();m.command(1,"glare",3,0);m.actors[1].x=1;m.advance(0.9)
     eq(m.actors[3].hp,20000);assert(not m.players[1].pending)
     assert(m.command(1,"dia",3,1):find("cooldown"))
     m.command(1,"dia",3,2.4);eq(m.actors[3].hp,19200)
@@ -181,8 +181,8 @@ test("match countdown, results, and teams constrain combat",function()
     m.actors[2].match_active=false;eq(m.modify_damage(1,2,1000,2.4),0)
 end)
 
-for _,at in ipairs({1.25,1.49,1.5,1.7}) do
-    test("slidecast commits at or after 250ms cutoff "..at,function()
+for _,at in ipairs({1.0,1.25,1.49,1.5,1.7}) do
+    test("slidecast commits at or after 500ms cutoff "..at,function()
         local m=fresh();m.command(1,"glare",3,0);m.drain()
         m.movement(1,at,1,0,0);m.actors[1].x=1
         if at<1.5 then m.advance(at);eq(m.actors[3].hp,20000,"must not deal damage early") end
@@ -197,7 +197,7 @@ for _,at in ipairs({1.25,1.49,1.5,1.7}) do
 end
 test("early movement stays cancelled across a delayed server tick",function()
     local m=fresh();m.command(1,"glare",3,0);m.drain()
-    m.movement(1,1.249,1,0,0);m.actors[1].x=0 -- moved back before the next tick
+    m.movement(1,0.999,1,0,0);m.actors[1].x=0 -- moved back before the next tick
     m.advance(1.7);eq(m.actors[3].hp,20000);assert(not m.players[1].pending)
     local cancelled=false
     for _,e in ipairs(m.drain()) do
@@ -207,14 +207,14 @@ test("early movement stays cancelled across a delayed server tick",function()
 end)
 test("Cure II slidecast heals and pays MP once",function()
     local m=fresh();m.command(1,"cure2",2,0)
-    m.movement(1,1.25,1,0,0);m.actors[1].x=1;m.advance(1.5)
+    m.movement(1,1.0,1,0,0);m.actors[1].x=1;m.advance(1.5)
     eq(m.actors[2].hp,5000);eq(m.actors[1].mp,9000)
     m.advance(2);eq(m.actors[2].hp,5000);eq(m.actors[1].mp,9000)
 end)
 
 test("slide movement does not invalidate a target at the range limit",function()
     local m=fresh();m.actors[3].x=25;m.command(1,"glare",3,0)
-    m.movement(1,1.25,-1,0,0);m.actors[1].x=-1;m.advance(1.5)
+    m.movement(1,1.0,-1,0,0);m.actors[1].x=-1;m.advance(1.5)
     eq(m.actors[3].hp,18800)
 end)
 

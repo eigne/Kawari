@@ -114,7 +114,7 @@ feedback. Animation and audio still require an in-game check.
 
 ### Cast completion and slidecasting
 
-Native Feast WHM casts allow movement during their final 250 ms. Effects resolve
+Native Feast WHM casts allow movement during their final 500 ms. Effects resolve
 once at the full cast deadline; movement during the grace window or after that
 deadline cannot interrupt them. Earlier movement is recorded immediately, so a
 delayed server tick cannot accidentally accept it. Completion range checks use

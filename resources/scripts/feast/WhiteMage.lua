@@ -2,7 +2,7 @@
 -- Isolated from PvE/Crystalline Conflict. Time is supplied by the server in seconds.
 -- Potencies are fixed prototype HP amounts, not the PvE stat-based damage formula.
 local M = { actors = {}, players = {}, events = {}, now = 0 }
-local SLIDECAST_WINDOW = 0.250
+local SLIDECAST_WINDOW = 0.500
 local actions = {}
 M.actions = actions
 local cleanse_names = { "stun", "sleep", "bind", "heavy", "silence" }
