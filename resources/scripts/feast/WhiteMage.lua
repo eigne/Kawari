@@ -148,7 +148,10 @@ add("assize",9620,"self",0,30,0,0,function(a)
     for _,b in ipairs(enemies(a,a,15)) do damage(a,b,1000) end
     for _,b in ipairs(allies(a,a,15)) do heal(a,b,2000) end
 end)
-add("temperance",17794,"self",0,60,0,0,function(a) buff(a,a,"temperance",15) end)
+add("temperance",17794,"self",0,60,0,0,function(a)
+    buff(a,a,"temperance",15)
+    emit("temperance_visual",a.id,a.id,15)
+end)
 add("purify",1584,"ally",0,30,0,30,function(a,b)
     heal(a,b,cleanse(b) and 4000 or 2000)
 end,{usable_while_cc=true})
@@ -191,6 +194,7 @@ function M.sync(snapshots,now)
         snap.statuses=old and old.statuses or {}
         M.actors[snap.id]=snap; present[snap.id]=true
         if snap.hp<=0 then
+            if snap.statuses.temperance then emit("temperance_visual",snap.id,snap.id,0) end
             if snap.statuses.bolt then emit("speed",snap.id,snap.id,100) end
             snap.statuses={}
             local p=M.players[snap.id]
@@ -265,6 +269,7 @@ function M.advance(now)
                 end
             end
             if s.expires<=now then
+                if name=="temperance" then emit("temperance_visual",id,id,0) end
                 if name=="bolt" then emit("speed",id,id,100) end
                 a.statuses[name]=nil
             end
@@ -292,6 +297,19 @@ function M.advance(now)
         p.last_tick=now
     end
 end
+-- Native recast details use elapsed/total in units of ten milliseconds.
+function M.recast(id,name,now)
+    local p=M.players[id]; local d=actions[name]
+    if not p or not d then return 0,0 end
+    local total=d.recast*d.charges
+    local remaining
+    if d.gcd then remaining=math.max(0,p.gcd-now)
+    else
+        local times=p.cooldowns[name] or {}
+        remaining=math.max(0,(times[#times] or now)-now)
+    end
+    return math.floor(math.max(0,total-remaining)*100),math.floor(total*100)
+end
 function M.drain()
     local result=M.events; M.events={}; return result
 end
@@ -309,6 +327,7 @@ function M.command(id,text,target,now)
         return "Feast White Mage enabled (team fang). Use !whm list. Additional actions: protect, largesse."
     end
     if name=="off" then
+        if has(id,"temperance") then emit("temperance_visual",id,id,0) end
         emit("cancel",id,id)
         if has(id,"bolt") then emit("speed",id,id,100) end
         M.players[id]=nil; a.statuses={}; return "Feast White Mage disabled."

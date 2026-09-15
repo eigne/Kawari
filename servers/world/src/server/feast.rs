@@ -1,7 +1,82 @@
-//! Opt-in Feast White Mage prototype. The Lua rules never replace retail actions.
+//! Territory-scoped Feast White Mage rules and native action routing.
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_requests_enable_arena_rules_and_keep_cast_sequence() {
+        let lua = Lua::new();
+        let table: Table = lua
+            .load(include_str!(
+                "../../../../resources/scripts/feast/WhiteMage.lua"
+            ))
+            .eval()
+            .unwrap();
+        lua.globals().set("feast", table).unwrap();
+        let mut instance = Instance::default();
+        instance.zone.id = 745;
+        instance.feast_whm = Some(FeastWhiteMage {
+            lua,
+            started: Instant::now(),
+            native_requests: HashMap::new(),
+        });
+        let id = ObjectId(1);
+        instance.insert_empty_actor(id);
+        let common = instance.find_actor_mut(id).unwrap().get_common_spawn_mut();
+        common.class_job = 24;
+        common.health_points = 1000;
+        common.max_health_points = 20000;
+        common.resource_points = 10000;
+        common.max_resource_points = 10000;
+        let network = Arc::new(Mutex::new(NetworkState::default()));
+        let request = kawari::ipc::zone::ActionRequest {
+            action_id: 135,
+            action_type: ActionType::Action,
+            sequence: 42,
+            target: kawari::common::ObjectTypeId {
+                object_id: id,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        native_action(&mut instance, &network, id, &request, Some(57));
+        let engine = instance.feast_whm.as_ref().unwrap();
+        assert!(engine.enabled(id));
+        assert_eq!(engine.native_requests[&id].sequence, 42);
+        assert_eq!(
+            instance
+                .find_actor(id)
+                .unwrap()
+                .get_common_spawn()
+                .health_points,
+            1000
+        );
+        let mut denied = request.clone();
+        denied.sequence = 43;
+        native_action(&mut instance, &network, id, &denied, Some(57));
+        let engine = instance.feast_whm.as_ref().unwrap();
+        assert_eq!(engine.native_requests[&id].sequence, 42);
+        engine.function("advance").unwrap().call::<()>(2.0).unwrap();
+        let events = engine.drain().unwrap();
+        apply(&mut instance, &network, events);
+        assert!(
+            instance
+                .feast_whm
+                .as_ref()
+                .unwrap()
+                .native_requests
+                .is_empty()
+        );
+        assert!(
+            instance
+                .find_actor(id)
+                .unwrap()
+                .get_common_spawn()
+                .health_points
+                > 1000
+        );
+        assert_eq!(native_action_name(25859), Some("glare"));
+        assert_eq!(native_action_name(u32::MAX), None);
+    }
     #[test]
     fn feast_presentation_uses_current_actions_without_mutating_hp() {
         let mut instance = Instance::default();
@@ -90,6 +165,7 @@ mod tests {
         instance.feast_whm = Some(FeastWhiteMage {
             lua,
             started: Instant::now(),
+            native_requests: HashMap::new(),
         });
         for id in [ObjectId(1), ObjectId(2)] {
             instance.insert_empty_actor(id);
@@ -161,7 +237,7 @@ mod tests {
     }
 }
 
-use std::{sync::Arc, time::Instant};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use kawari::{
     common::{CharacterMode, ObjectId, Position},
@@ -187,6 +263,7 @@ use crate::FromServer;
 pub struct FeastWhiteMage {
     lua: Lua,
     started: Instant,
+    native_requests: HashMap<ObjectId, kawari::ipc::zone::ActionRequest>,
 }
 
 #[derive(Serialize)]
@@ -231,6 +308,7 @@ impl FeastWhiteMage {
         Ok(Self {
             lua,
             started: Instant::now(),
+            native_requests: HashMap::new(),
         })
     }
 
@@ -336,7 +414,30 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                 if let Some(packet) = presentation(instance, &event) {
                     let mut network = network.lock();
                     let mut packet = packet;
+                    if let ServerZoneIpcData::ActorCast {
+                        action_id,
+                        spell_id,
+                        ..
+                    } = &mut packet
+                        && let Some(request) = instance
+                            .feast_whm
+                            .as_ref()
+                            .and_then(|engine| engine.native_requests.get(&source))
+                    {
+                        *action_id = request.action_id;
+                        *spell_id = request.action_id as u16;
+                    }
                     if let ServerZoneIpcData::ActionResult(ref mut result) = packet {
+                        if let Some(request) = instance
+                            .feast_whm
+                            .as_mut()
+                            .and_then(|engine| engine.native_requests.remove(&source))
+                        {
+                            result.source_sequence = request.sequence;
+                            result.action_id = request.action_id;
+                            result.spell_id = request.action_id as u16;
+                            result.action_type = request.action_type;
+                        }
                         result.global_sequence = network.global_action_sequence;
                         network.global_action_sequence =
                             network.global_action_sequence.wrapping_add(1);
@@ -350,6 +451,9 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                 }
             }
             "cancel" => {
+                if let Some(engine) = instance.feast_whm.as_mut() {
+                    engine.native_requests.remove(&target);
+                }
                 network.lock().send_to_by_actor_id(
                     target,
                     FromServer::ActorControlSelf(ActorControlCategory::CancelCast {}),
@@ -357,6 +461,19 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                 );
             }
             "interrupt" => instance.cancel_actor_tasks(target),
+            "temperance_visual" => {
+                if let Some(effects) = instance
+                    .find_actor_mut(target)
+                    .and_then(|actor| actor.status_effects_mut())
+                {
+                    if event.amount > 0 {
+                        effects.add(1872, 0, event.amount as f32);
+                    } else {
+                        effects.remove(1872);
+                    }
+                }
+                super::effect::send_effects_list(network.clone(), instance, target);
+            }
             "hp" | "mp" => {
                 if let Some(actor) = instance.find_actor_mut(target) {
                     let common = actor.get_common_spawn_mut();
@@ -509,6 +626,137 @@ fn presentation(instance: &Instance, event: &Event) -> Option<ServerZoneIpcData>
     })
 }
 
+pub(super) fn native_action_name(id: u32) -> Option<&'static str> {
+    // Include upgraded actions selected automatically by the current client.
+    match id {
+        119 | 127 | 3568 | 7431 | 25859 => Some("glare"),
+        121 | 132 => Some("dia"),
+        133 | 37010 => Some("medica"),
+        _ => [
+            "cure",
+            "cure2",
+            "medica",
+            "glare",
+            "dia",
+            "solace",
+            "rapture",
+            "misery",
+            "tetra",
+            "assize",
+            "temperance",
+            "purify",
+            "bolt",
+            "kit",
+            "repose",
+            "protect",
+            "rescue",
+            "largesse",
+            "attunement",
+            "rain",
+        ]
+        .into_iter()
+        .find(|name| animation_id(name) == Some(id)),
+    }
+}
+
+pub fn native_action(
+    instance: &mut Instance,
+    network: &Arc<Mutex<NetworkState>>,
+    actor: ObjectId,
+    request: &kawari::ipc::zone::ActionRequest,
+    cooldown_group: Option<u32>,
+) {
+    if instance.zone.id != 745 {
+        return;
+    }
+    tick(instance, network);
+    let name = (request.action_type == ActionType::Action)
+        .then(|| native_action_name(request.action_id))
+        .flatten();
+    let result = (|| -> mlua::Result<(String, Vec<Event>)> {
+        let engine = instance
+            .feast_whm
+            .as_ref()
+            .ok_or_else(|| mlua::Error::external("Feast currently supports White Mage only."))?;
+        let name =
+            name.ok_or_else(|| mlua::Error::external("This action is not in the Feast kit."))?;
+        if !engine.enabled(actor) {
+            return Err(mlua::Error::external(
+                "Equip White Mage to use the Feast kit.",
+            ));
+        }
+        if instance
+            .find_actor(actor)
+            .is_none_or(|a| a.get_common_spawn().class_job != 24)
+        {
+            return Err(mlua::Error::external(
+                "Feast currently supports White Mage only.",
+            ));
+        }
+        engine.sync(&snapshots(instance))?;
+        let target = if request.target.object_id.0 == 0xE0000000 {
+            0
+        } else {
+            request.target.object_id.0
+        };
+        let response = engine
+            .function("command")?
+            .call((actor.0, name, target, engine.now()))?;
+        Ok((response, engine.drain()?))
+    })();
+    match result {
+        Ok((response, events)) => {
+            let accepted = events.iter().any(|event| {
+                event.actor == actor.0 && matches!(event.kind.as_str(), "cast" | "animation")
+            });
+            if accepted {
+                instance
+                    .feast_whm
+                    .as_mut()
+                    .unwrap()
+                    .native_requests
+                    .insert(actor, request.clone());
+                if let Some(group) = cooldown_group {
+                    let engine = instance.feast_whm.as_ref().unwrap();
+                    match engine
+                        .function("recast")
+                        .and_then(|f| f.call::<(u32, u32)>((actor.0, name.unwrap(), engine.now())))
+                    {
+                        Ok((elapsed, total)) => network.lock().send_to_by_actor_id(
+                            actor,
+                            FromServer::ActorControlSelf(ActorControlCategory::SetCooldownTimer {
+                                cooldown_group: group,
+                                unk1: elapsed,
+                                unk2: total,
+                            }),
+                            DestinationNetwork::ZoneClients,
+                        ),
+                        Err(error) => {
+                            tracing::error!(%error, "Feast recast synchronization failed")
+                        }
+                    }
+                }
+            } else {
+                network.lock().send_to_by_actor_id(
+                    actor,
+                    FromServer::ActorControlSelf(ActorControlCategory::CancelCast {}),
+                    DestinationNetwork::ZoneClients,
+                );
+            }
+            apply(instance, network, events);
+            notice(network, actor, response);
+        }
+        Err(error) => {
+            notice(network, actor, error.to_string());
+            network.lock().send_to_by_actor_id(
+                actor,
+                FromServer::ActorControlSelf(ActorControlCategory::CancelCast {}),
+                DestinationNetwork::ZoneClients,
+            );
+        }
+    }
+}
+
 pub fn command(
     instance: &mut Instance,
     network: &Arc<Mutex<NetworkState>>,
@@ -520,6 +768,15 @@ pub fn command(
             network,
             actor,
             "Feast White Mage is only available in territory 745.".into(),
+        );
+        return;
+    }
+    if text.trim().eq_ignore_ascii_case("off") {
+        notice(
+            network,
+            actor,
+            "Feast rules apply automatically in this arena. Leave the arena for normal actions."
+                .into(),
         );
         return;
     }
@@ -561,6 +818,23 @@ pub fn command(
 }
 
 pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
+    if instance.zone.id != 745 {
+        return;
+    }
+    let players: Vec<_> = snapshots(instance)
+        .into_iter()
+        .filter(|actor| actor.player && actor.job == 24)
+        .map(|actor| ObjectId(actor.id))
+        .collect();
+    for actor in players {
+        if !instance
+            .feast_whm
+            .as_ref()
+            .is_some_and(|engine| engine.enabled(actor))
+        {
+            command(instance, network, actor, "on");
+        }
+    }
     let Some(engine) = instance.feast_whm.as_ref() else {
         return;
     };

@@ -1,5 +1,37 @@
 # Kawari Feast client plugin
 
+## Native server migration (in-game validation pending)
+
+The server now routes normal WHM action requests into Feast rules in territory
+745, automatically enables the rules there, and acknowledges native cast sequences.
+Outside 745 normal routing is unchanged. Other jobs do not yet have a Feast kit.
+`!whm off` cannot bypass arena rules. Disable this plugin for native testing;
+otherwise its command interception and VFX hooks still bypass/duplicate native behavior.
+
+Assign the first test buttons using the game's own commands:
+
+```text
+/hotbar set "Glare" 1 1
+/hotbar set "Cure II" 1 2
+/hotbar set "Temperance" 1 3
+```
+
+The server accepts upgraded Glare/Stone IDs and returns the requested action ID.
+Feast damage, healing, interruption and cast timers still use Lua. Recast-details
+packets supply Feast elapsed/total values (GCD 2.4s, Temperance 60s).
+Temperance status 1872 now supplies the native wings for 15s, with removal at
+expiry/death. Native fade behavior still needs visual confirmation.
+
+First verify cast preparation/release, movement interruption, GCD sweep, and
+Temperance cooldown/wings with the plugin disabled. The current client defines
+Cure II as a 2s cast versus Feast's 1.5s, so verify the server cast update takes
+effect. Remaining actions retain modern client resource/target/charge checks:
+the full historical kit is **not yet confirmed plugin-free**. In particular,
+lily actions and mismatched charge counts need further migration work. Recast
+resynchronization after reconnect is not implemented yet.
+
+The remainder documents the previous plugin path, retained as a fallback.
+
 Dalamud API 15 / game build `2026.06.18.0000.0000`. Built against the user's
 matching Dalamud 15.0.2.3 runtime. Requires the Kawari Feast WHM server rules.
 

@@ -40,22 +40,27 @@ pub fn handle_action_messages(
 ) -> bool {
     if let ToServer::ActionRequest(from_id, from_actor_id, request) = msg {
         {
-            let data = data.lock();
-            if data
-                .find_actor_instance(*from_actor_id)
-                .is_some_and(|instance| {
-                    instance
-                        .feast_whm
-                        .as_ref()
-                        .is_some_and(|f| f.enabled(*from_actor_id))
-                })
+            let mut data = data.lock();
+            if let Some(instance) = data.find_actor_instance_mut(*from_actor_id)
+                && instance.zone.id == 745
             {
-                super::feast::notice(
+                let group = if request.action_type == ActionType::Action
+                    && super::feast::native_action_name(request.action_id).is_some()
+                {
+                    game_data
+                        .lock()
+                        .get_action_cooldown_group(request.action_id)
+                        .checked_sub(1)
+                } else {
+                    None
+                };
+                super::feast::native_action(
+                    instance,
                     &network,
                     *from_actor_id,
-                    "Use !whm <action> for Feast rules, or !whm off for normal actions.".into(),
+                    request,
+                    group.map(u32::from),
                 );
-                cancel_action(network.clone(), *from_id);
                 return true;
             }
         }

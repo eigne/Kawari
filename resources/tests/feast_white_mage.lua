@@ -150,4 +150,24 @@ test("presentation follows cast completion and interruption",function()
     for _,e in ipairs(m.drain()) do assert(e.kind~="animation");if e.kind=="cancel" then cancelled=true end end
     assert(cancelled);eq(m.actors[2].hp,1000)
 end)
+test("native recast values preserve GCD and sequential charges",function()
+    local m=fresh();m.command(1,"glare",3,0)
+    local elapsed,total=m.recast(1,"glare",0);eq(elapsed,0);eq(total,240)
+    elapsed,total=m.recast(1,"glare",1);eq(elapsed,100);eq(total,240)
+    m.advance(2.4);m.command(1,"temperance",0,2.4)
+    elapsed,total=m.recast(1,"temperance",2.4);eq(elapsed,0);eq(total,6000)
+    m.command(1,"tetra",2,2.4)
+    elapsed,total=m.recast(1,"tetra",2.4);eq(elapsed,1500);eq(total,3000)
+    m.command(1,"tetra",2,2.4)
+    elapsed,total=m.recast(1,"tetra",2.4);eq(elapsed,0);eq(total,3000)
+end)
+test("Temperance emits native visual start and expiry",function()
+    local m=fresh();m.drain();m.command(1,"temperance",0,0)
+    local starts=0
+    for _,e in ipairs(m.drain()) do if e.kind=="temperance_visual" then starts=starts+1;eq(e.amount,15) end end
+    eq(starts,1);m.advance(15)
+    local stops=0
+    for _,e in ipairs(m.drain()) do if e.kind=="temperance_visual" then stops=stops+1;eq(e.amount,0) end end
+    eq(stops,1)
+end)
 return count
