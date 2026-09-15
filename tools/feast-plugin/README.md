@@ -62,6 +62,17 @@ The earlier `OpenCastBar` hook did not fix the user's missing preparation pose.
 The packet hook logs accepted action IDs, resolved cast timelines, and the active
 base/upper-body timeline IDs to Astra's `dalamud.log` for live diagnosis.
 
+Preparation also needs two actor-attached VFX assets, separate from the motion:
+`Action.AnimationStart.VFX` and `Action.VFX.VFX`. The plugin resolves both keys
+from the installed sheets into `vfx/common/eff/<key>.avfx`, attaches them to the
+caster, and tracks only the handles it created. These are removed on movement,
+the cast deadline, leaving, or unload. A native removal hook forgets effects the
+game has already destroyed, avoiding stale handles during later cleanup. Release
+VFX are owned by the normal ActionResult handler and are never included in this
+cleanup. The actor-effect API signatures were checked against the supported
+executable; the implementation follows the documented native calls in
+[VFXEditor's resource loader](https://github.com/0ceal0t/Dalamud-VFXEditor/blob/main/VFXEditor/Interop/ResourceLoader.Vfx.cs).
+
 After updating the DLL, disable/re-enable Kawari Feast in Dalamud's plugin list.
 Verify each cast shows its preparation pose, moving midway stops it without a
 release, and a completed cast still plays its release when moving afterward.

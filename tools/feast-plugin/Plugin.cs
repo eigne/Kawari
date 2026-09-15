@@ -42,6 +42,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private readonly ICommandManager commands;
     private readonly IPluginLog log;
     private readonly IDataManager data;
+    private readonly CastEffects castEffects;
     private readonly Configuration config;
     private readonly Hook<ExecuteSlotDelegate> execute;
     private readonly Hook<ActorCastDelegate> actorCast;
@@ -59,19 +60,20 @@ public sealed unsafe class Plugin : IDalamudPlugin
 
     public Plugin(IDalamudPluginInterface pi, IClientState client, IObjectTable objects,
         IPlayerState player, IFramework framework, IChatGui chat, ICommandManager commands,
-        IGameInteropProvider interop, IPluginLog log, IDataManager data)
+        IGameInteropProvider interop, IPluginLog log, IDataManager data, ISigScanner scanner)
     {
         this.pi = pi; this.client = client; this.objects = objects; this.player = player;
         this.framework = framework; this.chat = chat; this.commands = commands; this.log = log;
         this.data = data;
         config = pi.GetPluginConfig() as Configuration ?? new Configuration();
+        castEffects = new CastEffects(scanner, interop, log);
         execute = interop.HookFromAddress<ExecuteSlotDelegate>(
             (nint)MemberFunctionPointers.ExecuteSlot, ExecuteSlot);
         actorCast = interop.HookFromAddress<ActorCastDelegate>(
             (nint)PacketDispatcher.MemberFunctionPointers.HandleActorCastPacket, ActorCast);
         execute.Enable();
         actorCast.Enable();
-        log.Information("Feast casting presentation v2 loaded: ActorCast packet hook enabled.");
+        log.Information("Feast casting presentation v3 loaded: preparation pose and casting VFX enabled.");
         framework.Update += Update;
         commands.AddHandler("/kfeast", new CommandInfo(Control) {
             HelpMessage = "status | restore (pause) | on. Feast slots automatically load in territory 745 as WHM."
@@ -129,6 +131,10 @@ public sealed unsafe class Plugin : IDalamudPlugin
             castingOrigin = local.Position;
             castingEnds = Environment.TickCount64 + (long)Math.Ceiling(packet->CastTime * 1000);
             actor->Timeline.TimelineSequencer.PlayTimeline(timeline);
+            castEffects.Start(local.Address, [
+                action.AnimationStart.Value.VFX.Value.Location.ToString(),
+                action.VFX.Value.VFX.Value.Location.ToString()
+            ]);
             log.Information("Feast cast animation requested; base={Base}, upper={Upper}",
                 actor->Timeline.TimelineSequencer.GetSlotTimeline(0),
                 actor->Timeline.TimelineSequencer.GetSlotTimeline(1));
@@ -138,6 +144,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
 
     private void StopCastingPose()
     {
+        castEffects.Stop();
         var address = castingActor;
         var timeline = castingTimeline;
         castingActor = 0;
@@ -255,5 +262,6 @@ public sealed unsafe class Plugin : IDalamudPlugin
         Restore();
         execute.Dispose();
         actorCast.Dispose();
+        castEffects.Dispose();
     }
 }
