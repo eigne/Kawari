@@ -5,6 +5,11 @@ The archived page's PvP section was last updated January 25, 2022. Historical ac
 
 ## Trying it
 
+For automatic spell buttons, use the [Kawari Feast Dalamud plugin](../../../tools/feast-plugin/README.md).
+It temporarily loads hotbars 1–2 upon entering as WHM and sends these commands
+internally when clicked or activated by keybind. No per-cast typing is required.
+The command controls below remain available for development and loadout setup.
+
 Equip White Mage, enter the restored arena with `!feast`, then enter:
 
 ```text
@@ -77,7 +82,7 @@ and temporary Feast effects.
 ## Prototype boundaries and assumptions
 
 * Current character maximum HP/MP remain unchanged. This is not a complete historical PvP stat profile.
-* Feast actions use chat feedback and HP/MP packets. Historical hotbar layout, action animations, status icons, cooldown UI, and gauge UI are not restored.
+* Feast actions send current-client cast/action animations plus HP/MP packets. The optional Dalamud plugin supplies temporary spell buttons; historical status icons, cooldown UI, and gauge UI are not restored. Placeholder names/tooltips can differ from the Feast action.
 * Internal Feast effects are reported by `!whm status`. Bolt uses the current client's Sprint movement effect for its ten-second duration.
 * The guide specifies the endpoints but not the curve for Medical Kit/Attunement. The prototype interpolates linearly by missing-HP fraction. Regen snapshots healing bonuses; periodic timing and multiplicative modifier stacking are implementation assumptions requiring historical verification.
 * Combat is inferred from NPC aggro and a ten-second window following damage or combat healing. Match-driven combat state and adrenaline generation are not implemented. Adrenaline must be filled with the explicit test command.

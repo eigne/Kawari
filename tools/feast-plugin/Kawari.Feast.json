@@ -1,0 +1,11 @@
+{
+  "Author": "Kawari",
+  "Name": "Kawari Feast",
+  "InternalName": "Kawari.Feast",
+  "AssemblyVersion": "0.1.0.0",
+  "Description": "Temporary Feast WHM hotbars for Kawari territory 745. Automatically restores the previous slots on exit. Requires the Kawari Feast server rules.",
+  "Punchline": "Cast Feast spells from normal hotbar buttons.",
+  "ApplicableVersion": "2026.06.18.0000.0000",
+  "DalamudApiLevel": 15,
+  "Tags": ["Kawari", "Feast"]
+}
