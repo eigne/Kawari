@@ -817,33 +817,131 @@ pub fn execute_normal_action(
 
     let key = request.action_id;
     if let Some(action_script) = state.action_scripts.get(&key) {
-        lua.0
-            .scope(|scope| {
-                let connection_data = scope.create_userdata_ref_mut(lua_player).unwrap();
+        let result = lua.0.scope(|scope| {
+            let connection_data = scope.create_userdata_ref_mut(lua_player)?;
 
-                lua.0
-                    .load(
-                        std::fs::read(action_script).expect("Failed to locate scripts directory!"),
-                    )
-                    .set_name("@".to_string() + action_script)
-                    .exec()
-                    .unwrap();
+            // Do not accidentally reuse the preceding action's function if
+            // this script fails to define its own entry point.
+            lua.0.globals().set("doAction", mlua::Value::Nil)?;
 
-                let func: Function = lua.0.globals().get("doAction").unwrap();
+            lua.0
+                .load(std::fs::read(action_script).map_err(mlua::Error::external)?)
+                .set_name("@".to_string() + action_script)
+                .exec()?;
 
-                effects_builder = Some(
-                    func.call::<EffectsBuilder>((connection_data, in_combo))
-                        .unwrap(),
-                );
+            let func: Function = lua.0.globals().get("doAction")?;
 
-                Ok(())
-            })
-            .unwrap();
+            effects_builder = Some(func.call::<EffectsBuilder>((connection_data, in_combo))?);
+
+            Ok(())
+        });
+        if let Err(error) = result {
+            tracing::error!(action_id = key, script = %action_script, %error, "Failed to execute action script");
+        }
     } else {
         tracing::warn!("Action {key} isn't scripted yet!");
     }
 
     effects_builder
+}
+
+#[cfg(test)]
+mod action_script_tests {
+    use super::*;
+    use kawari::ipc::zone::{DamageKind, DamageType};
+
+    #[test]
+    fn enemy_alias_and_stone_execute_after_script_errors() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let lua = mlua::Lua::new();
+        lua.globals()
+            .set(
+                "dofile",
+                lua.create_function(|_, _: String| Ok(())).unwrap(),
+            )
+            .unwrap();
+        lua.globals()
+            .set(
+                "registerAction",
+                lua.create_function(|lua, (id, path): (u32, String)| {
+                    assert_eq!(id, 870);
+                    lua.globals().set("enemy_script", path)
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        lua.load(std::fs::read(root.join("resources/scripts/Init.lua")).unwrap())
+            .exec()
+            .unwrap();
+        let enemy_script: String = lua.globals().get("enemy_script").unwrap();
+        assert!(enemy_script.ends_with("EnemyAutoAttack_00872.lua"));
+        lua.globals()
+            .set(
+                "EffectsBuilder",
+                lua.create_function(|_, ()| Ok(EffectsBuilder::default()))
+                    .unwrap(),
+            )
+            .unwrap();
+        lua.globals()
+            .set("DAMAGE_KIND_NORMAL", DamageKind::Normal)
+            .unwrap();
+        lua.globals()
+            .set("DAMAGE_TYPE_BLUNT", DamageType::Blunt)
+            .unwrap();
+        lua.globals()
+            .set("DAMAGE_TYPE_MAGIC", DamageType::Magic)
+            .unwrap();
+
+        let fixture = std::env::temp_dir().join(format!("kawari-action-{}.lua", fastrand::u64(..)));
+        let mut state = KawariLuaState::default();
+        state
+            .action_scripts
+            .insert(870, root.join(enemy_script).to_str().unwrap().to_owned());
+        state.action_scripts.insert(
+            119,
+            root.join("resources/scripts/actions/001/Stone_00119.lua")
+                .to_str()
+                .unwrap()
+                .to_owned(),
+        );
+        state
+            .action_scripts
+            .insert(999, fixture.to_str().unwrap().to_owned());
+        lua.set_app_data(state);
+        let lua = Arc::new(Mutex::new(KawariLua(lua)));
+        let mut player = LuaPlayer::default();
+        player.base_parameters.attack_magic_potency = 100;
+
+        for bad_script in [
+            "EnemyAutoAttack_00872.lua",
+            "function doAction() error('test') end",
+            "-- no entry point",
+        ] {
+            std::fs::write(&fixture, bad_script).unwrap();
+            let failed = ActionRequest {
+                action_id: 999,
+                ..Default::default()
+            };
+            assert!(execute_normal_action(lua.clone(), &failed, &mut player, false).is_none());
+            for (id, damage) in [(870, 1000), (119, 140)] {
+                let request = ActionRequest {
+                    action_id: id,
+                    ..Default::default()
+                };
+                let effects =
+                    execute_normal_action(lua.clone(), &request, &mut player, false).unwrap();
+                assert!(
+                    matches!(effects.effects[0].kind, EffectKind::Damage { amount, .. } if amount == damage)
+                );
+            }
+        }
+        std::fs::remove_file(&fixture).unwrap();
+        let missing = ActionRequest {
+            action_id: 999,
+            ..Default::default()
+        };
+        assert!(execute_normal_action(lua, &missing, &mut player, false).is_none());
+    }
 }
 
 /// Handles item actions, powered by Lua.

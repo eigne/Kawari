@@ -3,6 +3,10 @@ BASE_DIR = "resources/scripts/"
 dofile(BASE_DIR.."commands/Commands.lua")
 dofile(BASE_DIR.."items/Items.lua")
 
+-- Use the shared implementation directly: Git may check out the 870 symlink
+-- as a plain text filename on Windows.
+registerAction(870, BASE_DIR.."actions/000/EnemyAutoAttack_00872.lua")
+
 function onCommandRequiredRankInsufficientError(player)
     player:send_message("You do not have permission to run this command.")
 end
