@@ -38,15 +38,15 @@ No hooks, action interception, hotbar replacement or cast/VFX modifications.
 Requires client-side Dalamud for drawing; recovered native ULD compatibility is
 still unverified. Live-game rendering and notice delivery require user validation.
 
-## Artwork provenance
+## Visual design
 
-`assets/header.png` is a lossless PNG decode of the original recovered
-`ui/uld/pvpcolosseumheader.tex` (896×104), from local pre-removal patch
-`D2018.04.27.0000.0001.patch`. Decoded TEX SHA256:
-`1a586a38bc9ca12927676d80d8e5cf15a92e97d04d8f104fcd682c586e353f6d`.
-See target/feast-hud-recovery/manifest.json for the complete source inventory.
-The banner supplies the original blue/red motif and crest. Labels, numbers and
-background are drawn directly as simple text and shapes. No generated artwork.
+Graphite panels, thin dividers, neutral score rails, and Windows Bahnschrift
+(DIN-derived) typography. The player's team label has a subtle desaturated accent.
+The old blue/red banner is no longer loaded or included. UI shapes are drawn
+as vectors; no generated raster artwork is needed. Two managed font sizes are
+baked at higher resolution for crisp labels and numerals instead of scaling the
+small default ImGui font. This Windows client requires bahnschrift.ttf from the
+system Fonts directory; the font is not redistributed with the plugin.
 
 ## Validation
 

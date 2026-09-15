@@ -85,8 +85,23 @@ and [original starting medal rules](https://na.finalfantasyxiv.com/lodestone/top
 ## Display HUD
 
 The optional display-only `tools/feast-hud` Dalamud plugin shows live team medals,
-match time/phase, personal medals/cap, and ground medals using the recovered banner.
+match time/phase, personal medals/cap, and ground medals using a compact graphite HUD with Bahnschrift typography.
 It requests private `!feast hud` snapshots once per second in territory 745; no
 periodic traffic is sent for clients without it. The old combat plugin stays disabled.
 Native historical director/ULD activation is still not implemented. See the HUD
 README for installation and validation.
+
+
+### Native medal pickup visuals
+
+Drops use EObj 2007627 / ExportedSG 12640:
+`bgcommon/world/pvp/shared/for_bg/sgbg_w_pvp_002_01a.sgb`.
+This is the actual Feast prefab, not quest EObj 2002056 (lion medal).
+Its models are `bgcommon/world/pvp/002/bgparts/w_pvp_002_01a.mdl`
+through `_03a.mdl`, with `b0815coin1_o.avfx` through `b0815coin4_o.avfx`.
+The parsed SGB names its timelines `dropmedal_f1` (3), `dropmedal_c1` (5),
+and `dropmedal_n` (25). Spawn args1 selects 3/5 from the drop owner's team.
+Historical index verification places the SGB in D2019.05.29, the first model
+in D2016.12.17 and the first coin VFX in D2018.01.12. All are still present
+in the installed client. Native appearance and timeline activation need live
+validation; no client asset replacement or invented medal artwork is required.

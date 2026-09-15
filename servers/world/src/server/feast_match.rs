@@ -492,10 +492,15 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
             continue;
         }
         let id = Instance::generate_actor_id();
-        // Existing lion-medal model; exact historical Feast pile icons are a later UI task.
+        // Native Feast medal prefab: pvp/002, with dropmedal_f1/c1 timelines.
+        // The old 2002056 was a quest's lion medal with generic event-item VFX.
         let object = SpawnObject {
             kind: ObjectKind::EventObj,
-            base_id: 2002056,
+            base_id: 2007627,
+            args1: match drop.team {
+                Team::Fang => 3,
+                Team::Claw => 5,
+            },
             entity_id: id,
             position: Position(glam::Vec3::from_array(drop.position)),
             radius: 1.0,
