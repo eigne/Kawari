@@ -9,6 +9,9 @@
   - [Local development](setup/source.md)
   - [Profiling](profiling.md)
 - [Contributing](contributing.md)
+  - [Developer guide: architecture](development/architecture.md)
+    - [Gameplay systems](development/gameplay.md)
+    - [Building toward Feast 4v4](development/feast.md)
   - [Lua style guide](scripting/style_guide.md)
   - [New Patch in-game Checklist](update_ingame_checklist.md)
 
