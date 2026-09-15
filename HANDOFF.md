@@ -4,6 +4,18 @@ Updated 2026-09-15 (Asia/Tokyo). Workspace: `C:\dev\kawaridev\Kawari`.
 
 ## New continuation state (supersedes deployed-state notes below)
 
+COMMITTED through current native HUD work at user's request: c7c41846 duty entry,
+5daa44ae rules/director transport,6cab7e56 client HUD,1b84350c documentation.
+Oodle binary intentionally left untracked. Latest asset investigation finds all
+40 end/hit references for20 historical WHM actions and281 discovered dependency
+paths still present in June7.51h2. Protect17832 retains timeline451/1886, original
+protect_hit AVFX and Protes sound. Old rows keep names/timelines but Icon784 and
+IsPvP=false. New read-only tools/feast-assets audit +manifest records findings;
+details atop feast-white-mage.md. No action IDs or assets restored by this audit.
+Next action work: restore metadata/icons/tooltips and native original-ID routing,
+starting with live Protect caster/target playback; verify cast/recast/charge
+groups before swapping the entire kit. Native party follow-up still awaits test.
+
 LATEST CLIENT-ONLY FIX: User saw player/enemy lists reversed and cooldown numbers
 without dimming/radial animation. NativeDirector now explicitly assigns addon
 PartyList1 local Feast team and PartyList3 opposing team through verified +239

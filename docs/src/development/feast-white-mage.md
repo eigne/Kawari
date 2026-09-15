@@ -1,5 +1,40 @@
 # Feast White Mage prototype
 
+## Removed-action asset audit (2026-09-15)
+
+The installed June 7.51h2 client retains the historical action names and end/hit
+timeline references, despite disabling the old PvP rows (for example Protect
+17832 has IsPvP=false and placeholder icon784). This is metadata removal, not
+wholesale deletion of the associated animation/effect files.
+
+| Action | Surviving end timeline under chara/action/ |
+| --- | --- |
+| Protect | magic/cnj_white/protect.tmb (451) |
+| Attunement | ability/pvp_common/abl007.tmb (555) |
+| Largesse | rol_common/rol040.tmb (5457) |
+| Purify | ability/pvp_common/abl006.tmb (534) |
+| Rescue | rol_common/rol041.tmb (5458) |
+| Repose | rol_common/rol043.tmb (5463) |
+
+Protect's hit timeline1886 is also present, referencing the existing
+`vfx/action/mgc_protes1/eff/mgc_prot1t0h.avfx` and
+`sound/vfx/magic/SE_VFX_Magic_Protes_Lv1_t.scd`. Attunement retains its
+`vfx/action/ab_chameleon1/eff/abi_cham1c0c.avfx` effect.
+
+The read-only [audit utility](../../../tools/feast-assets/README.md) and recorded
+manifest verify all40 end/hit references for the20 WHM actions and281 distinct
+discovered dependency paths. None were missing. This bounded dependency scan
+does not prove all motion bindings or live playback and does not inspect cast
+timelines. No game asset files are committed.
+
+Replacement work should restore historical action metadata/icons/tooltips and
+route the original action IDs through the existing server-authoritative kit.
+Native animation packets can then reference those restored rows instead of
+Divine Benison/Aquaveil/etc. Keep cast timing, recast groups, charges, targeting
+flags, client action upgrades and exit restoration consistent while replacing
+both hotbar and presentation mappings. Verify Protect first on caster and target
+before switching the entire kit. This audit does not yet change live actions.
+
 ## Recheck against the user's archived guide (2026-09-15)
 
 Retrieved the exact April 9, 2022 Wayback snapshot again. Its HTML SHA-256 is

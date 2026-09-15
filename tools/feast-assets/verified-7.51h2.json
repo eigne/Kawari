@@ -1,0 +1,854 @@
+[
+  {
+    "id": 8895,
+    "name": "Cure",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 449,
+        "path": "chara/action/magic/cnj_white/carel.tmb",
+        "bytes": 675,
+        "dependencies": {
+          "chara/action/battle/magic_cnj_end.tmb": 583,
+          "sound/vfx/magic/SE_VFX_Magic_Cure_Lv1_c.scd": 47648,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_kearu1/eff/mgc_kearu1t0h.avfx": 12532,
+          "vfx/action/mgc_kearu1/texture/x0_kira_s03ah.atex": 5568,
+          "vfx/common/eff/cmcn_shoot1c.avfx": 62296,
+          "vfx/common/texture/aura002am.atex": 11040,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist602_c.atex": 21952,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ligt005ac.atex": 5568,
+          "vfx/common/texture/prsm001at.atex": 11040
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8896,
+    "name": "Cure II",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 458,
+        "path": "chara/action/magic/cnj_white/carel2.tmb",
+        "bytes": 672,
+        "dependencies": {
+          "chara/action/battle/magic_cnj_end.tmb": 583,
+          "sound/vfx/magic/SE_VFX_Magic_Cure2_t.scd": 47632,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_kearu2/eff/mgc_kearu2t0h.avfx": 29580,
+          "vfx/action/mgc_kearu2/texture/glow_x01bh.atex": 5541,
+          "vfx/action/mgc_kearu2/texture/psm_x04ah.atex": 11016,
+          "vfx/action/mgc_kearu2/texture/ring_x005a_h.atex": 11016,
+          "vfx/action/mgc_kearu2/texture/x0_kira_s03ah.atex": 5568,
+          "vfx/common/eff/cmcn_shoot1c.avfx": 62296,
+          "vfx/common/texture/aura002am.atex": 11040,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist602_c.atex": 21952,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ligt005ac.atex": 5568,
+          "vfx/common/texture/prsm001at.atex": 11040
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18945,
+    "name": "Medica",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 452,
+        "path": "chara/action/magic/cnj_white/carelga.tmb",
+        "bytes": 645,
+        "dependencies": {
+          "chara/action/battle/magic_cnj_end.tmb": 583,
+          "sound/vfx/magic/SE_VFX_Magic_Recover2_c.scd": 47664,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_carel2/eff/mgc_carel2m0h.avfx": 39952,
+          "vfx/action/mgc_carel2/texture/aura_u02ah.atex": 11016,
+          "vfx/action/mgc_carel2/texture/glow_x01ah.atex": 5541,
+          "vfx/action/mgc_carel2/texture/grad_u01bh.atex": 856,
+          "vfx/action/mgc_carel2/texture/pk_x01ah.atex": 11016,
+          "vfx/action/mgc_carel2/texture/psm_x04ah.atex": 11016,
+          "vfx/action/mgc_carel2/texture/x0_kira_s03ah.atex": 5568,
+          "vfx/common/eff/cmcn_shoot1c.avfx": 62296,
+          "vfx/common/texture/aura002am.atex": 11040,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist602_c.atex": 21952,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ligt005ac.atex": 5568,
+          "vfx/common/texture/prsm001at.atex": 11040
+        }
+      },
+      {
+        "timelineId": 1909,
+        "path": "chara/action/magic/cnj_white/carelga_hit.tmb",
+        "bytes": 178,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17789,
+    "name": "Glare",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 7122,
+        "path": "chara/action/magic/cnj_white/mgc004.tmb",
+        "bytes": 1017,
+        "dependencies": {
+          "chara/action/battle/magic_cnj_end.tmb": 583,
+          "sound/vfx/magic/SE_Vfx_Magic_Whm_TantaiMagic_c2t.scd": 52752,
+          "sound/vfx/magic/SE_Vfx_Magic_Whm_TantaiMagic_mt.scd": 43008,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_whm_mgc004/eff/mgc_cnj04c0h.avfx": 145592,
+          "vfx/action/mgc_whm_mgc004/eff/mgc_cnj04c1h.avfx": 6412,
+          "vfx/action/mgc_whm_mgc004/texture/aura_u37h.atex": 11016,
+          "vfx/action/mgc_whm_mgc004/texture/aura035ah.atex": 87488,
+          "vfx/action/mgc_whm_mgc004/texture/bl_line_01.atex": 5560,
+          "vfx/action/mgc_whm_mgc004/texture/flas001af.atex": 21944,
+          "vfx/action/mgc_whm_mgc004/texture/glow001bm.atex": 11016,
+          "vfx/action/mgc_whm_mgc004/texture/glow001f.atex": 21925,
+          "vfx/action/mgc_whm_mgc004/texture/htm_tuki01.atex": 43784,
+          "vfx/action/mgc_whm_mgc004/texture/htm001ah.atex": 11016,
+          "vfx/action/mgc_whm_mgc004/texture/htm001bh.atex": 21944,
+          "vfx/action/mgc_whm_mgc004/texture/kira05f.atex": 43784,
+          "vfx/action/mgc_whm_mgc004/texture/kona10ah.atex": 11016,
+          "vfx/action/mgc_whm_mgc004/texture/ligt010_c.atex": 5568,
+          "vfx/action/mgc_whm_mgc004/texture/psm_x001b_h.atex": 21952,
+          "vfx/action/mgc_whm_mgc004/texture/sonic_u15ah.atex": 21952,
+          "vfx/action/mgc_whm_mgc004/texture/tone_u05fh.atex": 1624,
+          "vfx/action/mgc_whm_mgc004/texture/uv_ora1.atex": 43784,
+          "vfx/action/mgc_whm_mgc004/texture/uvdis01h.atex": 11016,
+          "vfx/common/eff/cmcn_shoot1c.avfx": 62296,
+          "vfx/common/texture/aura002am.atex": 11040,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist602_c.atex": 21952,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ligt005ac.atex": 5568,
+          "vfx/common/texture/prsm001at.atex": 11040
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17790,
+    "name": "Dia",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 7124,
+        "path": "chara/action/magic/cnj_white/mgc005.tmb",
+        "bytes": 684,
+        "dependencies": {
+          "chara/action/battle/magic_cnj_end.tmb": 583,
+          "sound/vfx/magic/SE_Vfx_Magic_Whm_PlainDoT_mt.scd": 87472,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_whm_mgc005/eff/mgc_cnj005t0h.avfx": 122816,
+          "vfx/action/mgc_whm_mgc005/texture/aura035ah.atex": 87488,
+          "vfx/action/mgc_whm_mgc005/texture/bl_line_01.atex": 5560,
+          "vfx/action/mgc_whm_mgc005/texture/dist_002f.atex": 11016,
+          "vfx/action/mgc_whm_mgc005/texture/flas001ct.atex": 2824,
+          "vfx/action/mgc_whm_mgc005/texture/flash_x05ah.atex": 21925,
+          "vfx/action/mgc_whm_mgc005/texture/grd_line.atex": 5560,
+          "vfx/action/mgc_whm_mgc005/texture/hit_x001a_h.atex": 21925,
+          "vfx/action/mgc_whm_mgc005/texture/ligt010_c.atex": 5568,
+          "vfx/action/mgc_whm_mgc005/texture/line_mat.atex": 43784,
+          "vfx/action/mgc_whm_mgc005/texture/sonic_u002a_h.atex": 21925,
+          "vfx/action/mgc_whm_mgc005/texture/tk_aura001u.atex": 11016,
+          "vfx/action/mgc_whm_mgc005/texture/uv_cryst_128h.atex": 11016,
+          "vfx/action/mgc_whm_mgc005/texture/uv_elc_128ah.atex": 11016,
+          "vfx/action/mgc_whm_mgc005/texture/uv_ora1.atex": 43784,
+          "vfx/action/mgc_whm_mgc005/texture/x1_uv_grd_1_v1.atex": 2904,
+          "vfx/common/eff/cmcn_shoot1c.avfx": 62296,
+          "vfx/common/texture/aura002am.atex": 11040,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist602_c.atex": 21952,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ligt005ac.atex": 5568,
+          "vfx/common/texture/prsm001at.atex": 11040
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17791,
+    "name": "Afflatus Solace",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 7129,
+        "path": "chara/action/ability/cnj_white/abl018.tmb",
+        "bytes": 651,
+        "dependencies": {
+          "chara/action/battle/magic_cnj_end.tmb": 583,
+          "sound/vfx/magic/SE_Vfx_Magic_Whm_LilyTantai_mt.scd": 56016,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_cnj018/eff/abi_cnj018t0h.avfx": 102296,
+          "vfx/action/ab_cnj018/texture/bl_line_01.atex": 5560,
+          "vfx/action/ab_cnj018/texture/dist_uv_f.atex": 11016,
+          "vfx/action/ab_cnj018/texture/dust001af.atex": 21925,
+          "vfx/action/ab_cnj018/texture/flas001bt.atex": 2824,
+          "vfx/action/ab_cnj018/texture/flas001ct.atex": 2824,
+          "vfx/action/ab_cnj018/texture/glow002bf.atex": 21925,
+          "vfx/action/ab_cnj018/texture/grd001bh.atex": 11104,
+          "vfx/action/ab_cnj018/texture/hp_tm_gr.atex": 11016,
+          "vfx/action/ab_cnj018/texture/hp_tm.atex": 5568,
+          "vfx/action/ab_cnj018/texture/pr2.atex": 21944,
+          "vfx/action/ab_cnj018/texture/ston015bh.atex": 11016,
+          "vfx/action/ab_cnj018/texture/uv_priz_2.atex": 11016,
+          "vfx/action/ab_cnj018/texture/uv_sibuki1h.atex": 21944,
+          "vfx/common/eff/cmcn_shoot1c.avfx": 62296,
+          "vfx/common/texture/aura002am.atex": 11040,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist602_c.atex": 21952,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ligt005ac.atex": 5568,
+          "vfx/common/texture/prsm001at.atex": 11040
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18946,
+    "name": "Afflatus Rapture",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 7125,
+        "path": "chara/action/ability/cnj_white/abl015.tmb",
+        "bytes": 623,
+        "dependencies": {
+          "chara/action/battle/magic_cnj_end.tmb": 583,
+          "sound/vfx/magic/SE_Vfx_Magic_Whm_LilyRange_c.scd": 84864,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_cnj015/eff/abi_cnj015c0h.avfx": 226116,
+          "vfx/action/ab_cnj015/texture/aura_u67bh.atex": 11016,
+          "vfx/action/ab_cnj015/texture/aura035ah.atex": 87488,
+          "vfx/action/ab_cnj015/texture/bl_line_01.atex": 5560,
+          "vfx/action/ab_cnj015/texture/dist_uv_f.atex": 11016,
+          "vfx/action/ab_cnj015/texture/dist02.atex": 5560,
+          "vfx/action/ab_cnj015/texture/flas001bt.atex": 2824,
+          "vfx/action/ab_cnj015/texture/flas001ct.atex": 2824,
+          "vfx/action/ab_cnj015/texture/flea_grd01i.atex": 5560,
+          "vfx/action/ab_cnj015/texture/glow001bm.atex": 11016,
+          "vfx/action/ab_cnj015/texture/grd001bh.atex": 11104,
+          "vfx/action/ab_cnj015/texture/n_ring8f.atex": 11016,
+          "vfx/action/ab_cnj015/texture/pr2.atex": 21944,
+          "vfx/action/ab_cnj015/texture/uv_dis_1h.atex": 11016,
+          "vfx/action/ab_cnj015/texture/uv_obi02ah.atex": 21944,
+          "vfx/action/ab_cnj015/texture/uv_priz_2.atex": 11016,
+          "vfx/action/ab_cnj015/texture/uv_sibuki1h.atex": 21944,
+          "vfx/action/ab_cnj015/texture/uvrin1h.atex": 21944,
+          "vfx/common/eff/cmcn_shoot1c.avfx": 62296,
+          "vfx/common/texture/aura002am.atex": 11040,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist602_c.atex": 21952,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ligt005ac.atex": 5568,
+          "vfx/common/texture/prsm001at.atex": 11040
+        }
+      },
+      {
+        "timelineId": 7126,
+        "path": "chara/action/ability/cnj_white/abl015_hit.tmb",
+        "bytes": 432,
+        "dependencies": {
+          "sound/vfx/magic/SE_Vfx_Magic_Whm_LilyRange_st.scd": 43984,
+          "vfx/action/ab_cnj015/eff/abi_cnj015t0h.avfx": 56828,
+          "vfx/action/ab_cnj015/texture/dist_u01ah.atex": 11016,
+          "vfx/action/ab_cnj015/texture/flas001bt.atex": 2824,
+          "vfx/action/ab_cnj015/texture/flas001ct.atex": 2824,
+          "vfx/action/ab_cnj015/texture/glow002bf.atex": 21925,
+          "vfx/action/ab_cnj015/texture/pr2.atex": 21944,
+          "vfx/action/ab_cnj015/texture/uv_sibuki1h.atex": 21944
+        }
+      }
+    ]
+  },
+  {
+    "id": 17793,
+    "name": "Afflatus Misery",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 7127,
+        "path": "chara/action/ability/cnj_white/abl016.tmb",
+        "bytes": 1050,
+        "dependencies": {
+          "sound/vfx/ability/SE_VFX_Abi_Whm_LilyRange_c.scd": 60080,
+          "sound/vfx/ability/SE_VFX_Abi_Whm_LilyRange_mt.scd": 84656,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_cnj016/eff/abi_cnj016c0h.avfx": 15536,
+          "vfx/action/ab_cnj016/eff/abi_cnj016t0h.avfx": 256056,
+          "vfx/action/ab_cnj016/texture/app_grd_1h.atex": 5560,
+          "vfx/action/ab_cnj016/texture/aura_u044ah.atex": 5560,
+          "vfx/action/ab_cnj016/texture/aura_u08ah.atex": 5560,
+          "vfx/action/ab_cnj016/texture/aura035ah.atex": 87488,
+          "vfx/action/ab_cnj016/texture/bl_line_01.atex": 5560,
+          "vfx/action/ab_cnj016/texture/dist_002f.atex": 11016,
+          "vfx/action/ab_cnj016/texture/flas001af.atex": 21944,
+          "vfx/action/ab_cnj016/texture/flas001ah.atex": 21944,
+          "vfx/action/ab_cnj016/texture/flas001ct.atex": 2824,
+          "vfx/action/ab_cnj016/texture/glow001bf.atex": 21925,
+          "vfx/action/ab_cnj016/texture/glow001bm.atex": 11016,
+          "vfx/action/ab_cnj016/texture/grade_uv020at.atex": 11016,
+          "vfx/action/ab_cnj016/texture/grd001bh.atex": 11104,
+          "vfx/action/ab_cnj016/texture/hp_tm_gr.atex": 11016,
+          "vfx/action/ab_cnj016/texture/kira_s14ah.atex": 21952,
+          "vfx/action/ab_cnj016/texture/kona10ah.atex": 11016,
+          "vfx/action/ab_cnj016/texture/ston015bh.atex": 11016,
+          "vfx/action/ab_cnj016/texture/tk_aura001u.atex": 11016,
+          "vfx/action/ab_cnj016/texture/uv_cryst_128s.atex": 11016,
+          "vfx/action/ab_cnj016/texture/uv_dis_1h.atex": 11016,
+          "vfx/action/ab_cnj016/texture/uv_mask_grd2s.atex": 11016,
+          "vfx/action/ab_cnj016/texture/uv_ora_2.atex": 21944,
+          "vfx/action/ab_cnj016/texture/uv_priz_2.atex": 11016,
+          "vfx/action/ab_cnj016/texture/uv_sonic_01ah.atex": 11016,
+          "vfx/action/ab_cnj016/texture/x0_clock_toge01ah.atex": 5560,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 13975,
+    "name": "Tetragrammaton",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 3965,
+        "path": "chara/action/ability/cnj_white/abl009.tmb",
+        "bytes": 1143,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Whm_InstHeal_c.scd": 67648,
+          "sound/vfx/ability/SE_VFX_Abi_Whm_InstHeal_t.scd": 85696,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_cnj009/eff/ab_cnj009c0f.avfx": 15500,
+          "vfx/action/ab_cnj009/eff/ab_cnj009c1f.avfx": 43524,
+          "vfx/action/ab_cnj009/eff/ab_cnj009t0f.avfx": 68288,
+          "vfx/action/ab_cnj009/texture/aura_001f.atex": 21925,
+          "vfx/action/ab_cnj009/texture/aura_u04af.atex": 21952,
+          "vfx/action/ab_cnj009/texture/cy_uv0af.atex": 21944,
+          "vfx/action/ab_cnj009/texture/dist001bf.atex": 11016,
+          "vfx/action/ab_cnj009/texture/flas001af.atex": 21944,
+          "vfx/action/ab_cnj009/texture/flas001cf.atex": 2824,
+          "vfx/action/ab_cnj009/texture/flas001ct.atex": 2824,
+          "vfx/action/ab_cnj009/texture/glow001bf.atex": 21925,
+          "vfx/action/ab_cnj009/texture/glow001bm.atex": 11016,
+          "vfx/action/ab_cnj009/texture/glow601_c.atex": 5541,
+          "vfx/action/ab_cnj009/texture/hp_t0f.atex": 5568,
+          "vfx/action/ab_cnj009/texture/n_ring8f.atex": 11016,
+          "vfx/action/ab_cnj009/texture/pris_001f.atex": 11016,
+          "vfx/action/ab_cnj009/texture/pt_dst3f.atex": 11016,
+          "vfx/action/ab_cnj009/texture/tone002_f.atex": 2831,
+          "vfx/action/ab_cnj009/texture/uv_priz0f.atex": 11016,
+          "vfx/action/ab_cnj009/texture/uvrin1f.atex": 21944,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 9620,
+    "name": "Assize",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 3985,
+        "path": "chara/action/ability/cnj_white/abl010.tmb",
+        "bytes": 812,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Whm_PBAEDDHeal_c.scd": 101456,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_cnj010/eff/ab_cnj010c0f.avfx": 35412,
+          "vfx/action/ab_cnj010/eff/ab_cnj010c1f.avfx": 66964,
+          "vfx/action/ab_cnj010/texture/cy_uv0af.atex": 21944,
+          "vfx/action/ab_cnj010/texture/dist_uv_f.atex": 11016,
+          "vfx/action/ab_cnj010/texture/flas001bf.atex": 2824,
+          "vfx/action/ab_cnj010/texture/flas001cf.atex": 2824,
+          "vfx/action/ab_cnj010/texture/flas001ct.atex": 2824,
+          "vfx/action/ab_cnj010/texture/flash003f.atex": 21925,
+          "vfx/action/ab_cnj010/texture/glow001bf.atex": 21925,
+          "vfx/action/ab_cnj010/texture/line_001f.atex": 5543,
+          "vfx/action/ab_cnj010/texture/n_ring8f.atex": 11016,
+          "vfx/action/ab_cnj010/texture/pris_001f.atex": 11016,
+          "vfx/action/ab_cnj010/texture/tone_mk06f.atex": 5543,
+          "vfx/action/ab_cnj010/texture/uvrin1f.atex": 21944,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 4029,
+        "path": "chara/action/ability/cnj_white/abl010_hit.tmb",
+        "bytes": 431,
+        "dependencies": {
+          "sound/vfx/ability/SE_VFX_Abi_Whm_PBAEDDHeal_t.scd": 60096,
+          "vfx/action/ab_cnj010/eff/ab_cnj010t0f.avfx": 43656,
+          "vfx/action/ab_cnj010/texture/dist_uv_f.atex": 11016,
+          "vfx/action/ab_cnj010/texture/flas001cf.atex": 2824,
+          "vfx/action/ab_cnj010/texture/glow001f.atex": 21925,
+          "vfx/action/ab_cnj010/texture/pris_001f.atex": 11016,
+          "vfx/action/ab_cnj010/texture/uvrin1f.atex": 21944,
+          "vfx/action/ab_cnj010/texture/x1_nj_flash0f_p.atex": 11016
+        }
+      }
+    ]
+  },
+  {
+    "id": 17794,
+    "name": "Temperance",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 7128,
+        "path": "chara/action/ability/cnj_white/abl017.tmb",
+        "bytes": 813,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Whm_Angelaura_c.scd": 75200,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_cnj017/eff/abi_cnj017c0h.avfx": 36276,
+          "vfx/action/ab_cnj017/eff/abi_cnj017c1h.avfx": 60952,
+          "vfx/action/ab_cnj017/texture/dist_002f.atex": 11016,
+          "vfx/action/ab_cnj017/texture/flas001ah.atex": 21944,
+          "vfx/action/ab_cnj017/texture/flas001cf.atex": 2824,
+          "vfx/action/ab_cnj017/texture/grade_uv020at.atex": 11016,
+          "vfx/action/ab_cnj017/texture/kira_s14ah.atex": 21952,
+          "vfx/action/ab_cnj017/texture/nj_ring4h.atex": 11016,
+          "vfx/action/ab_cnj017/texture/tama003_bh.atex": 11016,
+          "vfx/action/ab_cnj017/texture/tk_aura001u.atex": 11016,
+          "vfx/action/ab_cnj017/texture/tm_bl_1s.atex": 11016,
+          "vfx/action/ab_cnj017/texture/tm_blnk1ah.atex": 11016,
+          "vfx/action/ab_cnj017/texture/uv_line_01.atex": 5543,
+          "vfx/action/ab_cnj017/texture/uv_priz_01.atex": 11016,
+          "vfx/action/ab_cnj017/texture/uvrin1h.atex": 21944,
+          "vfx/action/ab_cnj017/texture/x1_uv_cryst_01_f1.atex": 21944,
+          "vfx/action/ab_cnj017/texture/x5_uv_ora_1_y1.atex": 21952,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 1584,
+    "name": "Purify",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 534,
+        "path": "chara/action/ability/pvp_common/abl006.tmb",
+        "bytes": 730,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_CcDebuffKaijo.scd": 54624,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_co006/eff/abi_co006c0h.avfx": 74296,
+          "vfx/pvp/ab_co006/texture/bl_line_01.atex": 5560,
+          "vfx/pvp/ab_co006/texture/dist_002f.atex": 11016,
+          "vfx/pvp/ab_co006/texture/flas001ct.atex": 2824,
+          "vfx/pvp/ab_co006/texture/glow001bm.atex": 11016,
+          "vfx/pvp/ab_co006/texture/hit_x001a_h.atex": 21925,
+          "vfx/pvp/ab_co006/texture/ligt010_c.atex": 5568,
+          "vfx/pvp/ab_co006/texture/uv_obi01s.atex": 21944,
+          "vfx/pvp/ab_co006/texture/uv_priz_01.atex": 11016,
+          "vfx/pvp/ab_co006/texture/uvrin1h.atex": 21944
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18942,
+    "name": "Bolt",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 368,
+        "path": "chara/action/ability/no_mot_sprint.tmb",
+        "bytes": 490,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/abi_spnt1c0c.avfx": 47356,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18943,
+    "name": "Medical Kit",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 85,
+        "path": "chara/action/normal/item_end.tmb",
+        "bytes": 741,
+        "dependencies": {
+          "sound/vfx/item/SE_VFX_Item_use.scd": 37632,
+          "vfx/common/eff/quest_item0f.avfx": 16512,
+          "vfx/common/eff/quest_item1f.avfx": 13424,
+          "vfx/common/texture/dust001af.atex": 21925,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow001f.atex": 21925,
+          "vfx/common/texture/pk_x001a_h.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17690,
+    "name": "Repose",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 5463,
+        "path": "chara/action/rol_common/rol043.tmb",
+        "bytes": 2345,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Caster_GeneralPose_c.scd": 59328,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/eff/cmrl_shoot0c.avfx": 53896,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/bl_line_01.atex": 5560,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit001cm.atex": 5541,
+          "vfx/common/texture/hit0601ac.atex": 21925,
+          "vfx/common/texture/tk_snic002u.atex": 11016,
+          "vfx/common/texture/tm_bl_1s.atex": 11016,
+          "vfx/common/texture/tone004_c.atex": 2815,
+          "vfx/common/texture/uv_line_red_1s.atex": 2824
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17832,
+    "name": "Protect",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 451,
+        "path": "chara/action/magic/cnj_white/protect.tmb",
+        "bytes": 1338,
+        "dependencies": {
+          "chara/action/battle/magic_cnj_end.tmb": 583,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmcn_shoot1c.avfx": 62296,
+          "vfx/common/texture/aura002am.atex": 11040,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist602_c.atex": 21952,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ligt005ac.atex": 5568,
+          "vfx/common/texture/prsm001at.atex": 11040
+        }
+      },
+      {
+        "timelineId": 1886,
+        "path": "chara/action/magic/cnj_white/protect_hit.tmb",
+        "bytes": 429,
+        "dependencies": {
+          "sound/vfx/magic/SE_VFX_Magic_Protes_Lv1_t.scd": 50528,
+          "vfx/action/mgc_protes1/eff/mgc_prot1t0h.avfx": 47756,
+          "vfx/action/mgc_protes1/texture/grad_u03ah.atex": 11040
+        }
+      }
+    ]
+  },
+  {
+    "id": 17688,
+    "name": "Rescue",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 5458,
+        "path": "chara/action/rol_common/rol041.tmb",
+        "bytes": 1804,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Healer_Draw_c.scd": 48880,
+          "sound/vfx/ability/SE_VFX_Rol_Healer_Draw_t.scd": 50208,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol041/eff/pc_rol041c0c.avfx": 58492,
+          "vfx/pc_common/pc_rol041/eff/pc_rol041t0c.avfx": 11884,
+          "vfx/pc_common/pc_rol041/eff/pc_rol041t1c.avfx": 53212,
+          "vfx/pc_common/pc_rol041/texture/aura003af.atex": 5560,
+          "vfx/pc_common/pc_rol041/texture/dist_002f.atex": 11016,
+          "vfx/pc_common/pc_rol041/texture/glow001f.atex": 21925,
+          "vfx/pc_common/pc_rol041/texture/ligt010_c.atex": 5568,
+          "vfx/pc_common/pc_rol041/texture/ligt056_c.atex": 11016,
+          "vfx/pc_common/pc_rol041/texture/prsm001bt.atex": 11016,
+          "vfx/pc_common/pc_rol041/texture/ring007ac.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18957,
+    "name": "Largesse",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 5457,
+        "path": "chara/action/rol_common/rol040.tmb",
+        "bytes": 1303,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Healer_HealUp_c.scd": 68544,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol040/eff/pc_rol040c0c.avfx": 84468,
+          "vfx/pc_common/pc_rol040/texture/dist_uv_f.atex": 11016,
+          "vfx/pc_common/pc_rol040/texture/flas001af.atex": 21944,
+          "vfx/pc_common/pc_rol040/texture/flas001bt.atex": 2824,
+          "vfx/pc_common/pc_rol040/texture/flas001cf.atex": 2824,
+          "vfx/pc_common/pc_rol040/texture/flas001ct.atex": 2824,
+          "vfx/pc_common/pc_rol040/texture/glow002bf.atex": 21925,
+          "vfx/pc_common/pc_rol040/texture/n_ring9f.atex": 11016,
+          "vfx/pc_common/pc_rol040/texture/nj_ring4f.atex": 11016,
+          "vfx/pc_common/pc_rol040/texture/pr2.atex": 21944
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17689,
+    "name": "Attunement",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 555,
+        "path": "chara/action/ability/pvp_common/abl007.tmb",
+        "bytes": 736,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Chameleon_c.scd": 72608,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_chameleon1/eff/abi_cham1c0c.avfx": 72444,
+          "vfx/action/ab_chameleon1/texture/aura607_c.atex": 21952,
+          "vfx/action/ab_chameleon1/texture/glow002bf.atex": 21925,
+          "vfx/action/ab_chameleon1/texture/glow601_c.atex": 5541,
+          "vfx/action/ab_chameleon1/texture/hit007cm.atex": 11003,
+          "vfx/action/ab_chameleon1/texture/prsm001at.atex": 11040,
+          "vfx/action/ab_chameleon1/texture/snic004_c.atex": 11040,
+          "vfx/action/ab_chameleon1/texture/tone003_c.atex": 1624,
+          "vfx/action/ab_chameleon1/texture/uv_cryst_01.atex": 11016,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 3362,
+    "name": "Empyrean Rain",
+    "Icon": 784,
+    "IsPvP": false,
+    "timelines": [
+      {
+        "timelineId": 2248,
+        "path": "chara/action/limitbreak/lbk_healer_lv1.tmb",
+        "bytes": 1094,
+        "dependencies": {
+          "sound/vfx/lbk/SE_VFX_LBK_Healer_Hatsudo.scd": 54720,
+          "sound/vfx/lbk/SE_VFX_LBK_Healer_Lv1_c.scd": 189408,
+          "vfx/camera/eff/lbk_hea_lv1.avfx": 7188,
+          "vfx/common/eff/cmhl_shoot1f.avfx": 46192,
+          "vfx/common/texture/aura_001f.atex": 21925,
+          "vfx/common/texture/aura001ct.atex": 21952,
+          "vfx/common/texture/glow005cm.atex": 21925,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/ligt018_c.atex": 21925,
+          "vfx/common/texture/pris_001f.atex": 11016,
+          "vfx/common/texture/ring_nj.atex": 11016,
+          "vfx/limitbreak/lbk_healer_lv1/eff/lbk_healer_lv1cf.avfx": 101208,
+          "vfx/limitbreak/lbk_healer_lv1/texture/aura_001f.atex": 21925,
+          "vfx/limitbreak/lbk_healer_lv1/texture/dist_uv_f.atex": 11016,
+          "vfx/limitbreak/lbk_healer_lv1/texture/glow001f.atex": 21925,
+          "vfx/limitbreak/lbk_healer_lv1/texture/kira_001bm.atex": 2824,
+          "vfx/limitbreak/lbk_healer_lv1/texture/line_002f.atex": 5600,
+          "vfx/limitbreak/lbk_healer_lv1/texture/ns_ring4.atex": 11016,
+          "vfx/limitbreak/lbk_healer_lv1/texture/pris_001f.atex": 11016,
+          "vfx/limitbreak/lbk_healer_lv1/texture/ring003af.atex": 21925
+        }
+      },
+      {
+        "timelineId": 1880,
+        "path": "chara/action/limitbreak/lbk_healer_lv1_hit.tmb",
+        "bytes": 435,
+        "dependencies": {
+          "sound/vfx/lbk/SE_VFX_LBK_Healer_Lv1_t.scd": 60464,
+          "vfx/limitbreak/lbk_healer_lv1/eff/lbk_healer_lv1t.avfx": 41228,
+          "vfx/limitbreak/lbk_healer_lv1/texture/dist_uv_f.atex": 11016,
+          "vfx/limitbreak/lbk_healer_lv1/texture/glow001f.atex": 21925,
+          "vfx/limitbreak/lbk_healer_lv1/texture/pk01.atex": 21952,
+          "vfx/limitbreak/lbk_healer_lv1/texture/pris_001f.atex": 11016,
+          "vfx/limitbreak/lbk_healer_lv1/texture/x0_nj_awl0af_g.atex": 11016
+        }
+      }
+    ]
+  }
+]
