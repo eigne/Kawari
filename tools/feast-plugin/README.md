@@ -49,6 +49,19 @@ cast start/completion times. Primary-target hit/heal presentation reflects actua
 HP changes. AoE secondary-target floating numbers and historical exact VFX remain
 unfinished. These are presentation packets, not a second application of damage.
 
+For the local player's casted spells, the plugin hooks `ActionManager.OpenCastBar`
+and plays the action's `AnimationStart -> ActionCastTimeline.Name` timeline. The
+command transport bypasses normal `UseAction` startup, so the bar and completion
+packet alone were not starting the local casting pose. Movement, native cast
+cancellation, timeout, and plugin teardown clear only the owned casting timeline;
+they never reset a different timeline installed by the completion packet. The
+hook covers the four casted Feast spells (Glare, Cure, Cure II, Medica) and does
+not execute a native spell or change the server's damage/healing/cast rules.
+
+After updating the DLL, disable/re-enable Kawari Feast in Dalamud's plugin list.
+Verify each cast shows its preparation pose, moving midway stops it without a
+release, and a completed cast still plays its release when moving afterward.
+
 ## Build and install
 
 Install .NET 10 SDK. Put reference DLLs from a matching Dalamud runtime in

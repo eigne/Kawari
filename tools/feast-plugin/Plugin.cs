@@ -3,6 +3,8 @@ using Dalamud.Game.Command;
 using Dalamud.Hooking;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
@@ -37,25 +39,38 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private readonly IChatGui chat;
     private readonly ICommandManager commands;
     private readonly IPluginLog log;
+    private readonly IDataManager data;
     private readonly Configuration config;
     private readonly Hook<ExecuteSlotDelegate> execute;
+    private readonly Hook<OpenCastBarDelegate> openCastBar;
+    private bool nativeCastingSeen;
+    private nint castingActor;
+    private ushort castingTimeline;
+    private long castingEnds;
+    private System.Numerics.Vector3 castingOrigin;
     private bool active;
     private bool paused;
     private ulong character;
     private long nextCheck;
     private long nextClick;
     private delegate byte ExecuteSlotDelegate(RaptureHotbarModule* module, HotbarSlot* slot);
+    private delegate void OpenCastBarDelegate(ActionManager* manager, BattleChara* actor,
+        ActionType type, uint actionId, uint spellId, uint extraParam, float elapsed, float total);
 
     public Plugin(IDalamudPluginInterface pi, IClientState client, IObjectTable objects,
         IPlayerState player, IFramework framework, IChatGui chat, ICommandManager commands,
-        IGameInteropProvider interop, IPluginLog log)
+        IGameInteropProvider interop, IPluginLog log, IDataManager data)
     {
         this.pi = pi; this.client = client; this.objects = objects; this.player = player;
         this.framework = framework; this.chat = chat; this.commands = commands; this.log = log;
+        this.data = data;
         config = pi.GetPluginConfig() as Configuration ?? new Configuration();
         execute = interop.HookFromAddress<ExecuteSlotDelegate>(
             (nint)MemberFunctionPointers.ExecuteSlot, ExecuteSlot);
+        openCastBar = interop.HookFromAddress<OpenCastBarDelegate>(
+            (nint)ActionManager.MemberFunctionPointers.OpenCastBar, OpenCastBar);
         execute.Enable();
+        openCastBar.Enable();
         framework.Update += Update;
         commands.AddHandler("/kfeast", new CommandInfo(Control) {
             HelpMessage = "status | restore (pause) | on. Feast slots automatically load in territory 745 as WHM."
@@ -67,6 +82,19 @@ public sealed unsafe class Plugin : IDalamudPlugin
 
     private void Update(IFramework _)
     {
+        // Pose cleanup runs every frame, independently of the hotbar polling interval.
+        if (castingActor != 0)
+        {
+            var local = objects.LocalPlayer;
+            var sameActor = local != null && local.Address == castingActor;
+            var nativeCasting = sameActor && ((BattleChara*)castingActor)->CastInfo.IsCasting;
+            if (!active || !Eligible || local == null || local.Address != castingActor
+                || Environment.TickCount64 >= castingEnds
+                || (nativeCastingSeen && !nativeCasting)
+                || System.Numerics.Vector3.DistanceSquared(local.Position, castingOrigin) > 0.01f)
+                StopCastingPose();
+            else nativeCastingSeen |= nativeCasting;
+        }
         if (Environment.TickCount64 < nextCheck) return;
         nextCheck = Environment.TickCount64 + 250;
         try
@@ -80,6 +108,49 @@ public sealed unsafe class Plugin : IDalamudPlugin
             log.Error(error, "Feast hotbar update failed; paused to preserve the original layout.");
             chat.PrintError("Kawari Feast paused. Use /kfeast restore to restore your hotbars.");
         }
+    }
+
+    private void OpenCastBar(ActionManager* manager, BattleChara* actor, ActionType type,
+        uint actionId, uint spellId, uint extraParam, float elapsed, float total)
+    {
+        openCastBar.Original(manager, actor, type, actionId, spellId, extraParam, elapsed, total);
+        // ActorCast opens the bar, but command-driven local casts never ran UseAction's
+        // animation-start path. Repair presentation only after the server accepted a cast.
+        if (!active || !Eligible || actor == null || (nint)actor != objects.LocalPlayer?.Address
+            || type != ActionType.Action || total <= elapsed
+            || actionId is not (120 or 135 or 124 or 16533)) return;
+        try
+        {
+            var action = data.GetExcelSheet<Lumina.Excel.Sheets.Action>().GetRow(actionId);
+            var timeline = checked((ushort)action.AnimationStart.Value.Name.RowId);
+            if (timeline == 0) return;
+            StopCastingPose();
+            castingActor = (nint)actor;
+            castingTimeline = timeline;
+            castingOrigin = objects.LocalPlayer!.Position;
+            nativeCastingSeen = actor->CastInfo.IsCasting;
+            castingEnds = Environment.TickCount64 + (long)Math.Ceiling((total - elapsed) * 1000);
+            actor->Timeline.PlayActionTimeline(timeline);
+            log.Debug("Feast cast pose: action {Action}, timeline {Timeline}, duration {Duration}",
+                actionId, timeline, total - elapsed);
+        }
+        catch (Exception error) { log.Error(error, "Could not start Feast casting pose"); }
+    }
+
+    private void StopCastingPose()
+    {
+        var address = castingActor;
+        var timeline = castingTimeline;
+        castingActor = 0;
+        castingTimeline = 0;
+        nativeCastingSeen = false;
+        if (address == 0 || objects.LocalPlayer?.Address != address) return;
+        var actor = (BattleChara*)address;
+        // A completed ActionResult replaces the casting timeline with the release.
+        // Never reset that release, even if movement/cancellation follows completion.
+        for (uint slot = 0; slot < 14; slot++)
+            if (actor->Timeline.TimelineSequencer.GetSlotTimeline(slot) == timeline)
+                actor->Timeline.TimelineSequencer.SetSlotTimeline(slot, 0);
     }
 
     private void Enter()
@@ -124,6 +195,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
 
     private void Restore()
     {
+        StopCastingPose();
         active = false;
         var module = RaptureHotbarModule.Instance();
         if (module != null && client.IsLoggedIn) Recover(module);
@@ -181,7 +253,9 @@ public sealed unsafe class Plugin : IDalamudPlugin
         framework.Update -= Update;
         commands.RemoveHandler("/kfeast");
         execute.Disable();
+        openCastBar.Disable();
         Restore();
         execute.Dispose();
+        openCastBar.Dispose();
     }
 }
