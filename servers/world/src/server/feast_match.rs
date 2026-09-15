@@ -376,10 +376,12 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         .actors
         .iter()
         .filter_map(|(id, actor)| {
-            let NetworkedActor::Player { spawn, .. } = actor else {
+            if !matches!(actor, NetworkedActor::Player { .. })
+                && !instance.feast_dummies.contains_key(id)
+            {
                 return None;
-            };
-            let s = &spawn.common;
+            }
+            let s = actor.get_common_spawn();
             if s.max_health_points == 0 {
                 return None;
             }
@@ -391,7 +393,11 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
             })
         })
         .collect();
-    if inputs.is_empty() {
+    if !instance
+        .actors
+        .values()
+        .any(|actor| matches!(actor, NetworkedActor::Player { .. }))
+    {
         if let Some(mut m) = instance.feast_match.take() {
             let now = m.started.elapsed().as_secs_f64();
             let empty_since = *m.empty_since.get_or_insert(now);
@@ -401,6 +407,11 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
                     network.lock().remove_actor(instance, *object);
                 }
                 instance.feast_whm = None;
+                let dummies: Vec<_> = instance.feast_dummies.keys().copied().collect();
+                for dummy in dummies {
+                    network.lock().remove_actor(instance, dummy);
+                }
+                instance.feast_dummies.clear();
             } else {
                 instance.feast_match = Some(m);
             }
@@ -493,12 +504,31 @@ pub fn command(
         return;
     }
     tick(instance, network);
+    let words: Vec<_> = text.split_whitespace().collect();
+    if matches!(words.first(), Some(&"dummies") | Some(&"attack")) {
+        super::feast_training::command(instance, network, id, &words);
+        return;
+    }
+    if words.len() != 1 {
+        super::feast::notice(
+            network,
+            id,
+            "Use !feast status, !feast restart, !feast dummies [1-3], or !feast attack on|off."
+                .into(),
+        );
+        return;
+    }
     if text == "restart" {
         if instance
             .feast_match
             .as_ref()
             .is_some_and(|m| matches!(m.rules.phase, Phase::Finished(_)))
         {
+            if !instance.feast_dummies.is_empty() {
+                let count = instance.feast_dummies.len().to_string();
+                super::feast_training::command(instance, network, id, &["dummies", &count]);
+                return;
+            }
             instance.feast_match = None;
             instance.feast_whm = None;
             tick(instance, network);
@@ -536,6 +566,45 @@ pub fn command(
             );
         }
     }
+}
+
+pub fn reset_training(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
+    if let Some(old) = instance.feast_match.take() {
+        for object in old.objects.values() {
+            network.lock().remove_actor(instance, *object);
+        }
+    }
+    instance.feast_whm = None;
+    let mut rules = Match::new(0.0);
+    for (id, actor) in &instance.actors {
+        if !matches!(actor, NetworkedActor::Player { .. })
+            && !instance.feast_dummies.contains_key(id)
+        {
+            continue;
+        }
+        let s = actor.get_common_spawn();
+        rules.players.insert(
+            id.0,
+            Player {
+                team: if instance.feast_dummies.contains_key(id) {
+                    Team::Claw
+                } else {
+                    Team::Fang
+                },
+                job: s.class_job,
+                medals: 100,
+                position: s.position.0.to_array(),
+                alive: s.health_points > 0,
+                present: true,
+            },
+        );
+    }
+    instance.feast_match = Some(Runtime {
+        started: Instant::now(),
+        rules,
+        objects: BTreeMap::new(),
+        empty_since: None,
+    });
 }
 
 #[cfg(test)]

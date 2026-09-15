@@ -59,6 +59,7 @@ mod director;
 mod effect;
 mod feast;
 mod feast_match;
+mod feast_training;
 mod instance;
 mod linkshell;
 mod network;
@@ -391,6 +392,7 @@ fn server_logic_tick(
         for instance in &mut data.instances {
             feast_match::tick(instance, &network);
             feast::tick(instance, &network);
+            feast_training::tick(instance, &network);
             let mut haters = HashMap::new();
             npc_behavior::npc_behavior(
                 network.clone(),

@@ -115,6 +115,7 @@ pub struct Instance {
     pub enemy_ai_disabled: bool,
     pub feast_whm: Option<super::feast::FeastWhiteMage>,
     pub feast_match: Option<super::feast_match::Runtime>,
+    pub feast_dummies: HashMap<ObjectId, super::feast_training::Dummy>,
 }
 
 impl Instance {

@@ -17,6 +17,7 @@ pub use zone_connection::{
 mod database;
 pub use database::{Content, Unlock, WorldDatabase};
 
+pub mod feast_commands;
 pub mod lua;
 
 mod event;

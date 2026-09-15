@@ -12,6 +12,33 @@ Commands:
 * `!feast status`: time, team scores, your medals and cap.
 * `!feast restart`: start another countdown after a result.
 * `!feast leave`: leave the arena.
+* `!feast dummies [1-3]`: start fresh solo practice with stationary opponents.
+* `!feast attack on` / `!feast attack off`: enable/disable their retaliation.
+
+## Solo practice
+
+`!feast dummies` creates one opponent by default; use `!feast dummies 2` or `3`
+for more. Setup requires you to be the only real player in the arena and alive.
+It replaces prior test opponents, resets medals and the countdown, and restores
+your HP/MP. You are Fangs; all dummies are Claws. Multiple dummies deliberately
+make the teams uneven for testing.
+
+Dummies copy your appearance but are enemy NPCs so native hotbar targeting works
+without a PvP client mode. Each has 5,000 HP, 100 medals and the healer medal cap.
+They remain stationary and passive even when hit; generic NPC AI skips them.
+`!feast attack on` enables a 1,000-damage attack every 2.5 seconds within three
+yalms, subject to Feast mitigation. Countdown, result, death and range checks
+prevent attacks. `off` disables them immediately. They do not chase you.
+
+Kill an opponent and walk over its drop. As WHM, your initial capacity only allows
+25 of its 50 dropped medals. To test your own death, enable attacks and stand
+near a living opponent after the countdown. Use Return after death. Create new
+dummies to reset practice, or use `!feast restart` after a result. Dead dummies
+remain as corpses until the next setup; they do not auto-respawn.
+
+The shared `feast_commands::is_match_command` classifier bypasses the registered
+Lua `!feast` entry script for match/training subcommands. Without that bypass,
+Lua consumes `!feast status` before the world server sees it.
 
 Every participant starts with 100 medals. A KO drops half, rounded up. Only living
 opponents can collect a drop by walking within two yalms. Role caps are tank 200,

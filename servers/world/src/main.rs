@@ -1870,7 +1870,7 @@ async fn process_packet(
                                 .starts_with(DEBUG_COMMAND_TRIGGER)
                             {
                                 let msg = chat_message.message.to_string();
-                                let parts: Vec<&str> = msg.split(' ').collect();
+                                let parts: Vec<&str> = msg.split_whitespace().collect();
                                 let command_name = &parts[0][1..];
 
                                 {
@@ -1879,7 +1879,9 @@ async fn process_packet(
 
                                     // If a Lua command exists, try using that first
                                     if let Some(command_script) =
-                                        state.command_scripts.get(command_name)
+                                        state.command_scripts.get(command_name).filter(|_| {
+                                            !kawari_world::feast_commands::is_match_command(&msg)
+                                        })
                                     {
                                         let file_name = get_config()
                                             .filesystem

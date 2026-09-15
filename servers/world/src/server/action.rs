@@ -1168,6 +1168,10 @@ pub fn kill_actor(
     // Cancel existing tasks
     instance.cancel_actor_tasks(from_actor_id);
 
+    // Training dummies remain as corpses until the next practice setup.
+    if instance.feast_dummies.contains_key(&from_actor_id) {
+        return;
+    }
     // Queue up despawn if this is an NPC
     if let Some(actor) = instance.find_actor_mut(from_actor_id)
         && let NetworkedActor::Npc {

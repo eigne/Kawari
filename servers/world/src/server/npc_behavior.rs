@@ -41,6 +41,8 @@ pub fn npc_behavior(
     if instance.enemy_ai_disabled {
         return;
     }
+    let test_dummies: std::collections::HashSet<_> =
+        instance.feast_dummies.keys().copied().collect();
     let action_blocked: std::collections::HashSet<_> = instance
         .actors
         .keys()
@@ -73,6 +75,9 @@ pub fn npc_behavior(
 
         // const pass
         for (id, actor) in &instance.actors {
+            if test_dummies.contains(id) {
+                continue;
+            }
             if let NetworkedActor::Npc {
                 navmesh_path: current_path,
                 navmesh_path_lerp: current_path_lerp,
@@ -150,6 +155,9 @@ pub fn npc_behavior(
 
         // mut pass
         for (id, actor) in &mut instance.actors {
+            if test_dummies.contains(id) {
+                continue;
+            }
             if let NetworkedActor::Npc {
                 state,
                 navmesh_path: current_path,
@@ -407,6 +415,9 @@ pub fn npc_behavior(
 
         // create hate list
         for (id, actor) in &instance.actors {
+            if test_dummies.contains(id) {
+                continue;
+            }
             if let NetworkedActor::Npc {
                 state,
                 navmesh_target: current_target,

@@ -154,13 +154,18 @@ fn process_debug_commands(
     // TODO: Ensure the message has no SEString macros (e.g. auto-translate phrases)?
     let chat_message = chat_message.to_string();
 
-    let parts: Vec<&str> = chat_message.split(' ').collect();
+    let parts: Vec<&str> = chat_message.split_whitespace().collect();
 
     match parts[0] {
-        "!feast" if matches!(parts.get(1), Some(&"status") | Some(&"restart")) => {
+        "!feast" if crate::feast_commands::is_match_command(&chat_message) => {
             let mut data = data.lock();
             if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
-                super::feast_match::command(instance, &network, from_actor_id, parts[1]);
+                super::feast_match::command(
+                    instance,
+                    &network,
+                    from_actor_id,
+                    chat_message.strip_prefix("!feast").unwrap().trim(),
+                );
             }
             true
         }
