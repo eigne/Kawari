@@ -29,12 +29,8 @@ impl ZoneConnection {
         if self.player_data.volatile.zone_id != 745 { return; }
         let id = HandlerId::new(HandlerType::InstanceContent, 40001);
         if enabled {
-            if self.content_handler_id.0 != 0 { return; }
-            self.actor_control_self(ActorControlCategory::InitDirector {
-                handler_id: id, content_id: 40001, flags: 0,
-            }).await;
-            self.content_handler_id = id;
-            self.current_instance_id = Some(40001);
+            tracing::warn!("Legacy Feast director probe activation is disabled pending duty lifecycle integration");
+            return;
         } else if self.content_handler_id == id {
             self.actor_control_self(ActorControlCategory::TerminateDirector { handler_id: id }).await;
             self.content_handler_id = HandlerId::default();

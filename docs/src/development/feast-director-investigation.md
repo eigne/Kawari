@@ -71,3 +71,14 @@ Local research outputs (ignored target directory): director-current-sheets.txt,
 director-factory.txt, director_factory_ids.py, director-legacy-overrides.txt,
 director_live_probe.py; recovered Excel inputs in feast-director-research.
 Executable addresses above are preferred-base RVAs, specific to this client build.
+
+## Live probe outcome
+
+The user reported no visible effect, then an invisible character after relog and a
+ disconnect after attempting Triple Triad Battlehall. The server process remained
+alive; logs showed timeouts, without a recorded panic. This does not establish the
+precise cause. Activation is now disabled at both command and connection handlers.
+The server was restarted and the failure logs preserved. The next test must use
+valid duty metadata and the normal JoinContent/zone initialization sequence; first
+verify Sastasha as a baseline. Existing constructor code alone is insufficient
+proof of a functional native Feast duty.

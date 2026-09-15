@@ -847,6 +847,10 @@ pub fn command(
             ["director", "off"] => false,
             _ => { super::feast::notice(network, id, "Use !feast director on|off (compatibility test).".into()); return; }
         };
+        if enabled {
+            super::feast::notice(network, id, "Director testing is disabled while its loading issue is investigated.".into());
+            return;
+        }
         network.lock().send_to_by_actor_id(id, FromServer::FeastDirectorProbe(enabled), DestinationNetwork::ZoneClients);
         super::feast::notice(network, id, format!("Legacy director probe {}. Existing Feast rules continue; leave the arena or use !feast director off to end the probe.", if enabled { "requested" } else { "disabled" }));
         return;
