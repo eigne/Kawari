@@ -39,6 +39,26 @@ pub fn handle_action_messages(
     msg: &ToServer,
 ) -> bool {
     if let ToServer::ActionRequest(from_id, from_actor_id, request) = msg {
+        {
+            let data = data.lock();
+            if data
+                .find_actor_instance(*from_actor_id)
+                .is_some_and(|instance| {
+                    instance
+                        .feast_whm
+                        .as_ref()
+                        .is_some_and(|f| f.enabled(*from_actor_id))
+                })
+            {
+                super::feast::notice(
+                    &network,
+                    *from_actor_id,
+                    "Use !whm <action> for Feast rules, or !whm off for normal actions.".into(),
+                );
+                cancel_action(network.clone(), *from_id);
+                return true;
+            }
+        }
         let cast_time;
         {
             let mut game_data = game_data.lock();
@@ -308,6 +328,12 @@ pub fn execute_action(
                         damage_element,
                         ..
                     } => {
+                        *amount = super::feast::adjust_damage(
+                            instance,
+                            from_actor_id,
+                            request.target.object_id,
+                            *amount,
+                        );
                         let Some(actor) = instance.find_actor_mut(request.target.object_id) else {
                             return;
                         };
@@ -640,6 +666,13 @@ pub fn execute_enemy_action(
     from_actor_id: ObjectId,
     request: ActionRequest,
 ) {
+    if instance
+        .feast_whm
+        .as_ref()
+        .is_some_and(|f| f.blocked(from_actor_id, false))
+    {
+        return;
+    }
     // TODO: de-duplicate with the function above
 
     let mut lua_player = LuaPlayer {
@@ -669,7 +702,17 @@ pub fn execute_enemy_action(
     }
 
     // tell them the action results
-    if let Some(effects_builder) = effects_builder {
+    if let Some(mut effects_builder) = effects_builder {
+        for effect in &mut effects_builder.effects {
+            if let EffectKind::Damage { amount, .. } = &mut effect.kind {
+                *amount = super::feast::adjust_damage(
+                    instance,
+                    from_actor_id,
+                    request.target.object_id,
+                    *amount,
+                );
+            }
+        }
         // Update our internal data model to their new HP
         {
             let Some(actor) = instance.find_actor_mut(request.target.object_id) else {

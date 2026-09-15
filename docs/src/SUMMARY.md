@@ -12,6 +12,7 @@
   - [Developer guide: architecture](development/architecture.md)
     - [Gameplay systems](development/gameplay.md)
     - [Building toward Feast 4v4](development/feast.md)
+      - [Feast White Mage prototype](development/feast-white-mage.md)
   - [Lua style guide](scripting/style_guide.md)
   - [New Patch in-game Checklist](update_ingame_checklist.md)
 

@@ -41,6 +41,28 @@ pub fn npc_behavior(
     if instance.enemy_ai_disabled {
         return;
     }
+    let action_blocked: std::collections::HashSet<_> = instance
+        .actors
+        .keys()
+        .filter(|id| {
+            instance
+                .feast_whm
+                .as_ref()
+                .is_some_and(|f| f.blocked(**id, false))
+        })
+        .copied()
+        .collect();
+    let movement_blocked: std::collections::HashSet<_> = instance
+        .actors
+        .keys()
+        .filter(|id| {
+            instance
+                .feast_whm
+                .as_ref()
+                .is_some_and(|f| f.blocked(**id, true))
+        })
+        .copied()
+        .collect();
 
     // Only pathfind if there's navmesh data available.
     if instance.navmesh.is_available() {
@@ -61,6 +83,7 @@ pub fn npc_behavior(
                 ..
             } = actor
                 && current_target.is_some()
+                && !movement_blocked.contains(id)
                 && *state != NpcState::Dead
                 && spawn.common.health_points > 0
             {
@@ -143,6 +166,9 @@ pub fn npc_behavior(
                 && *state != NpcState::Dead
                 && spawn.common.health_points > 0
             {
+                if action_blocked.contains(id) {
+                    continue;
+                }
                 // NOTE: this is *intentional* as I believe in retail the timing of actions are dependent on when the actor spawned
                 // This doesn't have an effect if you re-aggro them or whatever.
                 *timeline_position += 1; // NOTE: change if the length of a server tick changes

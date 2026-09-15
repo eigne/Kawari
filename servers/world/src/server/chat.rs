@@ -157,6 +157,18 @@ fn process_debug_commands(
     let parts: Vec<&str> = chat_message.split(' ').collect();
 
     match parts[0] {
+        "!whm" => {
+            let mut data = data.lock();
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
+                super::feast::command(
+                    instance,
+                    &network,
+                    from_actor_id,
+                    chat_message.strip_prefix("!whm").unwrap_or_default().trim(),
+                );
+            }
+            true
+        }
         "!spawnmonster" => {
             if let Some((_, id)) = chat_message.split_once(' ')
                 && let Ok(id) = id.parse::<u32>()

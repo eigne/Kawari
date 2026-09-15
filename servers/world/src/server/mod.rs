@@ -57,6 +57,7 @@ mod actor;
 mod chat;
 mod director;
 mod effect;
+mod feast;
 mod instance;
 mod linkshell;
 mod network;
@@ -387,6 +388,7 @@ fn server_logic_tick(
         }
 
         for instance in &mut data.instances {
+            feast::tick(instance, &network);
             let mut haters = HashMap::new();
             npc_behavior::npc_behavior(
                 network.clone(),
@@ -706,7 +708,10 @@ fn server_logic_tick(
                     let is_dead = spawn.common.health_points == 0;
 
                     // Don't heal people who are in combat or dead, please.
-                    if in_combat || is_dead {
+                    if in_combat
+                        || is_dead
+                        || instance.feast_whm.as_ref().is_some_and(|f| f.enabled(*id))
+                    {
                         continue;
                     }
 
@@ -1187,6 +1192,21 @@ pub async fn server_main_loop(
                     let mut data = data.lock();
 
                     if let Some(instance) = data.find_actor_instance_mut(actor_id) {
+                        if instance
+                            .feast_whm
+                            .as_ref()
+                            .is_some_and(|f| f.blocked(actor_id, true))
+                        {
+                            if let Some(actor) = instance.find_actor(actor_id) {
+                                feast::correct_position(
+                                    instance,
+                                    &network,
+                                    actor_id,
+                                    actor.position(),
+                                );
+                            }
+                            continue;
+                        }
                         let mut moved = false;
                         if let Some((_, spawn)) = instance
                             .actors
@@ -1286,6 +1306,14 @@ pub async fn server_main_loop(
                             actor_id,
                             actor_type,
                         } => {
+                            {
+                                let mut data = data.lock();
+                                if let Some(instance) = data.find_actor_instance_mut(from_actor_id)
+                                    && let Some(actor) = instance.find_actor_mut(from_actor_id)
+                                {
+                                    actor.get_common_spawn_mut().target_id.object_id = *actor_id;
+                                }
+                            }
                             // For whatever reason these don't match what the server has to send back, so they cannot be directly reused.
                             let actor_type = match *actor_type {
                                 0 => ObjectTypeKind::None,
