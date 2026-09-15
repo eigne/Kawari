@@ -1025,6 +1025,29 @@ impl GameData {
         Some(content_finder_row.ShortCode)
     }
 
+    /// The restored Feast duty must agree across all three sheets before entry.
+    pub fn feast_duty_metadata_ready(&self) -> bool {
+        let Some(cfc) = self.content_finder_condition_sheet.row(476) else {
+            return false;
+        };
+        let Some(content) = self.instance_content_sheet.row(40022) else {
+            return false;
+        };
+        let Some(territory) = self.territory_type_sheet.row(745) else {
+            return false;
+        };
+        cfc.Content == 40022
+            && cfc.TerritoryType == 745
+            && cfc.ShortCode == "l1p2"
+            && cfc.ContentLinkType == 1
+            && content.InstanceContentType == 5
+            && content.ContentFinderCondition == 476
+            && content.TimeLimitmin > 0
+            && territory.ContentFinderCondition == 476
+            && territory.TerritoryIntendedUse == 28
+            && territory.Name == "l1p2"
+    }
+
     /// Returns the DefaultTalk for a given FateShop and rank.
     pub fn get_fate_default_talk(&mut self, fate_shop_id: u32, rank: u8) -> u32 {
         let sheet = FateShopSheet::read_from(&mut self.resource, Language::None).unwrap();
@@ -1642,6 +1665,17 @@ impl GameData {
 
 impl mlua::UserData for GameData {
     fn add_methods<M: mlua::UserDataMethods<Self>>(methods: &mut M) {
+        methods.add_method("feast_entry_mode", |_, this, _: ()| {
+            Ok(if this.feast_duty_metadata_ready() {
+                "duty"
+            } else if this.territory_type_sheet.row(745).is_some_and(|row| {
+                row.Name == "l1p2" && row.TerritoryIntendedUse == 1 && row.ContentFinderCondition == 0
+            }) {
+                "exploration"
+            } else {
+                "unavailable"
+            })
+        });
         methods.add_method_mut("get_pre_handler_target", |_, this, pre_handler_id: u32| {
             Ok(this.get_pre_handler_target(pre_handler_id))
         });

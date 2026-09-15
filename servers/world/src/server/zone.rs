@@ -977,7 +977,12 @@ pub fn change_zone_warp_to_entrance(
 ) {
     let exit_position;
     let exit_rotation;
-    if let Some(destination_object) = target_instance.zone.find_entrance() {
+    if target_instance.zone.id == 745 && target_instance.content_finder_condition_id == 476 {
+        // Feast has no dungeon entrance circle. Stage in the west jail; the
+        // authoritative match runtime assigns the player's team spawn afterward.
+        exit_position = Some(Position(Vec3::new(-58.0, 0.5, 0.0)));
+        exit_rotation = Some(std::f32::consts::FRAC_PI_2);
+    } else if let Some(destination_object) = target_instance.zone.find_entrance() {
         let (_, rotation, translation) =
             Affine3A::from(destination_object.transform).to_scale_rotation_translation();
         exit_position = Some(Position(translation));

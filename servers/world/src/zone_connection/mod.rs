@@ -342,6 +342,14 @@ impl ZoneConnection {
     }
 
     pub async fn register_for_content(&mut self, content_ids: [u16; 5]) {
+        if content_ids.contains(&476) {
+            let ready = self.gamedata.lock().feast_duty_metadata_ready();
+            if !ready {
+                self.send_notice("Feast duty metadata is not restored. Queue refused before director initialization.")
+                    .await;
+                return;
+            }
+        }
         self.queued_content = Some(content_ids[0]);
 
         // update

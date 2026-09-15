@@ -594,6 +594,13 @@ impl ZoneConnection {
     }
 
     pub async fn join_content(&mut self, id: u16) {
+        if id == 476 {
+            let ready = self.gamedata.lock().feast_duty_metadata_ready();
+            if !ready {
+                self.send_notice("Feast duty metadata is incomplete; entry refused.").await;
+                return;
+            }
+        }
         // Store our old information, for when we leave the instance
         self.old_zone_id = self.player_data.volatile.zone_id as u16;
         self.old_position = self.player_data.volatile.position;
