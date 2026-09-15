@@ -1,5 +1,5 @@
 //! Small-team Feast match rules. Time and positions are supplied by the world server.
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const COUNTDOWN: f64 = 60.0;
 pub const MATCH_TIME: f64 = 360.0;
@@ -371,8 +371,10 @@ use super::{
 };
 use crate::FromServer;
 use kawari::{
-    common::{ObjectId, Position},
-    ipc::zone::{ObjectKind, ServerZoneIpcData, ServerZoneIpcSegment, SpawnObject},
+    common::{ObjectId, Position, SharedGroupTimelineState},
+    ipc::zone::{
+        ActorControlCategory, ObjectKind, ServerZoneIpcData, ServerZoneIpcSegment, SpawnObject,
+    },
 };
 use parking_lot::Mutex;
 use std::{sync::Arc, time::Instant};
@@ -383,6 +385,112 @@ pub struct Runtime {
     pub rules: Match,
     objects: BTreeMap<u32, ObjectId>,
     empty_since: Option<f64>,
+    placed: BTreeSet<u32>,
+    gate_viewers: BTreeMap<u32, bool>,
+}
+
+// The start_col layer centers the two jails at x = +/-58, y = 0.25.
+// Collision and VFX are separate shared groups in the restored layout.
+const JAIL_LAYOUTS: [u32; 4] = [7403947, 7403946, 7515404, 7515405];
+const JAIL_EOBJS: [u32; 2] = [2008986, 2008987];
+
+pub fn team_spawn(team: Team, slot: usize) -> (Position, f32) {
+    let (x, rotation) = match team {
+        Team::Fang => (-58.0, std::f32::consts::FRAC_PI_2),
+        Team::Claw => (58.0, -std::f32::consts::FRAC_PI_2),
+    };
+    (
+        Position(glam::Vec3::new(x, 0.5, (slot % 4) as f32 * 2.0 - 3.0)),
+        rotation,
+    )
+}
+
+pub fn on_zone_loaded(instance: &mut Instance, actor: ObjectId) {
+    if let Some(runtime) = &mut instance.feast_match {
+        runtime.placed.remove(&actor.0);
+        runtime.gate_viewers.remove(&actor.0);
+    }
+}
+
+pub fn respawn(instance: &Instance, actor: ObjectId) -> (Position, f32) {
+    let team = instance
+        .feast_match
+        .as_ref()
+        .and_then(|m| m.rules.players.get(&actor.0))
+        .map(|p| p.team)
+        .unwrap_or(Team::Fang);
+    team_spawn(team, 1)
+}
+
+fn sync_jails(
+    instance: &mut Instance,
+    network: &Arc<Mutex<NetworkState>>,
+    runtime: &mut Runtime,
+    inputs: &[Input],
+) {
+    let closed = runtime.rules.phase == Phase::Countdown;
+    // Both prefab descriptor tables put ON in slot 1 and OFF in slot 3.
+    // These are bit masks, not raw animation sub-IDs.
+    let state = if closed {
+        SharedGroupTimelineState::TIMELINE_1
+    } else {
+        SharedGroupTimelineState::TIMELINE_3
+    };
+    for base in JAIL_EOBJS {
+        if let Some(id) = instance.find_object_by_eobj_id(base) {
+            if let Some(NetworkedActor::Object { object, .. }) = instance.find_actor_mut(id) {
+                object.args1 = state.bits();
+            }
+        }
+    }
+    runtime
+        .placed
+        .retain(|id| inputs.iter().any(|i| i.id == *id));
+    runtime
+        .gate_viewers
+        .retain(|id, _| inputs.iter().any(|i| i.id == *id));
+    for input in inputs {
+        let id = ObjectId(input.id);
+        if !matches!(instance.find_actor(id), Some(NetworkedActor::Player { .. })) {
+            continue;
+        }
+        if runtime.placed.insert(input.id) {
+            if let Some(player) = runtime.rules.players.get(&input.id) {
+                let slot = runtime
+                    .rules
+                    .players
+                    .iter()
+                    .filter(|(other, p)| **other < input.id && p.team == player.team)
+                    .count();
+                let (position, rotation) = team_spawn(player.team, slot);
+                if let Some(actor) = instance.find_actor_mut(id) {
+                    let spawn = actor.get_common_spawn_mut();
+                    spawn.position = position;
+                    spawn.rotation = rotation;
+                }
+                runtime.rules.players.get_mut(&input.id).unwrap().position = position.0.to_array();
+                super::feast::correct_position(instance, network, id, position);
+            }
+        }
+        if runtime.gate_viewers.get(&input.id) != Some(&closed) {
+            for layout_id in JAIL_LAYOUTS {
+                network.lock().send_to_by_actor_id(
+                    id,
+                    FromServer::ActorControl(
+                        id,
+                        ActorControlCategory::SetSharedGroupTimelineState {
+                            state,
+                            arg2: 0,
+                            object_type: 1,
+                            layout_id,
+                        },
+                    ),
+                    DestinationNetwork::ZoneClients,
+                );
+            }
+            runtime.gate_viewers.insert(input.id, closed);
+        }
+    }
 }
 
 pub fn can_act(instance: &Instance, actor: ObjectId) -> bool {
@@ -448,11 +556,14 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         rules: Match::new(0.0),
         objects: BTreeMap::new(),
         empty_since: None,
+        placed: BTreeSet::new(),
+        gate_viewers: BTreeMap::new(),
     });
     let now = runtime.started.elapsed().as_secs_f64();
     runtime.empty_since = None;
     let previous: Vec<_> = runtime.rules.players.keys().copied().collect();
     runtime.rules.step(now, &inputs);
+    sync_jails(instance, network, &mut runtime, &inputs);
     // Normal client countdown UI; match clock/scores are announced in chat for now.
     if runtime.rules.phase == Phase::Countdown {
         for input in &inputs {
@@ -498,8 +609,8 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
             kind: ObjectKind::EventObj,
             base_id: 2007627,
             args1: match drop.team {
-                Team::Fang => 3,
-                Team::Claw => 5,
+                Team::Fang => SharedGroupTimelineState::TIMELINE_3.bits(),
+                Team::Claw => SharedGroupTimelineState::TIMELINE_5.bits(),
             },
             entity_id: id,
             position: Position(glam::Vec3::from_array(drop.position)),
@@ -645,6 +756,8 @@ pub fn reset_training(instance: &mut Instance, network: &Arc<Mutex<NetworkState>
         rules,
         objects: BTreeMap::new(),
         empty_since: None,
+        placed: BTreeSet::new(),
+        gate_viewers: BTreeMap::new(),
     });
 }
 
@@ -677,6 +790,89 @@ mod tests {
     fn total(m: &Match) -> u16 {
         let (f, c) = m.scores();
         f + c + m.drops.iter().map(|d| d.medals).sum::<u16>()
+    }
+
+    #[test]
+    fn jails_place_teams_open_at_start_and_reset_for_next_match() {
+        let mut instance = Instance::default();
+        instance.zone.id = 745;
+        let network = Arc::new(Mutex::new(NetworkState::default()));
+        for id in [ObjectId(1), ObjectId(2)] {
+            instance.insert_empty_actor(id);
+            let p = instance.find_actor_mut(id).unwrap().get_common_spawn_mut();
+            p.class_job = 24;
+            p.health_points = 10000;
+            p.max_health_points = 10000;
+        }
+        for (n, base_id) in JAIL_EOBJS.into_iter().enumerate() {
+            let id = ObjectId(100 + n as u32);
+            instance.insert_object(
+                id,
+                SpawnObject {
+                    kind: ObjectKind::EventObj,
+                    entity_id: id,
+                    base_id,
+                    ..Default::default()
+                },
+                String::new(),
+            );
+        }
+        tick(&mut instance, &network);
+        for id in [ObjectId(1), ObjectId(2)] {
+            let team = instance.feast_match.as_ref().unwrap().rules.players[&id.0].team;
+            assert_eq!(
+                instance
+                    .find_actor(id)
+                    .unwrap()
+                    .get_common_spawn()
+                    .position
+                    .0
+                    .x,
+                team_spawn(team, 0).0.0.x
+            );
+        }
+        let gate = |instance: &Instance| match instance.find_actor(ObjectId(100)).unwrap() {
+            NetworkedActor::Object { object, .. } => object.args1,
+            _ => unreachable!(),
+        };
+        assert_eq!(gate(&instance), SharedGroupTimelineState::TIMELINE_1.bits());
+        instance.feast_match.as_mut().unwrap().rules.deadline = 0.0;
+        tick(&mut instance, &network);
+        assert_eq!(
+            instance.feast_match.as_ref().unwrap().rules.phase,
+            Phase::Active
+        );
+        assert_eq!(gate(&instance), SharedGroupTimelineState::TIMELINE_3.bits());
+        // Normal movement after the opening must not be snapped back into jail.
+        instance
+            .find_actor_mut(ObjectId(1))
+            .unwrap()
+            .get_common_spawn_mut()
+            .position = Position(glam::Vec3::ZERO);
+        tick(&mut instance, &network);
+        assert_eq!(
+            instance
+                .find_actor(ObjectId(1))
+                .unwrap()
+                .get_common_spawn()
+                .position
+                .0,
+            glam::Vec3::ZERO
+        );
+        instance.feast_match.as_mut().unwrap().rules.phase = Phase::Finished(None);
+        command(&mut instance, &network, ObjectId(1), "restart");
+        assert_eq!(gate(&instance), SharedGroupTimelineState::TIMELINE_1.bits());
+        assert_eq!(
+            instance
+                .find_actor(ObjectId(1))
+                .unwrap()
+                .get_common_spawn()
+                .position
+                .0
+                .x
+                .abs(),
+            58.0
+        );
     }
 
     #[test]

@@ -1170,6 +1170,8 @@ pub fn handle_zone_messages(
                 combo_sequence: 0,
             };
 
+            super::feast_match::on_zone_loaded(instance, *from_actor_id);
+
             true
         }
         ToServer::ChangeZone(
@@ -1311,8 +1313,10 @@ pub fn handle_zone_messages(
                 return true;
             }
             // The exploration arena has no duty director to choose a respawn.
-            // Keep its death returns at the same PC arrival used by !feast.
+            // Return each participant to their own team holding area.
             if instance.zone.id == 745 {
+                let (feast_position, feast_rotation) =
+                    super::feast_match::respawn(instance, *actor_id);
                 instance.cancel_actor_tasks(*actor_id);
                 let mut game_data = game_data.lock();
                 let mut network = network.lock();
@@ -1331,8 +1335,8 @@ pub fn handle_zone_messages(
                     &mut network,
                     target_instance,
                     needs_init_zone,
-                    Some(Position(Vec3::new(-37.0, 1.0, 0.0))),
-                    Some(1.570451),
+                    Some(feast_position),
+                    Some(feast_rotation),
                     *from_id,
                     WarpType::Resurrection,
                 );

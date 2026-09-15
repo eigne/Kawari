@@ -18,13 +18,12 @@ function onCommand(player, args, name)
         return
     end
 
-    -- The current arena's planmap.lgb contains a PC arrival at (-37, 0, 0).
-    -- Start slightly above its floor to allow the client to settle onto collision.
-    local position = { x = -37.0, y = 1.0, z = 0.0 }
     if player.zone.id == 745 then
-        player:set_position(position, 1.570451)
-    else
-        player:change_territory(745, position, 1.570451)
+        printf(player, "Already in the Feast arena. Use !feast status or !feast restart after a result.")
+        return
     end
+    -- Initial staging is inside the west jail. The match assigns the team and
+    -- moves the player to its correct jail as soon as the actor is initialized.
+    player:change_territory(745, { x = -58.0, y = 0.5, z = 0.0 }, 1.570796)
     printf(player, "Entering Crystal Tower Training Grounds. Match preparation starts automatically. Use !feast status for medals/time, !feast leave to exit.")
 end

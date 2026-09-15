@@ -100,8 +100,25 @@ This is the actual Feast prefab, not quest EObj 2002056 (lion medal).
 Its models are `bgcommon/world/pvp/002/bgparts/w_pvp_002_01a.mdl`
 through `_03a.mdl`, with `b0815coin1_o.avfx` through `b0815coin4_o.avfx`.
 The parsed SGB names its timelines `dropmedal_f1` (3), `dropmedal_c1` (5),
-and `dropmedal_n` (25). Spawn args1 selects 3/5 from the drop owner's team.
+and `dropmedal_n` (25). Spawn args1 selects timeline-slot masks 0x4/0x10 from the drop owner's team.
 Historical index verification places the SGB in D2019.05.29, the first model
 in D2016.12.17 and the first coin VFX in D2018.01.12. All are still present
 in the installed client. Native appearance and timeline activation need live
 validation; no client asset replacement or invented medal artwork is required.
+
+
+### Team jails and match opening
+
+Players stage at x=-58 (Fangs) or x=58 (Claws), y=0.5, with four spaced
+positions across each holding area. Jail centers come from the original start_col
+layout. Respawns use the same team side. Every new match places the players again;
+normal movement during a match is not overridden. Zone loads invalidate the
+client's cached gate state so reconnects receive the current state.
+
+The countdown closes both collision shared groups (7403947/7403946, bound EObjs
+2008986/2008987) and the separate VFX groups (7515404/7515405). All four receive
+SetSharedGroupTimelineState by layout ID: timeline slot 1 closes, slot 3 opens.
+Parsed collision animations are jail_r_on/off; the visual prefab has jail_b_on/off.
+The server also stores collision state in SpawnObject.args1 for subsequent spawns.
+The active phase opens the gates; they stay open through sudden death and results,
+and close for the next preparation. This uses native layout control, not a plugin.
