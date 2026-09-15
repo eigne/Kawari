@@ -1,7 +1,7 @@
 //! Small-team Feast match rules. Time and positions are supplied by the world server.
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const COUNTDOWN: f64 = 60.0;
+pub const COUNTDOWN: f64 = 10.0;
 pub const MATCH_TIME: f64 = 360.0;
 pub const SUDDEN_DEATH: f64 = 120.0;
 // The official guide does not specify these two values. Prototype tuning.
@@ -69,6 +69,12 @@ pub struct Drop {
     pub abandoned: bool,
 }
 
+#[derive(Clone, Debug)]
+pub struct PickupVisual {
+    pub drop_id: u32,
+    pub position: [f32; 3],
+}
+
 #[derive(Debug)]
 pub struct Match {
     pub phase: Phase,
@@ -78,6 +84,7 @@ pub struct Match {
     next_drop: u32,
     last_clock: u32,
     pub announcements: Vec<String>,
+    pub pickups: Vec<PickupVisual>,
 }
 
 impl Match {
@@ -90,6 +97,7 @@ impl Match {
             next_drop: 1,
             last_clock: u32::MAX,
             announcements: Vec::new(),
+            pickups: Vec::new(),
         }
     }
 
@@ -187,6 +195,7 @@ impl Match {
     }
 
     pub fn step(&mut self, now: f64, inputs: &[Input]) {
+        self.pickups.clear();
         if matches!(self.phase, Phase::Finished(_)) {
             return;
         }
@@ -330,6 +339,10 @@ impl Match {
                 if amount == 0 {
                     continue;
                 }
+                self.pickups.push(PickupVisual {
+                    drop_id: drop.id,
+                    position: drop.position,
+                });
                 self.drops[index].medals -= amount;
                 let p = self.players.get_mut(&id).unwrap();
                 p.medals += amount;
@@ -384,6 +397,7 @@ pub struct Runtime {
     started: Instant,
     pub rules: Match,
     objects: BTreeMap<u32, ObjectId>,
+    fading: BTreeMap<u32, (ObjectId, f64)>,
     empty_since: Option<f64>,
     placed: BTreeSet<u32>,
     gate_viewers: BTreeMap<(u32, u32), bool>,
@@ -583,7 +597,11 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
             let empty_since = *m.empty_since.get_or_insert(now);
             m.rules.step(now, &[]);
             if now - empty_since >= 30.0 {
-                for object in m.objects.values() {
+                for object in m
+                    .objects
+                    .values()
+                    .chain(m.fading.values().map(|(id, _)| id))
+                {
                     network.lock().remove_actor(instance, *object);
                 }
                 instance.feast_whm = None;
@@ -602,6 +620,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         started: Instant::now(),
         rules: Match::new(0.0),
         objects: BTreeMap::new(),
+        fading: BTreeMap::new(),
         empty_since: None,
         placed: BTreeSet::new(),
         gate_viewers: BTreeMap::new(),
@@ -635,6 +654,45 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
             }
         }
     }
+    let expired: Vec<_> = runtime
+        .fading
+        .iter()
+        .filter(|(_, (_, until))| now >= *until)
+        .map(|(id, (actor, _))| (*id, *actor))
+        .collect();
+    for (id, actor) in expired {
+        network.lock().remove_actor(instance, actor);
+        runtime.fading.remove(&id);
+    }
+    for pickup in &runtime.rules.pickups {
+        if runtime.fading.contains_key(&pickup.drop_id) {
+            continue;
+        }
+        let actor = runtime.objects.remove(&pickup.drop_id).unwrap_or_else(|| {
+            // A close-range KO can create and collect a pile in the same tick.
+            // Still spawn its native pickup effect instead of losing the feedback.
+            let id = Instance::generate_actor_id();
+            instance.insert_object(
+                id,
+                SpawnObject {
+                    kind: ObjectKind::EventObj,
+                    base_id: 2007627,
+                    entity_id: id,
+                    position: Position(glam::Vec3::from_array(pickup.position)),
+                    radius: 1.0,
+                    not_targetable: true,
+                    args1: SharedGroupTimelineState::TIMELINE_2.bits(),
+                    ..Default::default()
+                },
+                String::new(),
+            );
+            id
+        });
+        // Slot 2 is dropmedal_off_a: the animated removal, including the native
+        // placednpc_PvPpoint_depop sound. Its 50-frame timeline needs time to finish.
+        super::set_shared_group_timeline_state(instance, &mut network.lock(), actor, &[2]);
+        runtime.fading.insert(pickup.drop_id, (actor, now + 1.0));
+    }
     let obsolete: Vec<_> = runtime
         .objects
         .iter()
@@ -646,7 +704,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         runtime.objects.remove(&id);
     }
     for drop in &runtime.rules.drops {
-        if runtime.objects.contains_key(&drop.id) {
+        if runtime.objects.contains_key(&drop.id) || runtime.fading.contains_key(&drop.id) {
             continue;
         }
         let id = Instance::generate_actor_id();
@@ -728,7 +786,15 @@ pub fn command(
                 super::feast_training::command(instance, network, id, &["dummies", &count]);
                 return;
             }
-            instance.feast_match = None;
+            if let Some(old) = instance.feast_match.take() {
+                for object in old
+                    .objects
+                    .values()
+                    .chain(old.fading.values().map(|(id, _)| id))
+                {
+                    network.lock().remove_actor(instance, *object);
+                }
+            }
             instance.feast_whm = None;
             tick(instance, network);
         } else {
@@ -769,7 +835,11 @@ pub fn command(
 
 pub fn reset_training(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     if let Some(old) = instance.feast_match.take() {
-        for object in old.objects.values() {
+        for object in old
+            .objects
+            .values()
+            .chain(old.fading.values().map(|(id, _)| id))
+        {
             network.lock().remove_actor(instance, *object);
         }
     }
@@ -802,6 +872,7 @@ pub fn reset_training(instance: &mut Instance, network: &Arc<Mutex<NetworkState>
         started: Instant::now(),
         rules,
         objects: BTreeMap::new(),
+        fading: BTreeMap::new(),
         empty_since: None,
         placed: BTreeSet::new(),
         gate_viewers: BTreeMap::new(),
@@ -831,7 +902,7 @@ mod tests {
         let mut m = Match::new(0.0);
         let p = inputs();
         m.step(0.0, &p);
-        m.step(60.0, &p);
+        m.step(COUNTDOWN, &p);
         (m, p)
     }
     fn total(m: &Match) -> u16 {
@@ -1052,20 +1123,121 @@ mod tests {
     }
 
     #[test]
+    fn pickup_animates_before_cleanup_and_restores_partial_pile() {
+        let mut instance = Instance::default();
+        instance.zone.id = 745;
+        let network = Arc::new(Mutex::new(NetworkState::default()));
+        for id in [ObjectId(1), ObjectId(2)] {
+            instance.insert_empty_actor(id);
+            let p = instance.find_actor_mut(id).unwrap().get_common_spawn_mut();
+            p.class_job = 24;
+            p.health_points = 10000;
+            p.max_health_points = 10000;
+        }
+        tick(&mut instance, &network);
+        instance.feast_match.as_mut().unwrap().rules.deadline = 0.0;
+        tick(&mut instance, &network);
+        for id in [ObjectId(1), ObjectId(2)] {
+            instance
+                .find_actor_mut(id)
+                .unwrap()
+                .get_common_spawn_mut()
+                .position = Position(glam::Vec3::ZERO);
+        }
+        instance
+            .find_actor_mut(ObjectId(1))
+            .unwrap()
+            .get_common_spawn_mut()
+            .health_points = 0;
+        tick(&mut instance, &network); // KO and partial pickup happen in the same tick.
+        let runtime = instance.feast_match.as_ref().unwrap();
+        assert_eq!(runtime.rules.players[&2].medals, 125);
+        assert_eq!(runtime.rules.drops[0].medals, 25);
+        assert_eq!(runtime.rules.pickups.len(), 1);
+        let drop_id = runtime.rules.drops[0].id;
+        let fading_actor = runtime.fading[&drop_id].0;
+        let NetworkedActor::Object { object, .. } = instance.find_actor(fading_actor).unwrap()
+        else {
+            panic!()
+        };
+        assert_eq!(object.args1, SharedGroupTimelineState::TIMELINE_2.bits());
+        tick(&mut instance, &network);
+        assert!(
+            instance.find_actor(fading_actor).is_some(),
+            "retain the actor while its pickup animation/sound plays"
+        );
+        assert!(
+            instance
+                .feast_match
+                .as_ref()
+                .unwrap()
+                .rules
+                .pickups
+                .is_empty()
+        );
+        instance
+            .feast_match
+            .as_mut()
+            .unwrap()
+            .fading
+            .get_mut(&drop_id)
+            .unwrap()
+            .1 = 0.0;
+        tick(&mut instance, &network);
+        assert!(instance.find_actor(fading_actor).is_none());
+        let runtime = instance.feast_match.as_ref().unwrap();
+        assert!(
+            runtime.objects.contains_key(&drop_id),
+            "remaining medals must reappear"
+        );
+        assert_eq!(runtime.rules.drops[0].medals, 25);
+        instance
+            .feast_match
+            .as_mut()
+            .unwrap()
+            .rules
+            .players
+            .get_mut(&2)
+            .unwrap()
+            .medals = 100;
+        tick(&mut instance, &network); // Collect the remainder.
+        assert!(
+            instance
+                .feast_match
+                .as_ref()
+                .unwrap()
+                .rules
+                .drops
+                .is_empty()
+        );
+        instance
+            .feast_match
+            .as_mut()
+            .unwrap()
+            .fading
+            .get_mut(&drop_id)
+            .unwrap()
+            .1 = 0.0;
+        tick(&mut instance, &network);
+        let runtime = instance.feast_match.as_ref().unwrap();
+        assert!(runtime.objects.is_empty() && runtime.fading.is_empty());
+    }
+
+    #[test]
     fn hud_tracks_pickups_phase_and_spectators() {
         let (mut m, _) = active();
         assert_eq!(
-            m.hud_snapshot(61.0, 1),
+            m.hud_snapshot(COUNTDOWN + 1.0, 1),
             "KFEASTHUD1|active|359|100|100|fang|100|125|0"
         );
         m.players.get_mut(&1).unwrap().medals = 50;
         assert_eq!(
-            m.hud_snapshot(62.0, 99),
+            m.hud_snapshot(COUNTDOWN + 2.0, 99),
             "KFEASTHUD1|active|358|50|100|spectator|0|0|0"
         );
         m.phase = Phase::Finished(Some(Team::Claw));
         assert!(
-            m.hud_snapshot(63.0, 1)
+            m.hud_snapshot(COUNTDOWN + 3.0, 1)
                 .starts_with("KFEASTHUD1|claw|0|50|100|")
         );
     }
@@ -1077,9 +1249,9 @@ mod tests {
         m.step(0.0, &p);
         assert_eq!(m.scores(), (100, 100));
         assert!(!m.active(1, 24));
-        m.step(59.0, &p);
+        m.step(COUNTDOWN - 1.0, &p);
         assert_eq!(m.phase, Phase::Countdown);
-        m.step(60.0, &p);
+        m.step(COUNTDOWN, &p);
         assert!(m.active(1, 24));
         assert!(!m.active(1, 19));
         p.push(Input {
@@ -1088,9 +1260,9 @@ mod tests {
             position: [0.0; 3],
             alive: true,
         });
-        m.step(61.0, &p);
+        m.step(COUNTDOWN + 1.0, &p);
         assert!(!m.players.contains_key(&3));
-        assert_eq!(m.deadline, 420.0);
+        assert_eq!(m.deadline, COUNTDOWN + MATCH_TIME);
         assert_eq!(
             (
                 medal_limit(19),
@@ -1105,17 +1277,17 @@ mod tests {
     fn death_once_enemy_pickup_cap_overflow_and_expiry() {
         let (mut m, mut p) = active();
         p[0].alive = false;
-        m.step(61.0, &p);
+        m.step(COUNTDOWN + 1.0, &p);
         assert_eq!(m.players[&1].medals, 50);
         assert_eq!(m.drops[0].medals, 50);
-        m.step(62.0, &p);
+        m.step(COUNTDOWN + 2.0, &p);
         assert_eq!(m.drops.len(), 1);
         p[1].position = [0.0; 3];
-        m.step(63.0, &p);
+        m.step(COUNTDOWN + 3.0, &p);
         assert_eq!(m.players[&2].medals, 125);
         assert_eq!(m.drops[0].medals, 25);
         assert_eq!(total(&m), 200);
-        m.step(121.0, &p);
+        m.step(COUNTDOWN + DROP_LIFETIME + 1.0, &p);
         assert!(m.drops.is_empty());
         assert_eq!(m.scores(), (75, 125));
         assert_eq!(total(&m), 200);
@@ -1125,13 +1297,13 @@ mod tests {
         let (mut m, mut p) = active();
         p[0].alive = false;
         p[1].alive = false;
-        m.step(61.0, &p);
+        m.step(COUNTDOWN + 1.0, &p);
         p[0].alive = true;
         p[1].alive = true;
-        m.step(62.0, &p);
+        m.step(COUNTDOWN + 2.0, &p);
         assert_eq!(m.scores(), (50, 50));
         p[0].position = [10.0, 0.0, 0.0];
-        m.step(63.0, &p);
+        m.step(COUNTDOWN + 3.0, &p);
         // 50 held + 50 reserved leaves only 25 capacity.
         assert_eq!(m.players[&1].medals, 75);
         assert_eq!(m.drops.iter().find(|d| d.owner == 2).unwrap().medals, 25);
@@ -1141,39 +1313,39 @@ mod tests {
     fn match_end_freezes_scores_before_late_pickup() {
         let (mut m, mut p) = active();
         p[0].alive = false;
-        m.step(419.0, &p);
+        m.step(COUNTDOWN + MATCH_TIME - 1.0, &p);
         p[1].position = [0.0; 3];
-        m.step(420.0, &p);
+        m.step(COUNTDOWN + MATCH_TIME, &p);
         assert_eq!(m.phase, Phase::Finished(Some(Team::Claw)));
         assert_eq!(m.scores(), (50, 100));
-        m.step(500.0, &p);
+        m.step(COUNTDOWN + MATCH_TIME + 80.0, &p);
         assert_eq!(m.scores(), (50, 100));
     }
     #[test]
     fn sudden_death_pickup_wins_and_timeout_draws() {
         let (mut m, mut p) = active();
-        m.step(420.0, &p);
+        m.step(COUNTDOWN + MATCH_TIME, &p);
         assert_eq!(m.phase, Phase::SuddenDeath);
         p[0].alive = false;
-        m.step(421.0, &p);
+        m.step(COUNTDOWN + MATCH_TIME + 1.0, &p);
         assert_eq!(m.phase, Phase::SuddenDeath);
         p[1].position = [0.0; 3];
-        m.step(422.0, &p);
+        m.step(COUNTDOWN + MATCH_TIME + 2.0, &p);
         assert_eq!(m.phase, Phase::Finished(Some(Team::Claw)));
         let (mut m, p) = active();
-        m.step(540.0, &p);
+        m.step(COUNTDOWN + MATCH_TIME + SUDDEN_DEATH, &p);
         assert_eq!(m.phase, Phase::Finished(None));
     }
     #[test]
     fn disconnect_drops_all_and_reconnect_only_restores_unclaimed_medals() {
         let (mut m, mut p) = active();
-        m.step(61.0, &p[1..]);
+        m.step(COUNTDOWN + 1.0, &p[1..]);
         assert_eq!(m.players[&1].medals, 0);
         assert_eq!(m.drops[0].medals, 100);
         p[1].position = [0.0; 3];
-        m.step(62.0, &p[1..]);
+        m.step(COUNTDOWN + 2.0, &p[1..]);
         assert_eq!(m.drops[0].medals, 75);
-        m.step(63.0, &p);
+        m.step(COUNTDOWN + 3.0, &p);
         assert_eq!(m.scores(), (75, 125));
         assert!(m.drops.is_empty());
         assert_eq!(total(&m), 200);

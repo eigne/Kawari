@@ -1,6 +1,6 @@
 # Feast match prototype
 
-Territory 745 starts a 60-second preparation countdown when its first player
+Territory 745 starts a 10-second preparation countdown when its first player
 arrives. The server balances arrivals between Fangs and Claws, up to four on each
 side. Small teams (including solo testing) are allowed. The roster locks when the
 six-minute match begins. New arrivals wait for the next match; changing jobs during
@@ -64,9 +64,9 @@ matchmaking instances.
 
 The countdown uses the normal client countdown packet. The running clock and
 score changes use chat notices (every 30 seconds and each of the last 10 seconds)
-and `!feast status`; the historical Feast HUD is not restored. Drops use the
-installed lion-medal EObj 2002056 as a visible placeholder. Its exact appearance
-and native opposing-player targeting require multiplayer client validation.
+and `!feast status`; the optional display HUD is described below. Drops use the
+native Feast medal prefab EObj 2007627. Native opposing-player targeting still
+requires multiplayer client validation.
 Server rules enforce opposing teams independently of client presentation. The
 existing arena is still restored with open-world metadata, so this change does
 not claim to restore the full native PvP client mode or team UI.
@@ -105,6 +105,21 @@ Historical index verification places the SGB in D2019.05.29, the first model
 in D2016.12.17 and the first coin VFX in D2018.01.12. All are still present
 in the installed client. Native appearance and timeline activation need live
 validation; no client asset replacement or invented medal artwork is required.
+
+Successful pickups play timeline slot 2 (`dropmedal_off_a`), including its native
+`placednpc_PvPpoint_depop.scd` sound. The server retains the object for one second
+to finish that animation before deleting it. If a role cap leaves medals behind,
+the remaining pile reappears after this animation. Expiry does not play pickup
+feedback. Animation and audio still require an in-game check.
+
+### Cast completion and slidecasting
+
+Native Feast WHM casts allow movement during their final 250 ms. Effects resolve
+once at the full cast deadline; movement during the grace window or after that
+deadline cannot interrupt them. Earlier movement is recorded immediately, so a
+delayed server tick cannot accidentally accept it. Completion range checks use
+the caster's original position so sliding does not move the cast out of range.
+Other validity checks, including target state and crowd control, still apply.
 
 
 ### Team jails and match opening

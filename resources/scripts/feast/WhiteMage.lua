@@ -2,6 +2,7 @@
 -- Isolated from PvE/Crystalline Conflict. Time is supplied by the server in seconds.
 -- Potencies are fixed prototype HP amounts, not the PvE stat-based damage formula.
 local M = { actors = {}, players = {}, events = {}, now = 0 }
+local SLIDECAST_WINDOW = 0.250
 local actions = {}
 M.actions = actions
 local cleanse_names = { "stun", "sleep", "bind", "heavy", "silence" }
@@ -220,7 +221,7 @@ local function available(p,d)
     p.cooldowns[d.name]=active
     return #active<d.charges
 end
-local function error_for(id,name,target,finishing)
+local function error_for(id,name,target,finishing,cast_origin)
     local p=M.players[id]; local a=state(id); local d=actions[name]; local b=state(target)
     if not p then return "Use !whm on first." end
     if not d then return "Unknown Feast action; use !whm list." end
@@ -237,7 +238,7 @@ local function error_for(id,name,target,finishing)
     if d.target=="enemy" and (friendly(a,b) or (b.player and not M.players[b.id] and not b.match_team)) then return "Select an enemy." end
     if (d.target=="ally" or d.target=="other_ally") and not friendly(a,b) then return "Select a teammate or yourself." end
     if d.target=="other_ally" and a.id==b.id then return "Rescue requires another teammate." end
-    if distance(a,b)>d.range and d.target~="self" then return "Target is out of range." end
+    if distance(cast_origin or a,b)>d.range and d.target~="self" then return "Target is out of range." end
     if d.additional and not p.loadout[name] then return "Select this additional action with !whm loadout <first> <second>." end
     if a.mp<d.mp then return "Not enough MP." end
     if d.lily and p.lilies<1 then return "No lilies available." end
@@ -249,9 +250,9 @@ local function error_for(id,name,target,finishing)
         if not d.gcd and not available(p,d) then return "Action is on cooldown." end
     end
 end
-local function complete(id,name,target)
+local function complete(id,name,target,cast_origin)
     local p=M.players[id]; local a=state(id); local d=actions[name]; local b=state(target)
-    local err=error_for(id,name,target,true)
+    local err=error_for(id,name,target,true,cast_origin)
     if err then emit("cancel",id,id); emit("notice",id,id,0,err); return end
     a.mp=a.mp-d.mp; if d.mp>0 then emit("mp",id,id,a.mp) end
     if d.lily then p.lilies=p.lilies-1; p.blood=math.min(3,p.blood+1) end
@@ -262,6 +263,15 @@ local function complete(id,name,target)
     emit("animation",id,target,math.abs(b.hp-before),name)
     M.events[#M.events].healing=b.hp>before
     emit("notice",id,id,0,"Feast "..name.." executed.")
+end
+-- Movement is recorded at packet processing time, independently of the next
+-- simulation tick. An early move stays cancelled even if that tick is delayed.
+function M.movement(id,now,x,y,z)
+    local p=M.players[id]; local cast=p and p.pending
+    if cast and now<cast.ends-SLIDECAST_WINDOW
+        and distance({x=x,y=y,z=z},cast.origin)>0.1 then
+        cast.moved_early=true
+    end
 end
 function M.advance(now)
     M.now=now
@@ -294,10 +304,11 @@ function M.advance(now)
             end
             if p.pending then
                 local cast=p.pending
-                if M.blocked(id,false) or distance(a,cast.origin)>0.1 then
+                if M.blocked(id,false) or cast.moved_early
+                    or (now<cast.ends-SLIDECAST_WINDOW and distance(a,cast.origin)>0.1) then
                     p.pending=nil; emit("cancel",id,id); emit("notice",id,id,0,"Cast interrupted.")
                 elseif now>=cast.ends then
-                    p.pending=nil; complete(id,cast.name,cast.target)
+                    p.pending=nil; complete(id,cast.name,cast.target,cast.origin)
                 end
             end
         end

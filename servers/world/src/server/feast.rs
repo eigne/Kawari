@@ -337,6 +337,14 @@ impl FeastWhiteMage {
             .unwrap_or(false)
     }
 
+    pub fn movement(&self, id: ObjectId, position: Position) {
+        if let Err(error) = self.function("movement").and_then(|f| {
+            f.call::<()>((id.0, self.now(), position.0.x, position.0.y, position.0.z))
+        }) {
+            tracing::error!(%error, "Feast cast movement check failed");
+        }
+    }
+
     pub fn blocked(&self, id: ObjectId, movement: bool) -> bool {
         self.function("blocked")
             .and_then(|f| f.call((id.0, movement)))

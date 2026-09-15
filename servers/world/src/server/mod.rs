@@ -1238,6 +1238,9 @@ pub async fn server_main_loop(
                         }
 
                         if moved {
+                            if let Some(engine) = &instance.feast_whm {
+                                engine.movement(actor_id, position);
+                            }
                             // Check if the actor has any in-progress actions, and cancel them if so.
                             for task in instance.find_tasks(actor_id) {
                                 if let QueuedTaskData::CastAction { interruptible, .. } = task.data
