@@ -841,6 +841,16 @@ pub fn command(
     }
     tick(instance, network);
     let words: Vec<_> = text.split_whitespace().collect();
+    if words.first() == Some(&"director") {
+        let enabled = match words.as_slice() {
+            ["director", "on"] => true,
+            ["director", "off"] => false,
+            _ => { super::feast::notice(network, id, "Use !feast director on|off (compatibility test).".into()); return; }
+        };
+        network.lock().send_to_by_actor_id(id, FromServer::FeastDirectorProbe(enabled), DestinationNetwork::ZoneClients);
+        super::feast::notice(network, id, format!("Legacy director probe {}. Existing Feast rules continue; leave the arena or use !feast director off to end the probe.", if enabled { "requested" } else { "disabled" }));
+        return;
+    }
     if matches!(words.first(), Some(&"dummies") | Some(&"attack")) {
         super::feast_training::command(instance, network, id, &words);
         return;

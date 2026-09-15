@@ -111,6 +111,8 @@ pub enum FromServer {
     ActorControlTarget(ObjectId, ObjectTypeId, ActorControlCategory),
     /// We need to update the player actor
     ActorControlSelf(ActorControlCategory),
+    /// Opt-in legacy Feast director compatibility probe.
+    FeastDirectorProbe(bool),
     /// Update an actor's equip display flags.
     UpdateConfig(ObjectId, Config),
     /// Update an actor's model IDs.

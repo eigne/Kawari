@@ -3729,6 +3729,9 @@ async fn process_server_msg(
                     .actor_control_target(actor_id, target, actor_control)
                     .await
             }
+            FromServer::FeastDirectorProbe(enabled) => {
+                connection.feast_director_probe(enabled).await;
+            }
             FromServer::ActorControlSelf(actor_control) => {
                 connection.actor_control_self(actor_control).await
             }

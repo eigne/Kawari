@@ -23,6 +23,27 @@ use kawari::{
 use physis::TerritoryIntendedUse;
 
 impl ZoneConnection {
+    /// Attach the surviving legacy PvP director without changing the installed metadata.
+    /// This is a compatibility probe, not native match-state synchronization.
+    pub async fn feast_director_probe(&mut self, enabled: bool) {
+        if self.player_data.volatile.zone_id != 745 { return; }
+        let id = HandlerId::new(HandlerType::InstanceContent, 40001);
+        if enabled {
+            if self.content_handler_id.0 != 0 { return; }
+            self.actor_control_self(ActorControlCategory::InitDirector {
+                handler_id: id, content_id: 40001, flags: 0,
+            }).await;
+            self.content_handler_id = id;
+            self.current_instance_id = Some(40001);
+        } else if self.content_handler_id == id {
+            self.actor_control_self(ActorControlCategory::TerminateDirector { handler_id: id }).await;
+            self.content_handler_id = HandlerId::default();
+            self.current_instance_id = None;
+        }
+        // Existing zone-change cleanup terminates this content handler on leaving/respawn.
+        tracing::info!(enabled, "Legacy Feast director compatibility probe");
+    }
+
     /// Request the global server state to change our zone.
     pub async fn change_zone(
         &mut self,
