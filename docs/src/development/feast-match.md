@@ -116,9 +116,12 @@ normal movement during a match is not overridden. Zone loads invalidate the
 client's cached gate state so reconnects receive the current state.
 
 The countdown closes both collision shared groups (7403947/7403946, bound EObjs
-2008986/2008987) and the separate VFX groups (7515404/7515405). All four receive
-SetSharedGroupTimelineState by layout ID: timeline slot 1 closes, slot 3 opens.
+2008986/2008987) and the separate VFX groups (7515404/7515405). All four use network EventObject controllers bound to their layout shared groups.
+The two visual groups receive synthetic controllers because the map supplies none.
+SetSharedGroupTimelineState targets each controller actor (object_type=0): timeline
+slot 1 closes, slot 3 opens. StandObjectManager lookup is not valid for these groups.
 Parsed collision animations are jail_r_on/off; the visual prefab has jail_b_on/off.
-The server also stores collision state in SpawnObject.args1 for subsequent spawns.
+The server also stores state in SpawnObject.args1 for subsequent spawns, and
+waits for each recipient's object spawn allocation before sending an update.
 The active phase opens the gates; they stay open through sudden death and results,
 and close for the next preparation. This uses native layout control, not a plugin.

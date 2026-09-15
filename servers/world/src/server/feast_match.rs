@@ -386,7 +386,7 @@ pub struct Runtime {
     objects: BTreeMap<u32, ObjectId>,
     empty_since: Option<f64>,
     placed: BTreeSet<u32>,
-    gate_viewers: BTreeMap<u32, bool>,
+    gate_viewers: BTreeMap<(u32, u32), bool>,
 }
 
 // The start_col layer centers the two jails at x = +/-58, y = 0.25.
@@ -408,7 +408,9 @@ pub fn team_spawn(team: Team, slot: usize) -> (Position, f32) {
 pub fn on_zone_loaded(instance: &mut Instance, actor: ObjectId) {
     if let Some(runtime) = &mut instance.feast_match {
         runtime.placed.remove(&actor.0);
-        runtime.gate_viewers.remove(&actor.0);
+        runtime
+            .gate_viewers
+            .retain(|(viewer, _), _| *viewer != actor.0);
     }
 }
 
@@ -436,19 +438,46 @@ fn sync_jails(
     } else {
         SharedGroupTimelineState::TIMELINE_3
     };
-    for base in JAIL_EOBJS {
-        if let Some(id) = instance.find_object_by_eobj_id(base) {
-            if let Some(NetworkedActor::Object { object, .. }) = instance.find_actor_mut(id) {
-                object.args1 = state.bits();
-            }
+    // Layout SGs are not StandObjectManager actors. Bind network EventObjects
+    // to all four SGs, including the VFX groups which had no original EObj.
+    let mut controllers = Vec::new();
+    for (index, layout) in JAIL_LAYOUTS.into_iter().enumerate() {
+        let existing = instance.actors.iter().find_map(|(id, actor)| match actor {
+            NetworkedActor::Object { object, .. } if object.bind_layout_id == layout => Some(*id),
+            _ => None,
+        });
+        let id = existing.unwrap_or_else(|| {
+            let id = Instance::generate_actor_id();
+            let west = index % 2 == 0;
+            instance.insert_object(
+                id,
+                SpawnObject {
+                    kind: ObjectKind::EventObj,
+                    entity_id: id,
+                    base_id: JAIL_EOBJS[index % 2],
+                    bind_layout_id: layout,
+                    position: Position(glam::Vec3::new(if west { -58.0 } else { 58.0 }, 0.25, 0.0)),
+                    rotation: if west { 0.0 } else { std::f32::consts::PI },
+                    radius: 1.0,
+                    not_targetable: true,
+                    args1: state.bits(),
+                    ..Default::default()
+                },
+                "FeastJail".into(),
+            );
+            id
+        });
+        if let Some(NetworkedActor::Object { object, .. }) = instance.find_actor_mut(id) {
+            object.args1 = state.bits();
         }
+        controllers.push(id);
     }
     runtime
         .placed
         .retain(|id| inputs.iter().any(|i| i.id == *id));
     runtime
         .gate_viewers
-        .retain(|id, _| inputs.iter().any(|i| i.id == *id));
+        .retain(|(id, _), _| inputs.iter().any(|i| i.id == *id));
     for input in inputs {
         let id = ObjectId(input.id);
         if !matches!(instance.find_actor(id), Some(NetworkedActor::Player { .. })) {
@@ -472,23 +501,41 @@ fn sync_jails(
                 super::feast::correct_position(instance, network, id, position);
             }
         }
-        if runtime.gate_viewers.get(&input.id) != Some(&closed) {
-            for layout_id in JAIL_LAYOUTS {
-                network.lock().send_to_by_actor_id(
-                    id,
-                    FromServer::ActorControl(
-                        id,
-                        ActorControlCategory::SetSharedGroupTimelineState {
-                            state,
-                            arg2: 0,
-                            object_type: 1,
-                            layout_id,
-                        },
-                    ),
-                    DestinationNetwork::ZoneClients,
-                );
+        for controller in &controllers {
+            let key = (input.id, controller.0);
+            let mut network = network.lock();
+            let spawned = network
+                .clients
+                .values()
+                .any(|(handle, state)| handle.actor_id == id && state.has_spawned(*controller));
+            if !spawned {
+                // Do not consume the update before SpawnObject has been sent.
+                runtime.gate_viewers.remove(&key);
+                continue;
             }
-            runtime.gate_viewers.insert(input.id, closed);
+            if runtime.gate_viewers.get(&key) == Some(&closed) {
+                continue;
+            }
+            network.send_to_by_actor_id(
+                id,
+                FromServer::ActorControl(
+                    *controller,
+                    ActorControlCategory::SetSharedGroupTimelineState {
+                        state,
+                        arg2: 0,
+                        object_type: 0,
+                        layout_id: 0,
+                    },
+                ),
+                DestinationNetwork::ZoneClients,
+            );
+            runtime.gate_viewers.insert(key, closed);
+            tracing::info!(
+                viewer = input.id,
+                controller = controller.0,
+                closed,
+                "Feast jail state sent to spawned event object"
+            );
         }
     }
 }
@@ -793,6 +840,110 @@ mod tests {
     }
 
     #[test]
+    fn jail_packets_target_spawned_controllers_and_retry_after_loading() {
+        let mut instance = Instance::default();
+        instance.zone.id = 745;
+        let viewer = ObjectId(1);
+        instance.insert_empty_actor(viewer);
+        let p = instance
+            .find_actor_mut(viewer)
+            .unwrap()
+            .get_common_spawn_mut();
+        p.class_job = 24;
+        p.max_health_points = 10000;
+        p.health_points = 10000;
+        let (sender, mut receiver) = tokio::sync::mpsc::channel(64);
+        let client = crate::ClientId::default();
+        let mut net = NetworkState::default();
+        net.clients.insert(
+            client,
+            (
+                crate::ClientHandle {
+                    id: client,
+                    channel: sender,
+                    actor_id: viewer,
+                    account_id: 0,
+                    content_id: 0,
+                },
+                super::super::ClientState::default(),
+            ),
+        );
+        let network = Arc::new(Mutex::new(net));
+        tick(&mut instance, &network);
+        // Gate updates must wait for the receiver's object spawn allocation.
+        while let Ok(message) = receiver.try_recv() {
+            assert!(!matches!(
+                message,
+                FromServer::ActorControl(
+                    _,
+                    ActorControlCategory::SetSharedGroupTimelineState { .. }
+                )
+            ));
+        }
+        let controllers: Vec<_> = instance
+            .actors
+            .iter()
+            .filter_map(|(id, actor)| match actor {
+                NetworkedActor::Object { object, .. }
+                    if JAIL_LAYOUTS.contains(&object.bind_layout_id) =>
+                {
+                    Some(*id)
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(controllers.len(), 4);
+        for id in &controllers {
+            network
+                .lock()
+                .clients
+                .get_mut(&client)
+                .unwrap()
+                .1
+                .object_allocator
+                .reserve(*id);
+        }
+        for expected in [
+            SharedGroupTimelineState::TIMELINE_1,
+            SharedGroupTimelineState::TIMELINE_3,
+        ] {
+            if expected == SharedGroupTimelineState::TIMELINE_3 {
+                instance.feast_match.as_mut().unwrap().rules.deadline = 0.0;
+            }
+            tick(&mut instance, &network);
+            let mut sent = BTreeSet::new();
+            while let Ok(message) = receiver.try_recv() {
+                if let FromServer::ActorControl(
+                    actor,
+                    ActorControlCategory::SetSharedGroupTimelineState {
+                        state,
+                        object_type,
+                        layout_id,
+                        ..
+                    },
+                ) = message
+                {
+                    assert!(controllers.contains(&actor));
+                    assert_ne!(actor, viewer);
+                    assert_eq!(
+                        object_type, 0,
+                        "use network EObj lookup, not StandObjectManager"
+                    );
+                    assert_eq!(layout_id, 0);
+                    assert_eq!(state, expected);
+                    sent.insert(actor.0);
+                }
+            }
+            assert_eq!(sent.len(), 4);
+        }
+        tick(&mut instance, &network);
+        assert!(
+            receiver.try_recv().is_err(),
+            "stable state must not replay animations"
+        );
+    }
+
+    #[test]
     fn jails_place_teams_open_at_start_and_reset_for_next_match() {
         let mut instance = Instance::default();
         instance.zone.id = 745;
@@ -812,12 +963,37 @@ mod tests {
                     kind: ObjectKind::EventObj,
                     entity_id: id,
                     base_id,
+                    bind_layout_id: JAIL_LAYOUTS[n],
                     ..Default::default()
                 },
                 String::new(),
             );
         }
         tick(&mut instance, &network);
+        let controllers: Vec<_> = instance
+            .actors
+            .values()
+            .filter_map(|actor| match actor {
+                NetworkedActor::Object { object, .. }
+                    if JAIL_LAYOUTS.contains(&object.bind_layout_id) =>
+                {
+                    Some(object.bind_layout_id)
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            controllers.len(),
+            4,
+            "two collision objects plus two VFX controllers"
+        );
+        let actor_count = instance.actors.len();
+        tick(&mut instance, &network);
+        assert_eq!(
+            instance.actors.len(),
+            actor_count,
+            "controllers must not duplicate each tick"
+        );
         for id in [ObjectId(1), ObjectId(2)] {
             let team = instance.feast_match.as_ref().unwrap().rules.players[&id.0].team;
             assert_eq!(
