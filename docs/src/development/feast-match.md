@@ -81,3 +81,12 @@ disconnect/reconnect, scoring cutoff, sudden death, and action gating.
 
 References: [official Feast guide](https://na.finalfantasyxiv.com/lodestone/playguide/contentsguide/wolvesden/thefeast/)
 and [original starting medal rules](https://na.finalfantasyxiv.com/lodestone/topics/detail/c755d756aece79cc9707f5444ad0980ac2b5a39c).
+
+## Display HUD
+
+The optional display-only `tools/feast-hud` Dalamud plugin shows live team medals,
+match time/phase, personal medals/cap, and ground medals using the recovered banner.
+It requests private `!feast hud` snapshots once per second in territory 745; no
+periodic traffic is sent for clients without it. The old combat plugin stays disabled.
+Native historical director/ULD activation is still not implemented. See the HUD
+README for installation and validation.

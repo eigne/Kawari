@@ -132,6 +132,31 @@ impl Match {
         )
     }
 
+    /// Versioned display snapshot. Values always come from authoritative match state.
+    pub fn hud_snapshot(&self, now: f64, actor: u32) -> String {
+        let (fang, claw) = self.scores();
+        let phase = match self.phase {
+            Phase::Countdown => "prep",
+            Phase::Active => "active",
+            Phase::SuddenDeath => "sudden",
+            Phase::Finished(Some(Team::Fang)) => "fang",
+            Phase::Finished(Some(Team::Claw)) => "claw",
+            Phase::Finished(None) => "draw",
+        };
+        let seconds = if matches!(self.phase, Phase::Finished(_)) {
+            0
+        } else {
+            (self.deadline - now).max(0.0).ceil() as u32
+        };
+        let (team, medals, cap) = self
+            .players
+            .get(&actor)
+            .map(|p| (p.team.name(), p.medals, medal_limit(p.job).unwrap_or(0)))
+            .unwrap_or(("spectator", 0, 0));
+        let ground: u32 = self.drops.iter().map(|d| u32::from(d.medals)).sum();
+        format!("KFEASTHUD1|{phase}|{seconds}|{fang}|{claw}|{team}|{medals}|{cap}|{ground}")
+    }
+
     fn finish(&mut self, winner: Option<Team>, now: f64) {
         self.phase = Phase::Finished(winner);
         self.announcements.push(self.status(now));
@@ -518,6 +543,17 @@ pub fn command(
         );
         return;
     }
+    if text == "hud" {
+        if let Some(m) = &instance.feast_match {
+            super::feast::notice(
+                network,
+                id,
+                m.rules
+                    .hud_snapshot(m.started.elapsed().as_secs_f64(), id.0),
+            );
+        }
+        return;
+    }
     if text == "restart" {
         if instance
             .feast_match
@@ -636,6 +672,25 @@ mod tests {
     fn total(m: &Match) -> u16 {
         let (f, c) = m.scores();
         f + c + m.drops.iter().map(|d| d.medals).sum::<u16>()
+    }
+
+    #[test]
+    fn hud_tracks_pickups_phase_and_spectators() {
+        let (mut m, _) = active();
+        assert_eq!(
+            m.hud_snapshot(61.0, 1),
+            "KFEASTHUD1|active|359|100|100|fang|100|125|0"
+        );
+        m.players.get_mut(&1).unwrap().medals = 50;
+        assert_eq!(
+            m.hud_snapshot(62.0, 99),
+            "KFEASTHUD1|active|358|50|100|spectator|0|0|0"
+        );
+        m.phase = Phase::Finished(Some(Team::Claw));
+        assert!(
+            m.hud_snapshot(63.0, 1)
+                .starts_with("KFEASTHUD1|claw|0|50|100|")
+        );
     }
 
     #[test]

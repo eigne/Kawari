@@ -4,7 +4,7 @@ pub fn is_match_command(text: &str) -> bool {
     words.next() == Some("!feast")
         && matches!(
             words.next(),
-            Some("status" | "restart" | "dummies" | "attack")
+            Some("status" | "hud" | "restart" | "dummies" | "attack")
         )
 }
 
@@ -15,6 +15,7 @@ mod tests {
     fn routes_match_commands_but_keeps_lua_entry_and_exit() {
         for command in [
             "!feast status",
+            "!feast hud",
             "!feast   status ",
             "!feast\trestart",
             "!feast dummies 3",

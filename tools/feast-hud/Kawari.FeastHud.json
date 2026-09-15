@@ -1,0 +1,1 @@
+{"Author":"Kawari","Name":"Kawari Feast HUD","InternalName":"Kawari.FeastHud","AssemblyVersion":"0.1.0.0","Description":"Display-only Feast medal counter and match clock. Requires Kawari server HUD snapshots. Combat remains server-native.","Punchline":"Feast medals and match time.","ApplicableVersion":"2026.06.18.0000.0000","DalamudApiLevel":15,"Tags":["Kawari","Feast"]}
