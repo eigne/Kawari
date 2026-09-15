@@ -72,6 +72,7 @@ pub struct Drop {
 #[derive(Clone, Debug)]
 pub struct PickupVisual {
     pub drop_id: u32,
+    pub medals: u16,
     pub position: [f32; 3],
 }
 
@@ -116,6 +117,30 @@ impl Match {
                 .players
                 .get(&id)
                 .is_some_and(|p| p.present && p.job == job)
+    }
+
+    fn pickup_space(&self, id: u32) -> u16 {
+        let Some(p) = self.players.get(&id) else {
+            return 0;
+        };
+        let reserved: u16 = self
+            .drops
+            .iter()
+            .filter(|d| d.owner == id)
+            .map(|d| d.medals)
+            .sum();
+        medal_limit(p.job)
+            .unwrap_or(0)
+            .saturating_sub(p.medals + reserved)
+    }
+
+    fn can_collect(&self, input: &Input, drop: &Drop) -> bool {
+        self.active(input.id, input.job)
+            && self
+                .players
+                .get(&input.id)
+                .is_some_and(|p| p.alive && p.team != drop.team)
+            && self.pickup_space(input.id) > 0
     }
 
     pub fn status(&self, now: f64) -> String {
@@ -326,21 +351,14 @@ impl Match {
                 if !distance.is_finite() || distance > PICKUP_RADIUS * PICKUP_RADIUS {
                     continue;
                 }
-                let reserved: u16 = self
-                    .drops
-                    .iter()
-                    .filter(|d| d.owner == id)
-                    .map(|d| d.medals)
-                    .sum();
-                let space = medal_limit(p.job)
-                    .unwrap()
-                    .saturating_sub(p.medals + reserved);
+                let space = self.pickup_space(id);
                 let amount = space.min(drop.medals);
                 if amount == 0 {
                     continue;
                 }
                 self.pickups.push(PickupVisual {
                     drop_id: drop.id,
+                    medals: drop.medals,
                     position: drop.position,
                 });
                 self.drops[index].medals -= amount;
@@ -385,9 +403,7 @@ use super::{
 use crate::FromServer;
 use kawari::{
     common::{ObjectId, Position, SharedGroupTimelineState},
-    ipc::zone::{
-        ActorControlCategory, ObjectKind, ServerZoneIpcData, ServerZoneIpcSegment, SpawnObject,
-    },
+    ipc::zone::{ActorControlCategory, ObjectKind, SpawnObject},
 };
 use parking_lot::Mutex;
 use std::{sync::Arc, time::Instant};
@@ -401,12 +417,34 @@ pub struct Runtime {
     empty_since: Option<f64>,
     placed: BTreeSet<u32>,
     gate_viewers: BTreeMap<(u32, u32), bool>,
+    medal_viewers: BTreeMap<(u32, u32), SharedGroupTimelineState>,
 }
 
 // The start_col layer centers the two jails at x = +/-58, y = 0.25.
 // Collision and VFX are separate shared groups in the restored layout.
 const JAIL_LAYOUTS: [u32; 4] = [7403947, 7403946, 7515404, 7515405];
 const JAIL_EOBJS: [u32; 2] = [2008986, 2008987];
+
+fn medal_prefab(medals: u16) -> u32 {
+    match medals {
+        0..=25 => 2007627,
+        26..=50 => 2007628,
+        51..=75 => 2007629,
+        _ => 2008631,
+    }
+}
+
+fn medal_state(team: Team, blocked: bool) -> SharedGroupTimelineState {
+    // All four prefabs expose normal Fangs/Claws in slots 3/5 and maxed in 9/11.
+    SharedGroupTimelineState::from_bits_retain(
+        1 << match (team, blocked) {
+            (Team::Fang, false) => 2,
+            (Team::Claw, false) => 4,
+            (Team::Fang, true) => 8,
+            (Team::Claw, true) => 10,
+        },
+    )
+}
 
 pub fn team_spawn(team: Team, slot: usize) -> (Position, f32) {
     let (x, rotation) = match team {
@@ -422,6 +460,9 @@ pub fn team_spawn(team: Team, slot: usize) -> (Position, f32) {
 pub fn on_zone_loaded(instance: &mut Instance, actor: ObjectId) {
     if let Some(runtime) = &mut instance.feast_match {
         runtime.placed.remove(&actor.0);
+        runtime
+            .medal_viewers
+            .retain(|(viewer, _), _| *viewer != actor.0);
         runtime
             .gate_viewers
             .retain(|(viewer, _), _| *viewer != actor.0);
@@ -624,36 +665,12 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         empty_since: None,
         placed: BTreeSet::new(),
         gate_viewers: BTreeMap::new(),
+        medal_viewers: BTreeMap::new(),
     });
     let now = runtime.started.elapsed().as_secs_f64();
     runtime.empty_since = None;
-    let previous: Vec<_> = runtime.rules.players.keys().copied().collect();
     runtime.rules.step(now, &inputs);
     sync_jails(instance, network, &mut runtime, &inputs);
-    // Normal client countdown UI; match clock/scores are announced in chat for now.
-    if runtime.rules.phase == Phase::Countdown {
-        for input in &inputs {
-            if previous.contains(&input.id) || !runtime.rules.players.contains_key(&input.id) {
-                continue;
-            }
-            let id = ObjectId(input.id);
-            if let Some(NetworkedActor::Player { spawn, .. }) = instance.find_actor(id) {
-                let packet = ServerZoneIpcData::Countdown {
-                    account_id: spawn.account_id,
-                    content_id: spawn.content_id,
-                    starter_actor_id: id,
-                    starter_name: "Feast".into(),
-                    unk: 0x5B,
-                    duration: (runtime.rules.deadline - now).ceil().max(1.0) as u16,
-                };
-                network.lock().send_to_by_actor_id(
-                    id,
-                    FromServer::PacketSegment(ServerZoneIpcSegment::new(packet), id),
-                    DestinationNetwork::ZoneClients,
-                );
-            }
-        }
-    }
     let expired: Vec<_> = runtime
         .fading
         .iter()
@@ -676,7 +693,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
                 id,
                 SpawnObject {
                     kind: ObjectKind::EventObj,
-                    base_id: 2007627,
+                    base_id: medal_prefab(pickup.medals),
                     entity_id: id,
                     position: Position(glam::Vec3::from_array(pickup.position)),
                     radius: 1.0,
@@ -712,7 +729,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         // The old 2002056 was a quest's lion medal with generic event-item VFX.
         let object = SpawnObject {
             kind: ObjectKind::EventObj,
-            base_id: 2007627,
+            base_id: medal_prefab(drop.medals),
             args1: match drop.team {
                 Team::Fang => SharedGroupTimelineState::TIMELINE_3.bits(),
                 Team::Claw => SharedGroupTimelineState::TIMELINE_5.bits(),
@@ -725,6 +742,46 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         };
         instance.insert_object(id, object, String::new());
         runtime.objects.insert(drop.id, id);
+    }
+    // Timeline state is recipient-specific: teammates may have different capacity.
+    runtime.medal_viewers.retain(|(viewer, actor), _| {
+        inputs.iter().any(|i| i.id == *viewer) && runtime.objects.values().any(|id| id.0 == *actor)
+    });
+    for drop in &runtime.rules.drops {
+        let Some(&actor) = runtime.objects.get(&drop.id) else {
+            continue;
+        };
+        for input in &inputs {
+            let viewer = ObjectId(input.id);
+            let state = medal_state(drop.team, !runtime.rules.can_collect(input, drop));
+            let key = (input.id, actor.0);
+            let mut network = network.lock();
+            if !network
+                .clients
+                .values()
+                .any(|(h, s)| h.actor_id == viewer && s.has_spawned(actor))
+            {
+                runtime.medal_viewers.remove(&key);
+                continue;
+            }
+            if runtime.medal_viewers.get(&key) == Some(&state) {
+                continue;
+            }
+            network.send_to_by_actor_id(
+                viewer,
+                FromServer::ActorControl(
+                    actor,
+                    ActorControlCategory::SetSharedGroupTimelineState {
+                        state,
+                        arg2: 0,
+                        object_type: 0,
+                        layout_id: 0,
+                    },
+                ),
+                DestinationNetwork::ZoneClients,
+            );
+            runtime.medal_viewers.insert(key, state);
+        }
     }
     for message in runtime.rules.announcements.drain(..) {
         tracing::info!(%message, "Feast match");
@@ -876,6 +933,7 @@ pub fn reset_training(instance: &mut Instance, network: &Arc<Mutex<NetworkState>
         empty_since: None,
         placed: BTreeSet::new(),
         gate_viewers: BTreeMap::new(),
+        medal_viewers: BTreeMap::new(),
     });
 }
 
@@ -1221,6 +1279,52 @@ mod tests {
         tick(&mut instance, &network);
         let runtime = instance.feast_match.as_ref().unwrap();
         assert!(runtime.objects.is_empty() && runtime.fading.is_empty());
+    }
+
+    #[test]
+    fn medal_visuals_follow_size_and_personal_eligibility() {
+        for (count, prefab) in [
+            (1, 2007627),
+            (25, 2007627),
+            (26, 2007628),
+            (50, 2007628),
+            (51, 2007629),
+            (75, 2007629),
+            (76, 2008631),
+            (100, 2008631),
+            (200, 2008631),
+        ] {
+            assert_eq!(medal_prefab(count), prefab);
+        }
+        let (mut m, mut inputs) = active();
+        let drop = Drop {
+            id: 1,
+            owner: 2,
+            team: Team::Claw,
+            medals: 63,
+            position: [0.0; 3],
+            expires: 100.0,
+            abandoned: false,
+        };
+        assert!(m.can_collect(&inputs[0], &drop));
+        assert!(!m.can_collect(&inputs[1], &drop));
+        m.drops.push(Drop {
+            owner: 1,
+            team: Team::Fang,
+            medals: 25,
+            ..drop.clone()
+        });
+        assert!(!m.can_collect(&inputs[0], &drop)); // 100 held + 25 reserved
+        m.drops.clear();
+        assert!(m.can_collect(&inputs[0], &drop));
+        inputs[0].job = 19;
+        assert!(!m.can_collect(&inputs[0], &drop));
+        inputs[0].job = 24;
+        m.players.get_mut(&1).unwrap().alive = false;
+        assert!(!m.can_collect(&inputs[0], &drop));
+        assert_eq!(medal_state(Team::Claw, false).bits(), 1 << 4);
+        assert_eq!(medal_state(Team::Claw, true).bits(), 1 << 10);
+        assert_eq!(medal_state(Team::Fang, true).bits(), 1 << 8);
     }
 
     #[test]

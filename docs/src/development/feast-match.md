@@ -62,7 +62,7 @@ matchmaking instances.
 
 ## Presentation and validation
 
-The countdown uses the normal client countdown packet. The running clock and
+Preparation uses the display HUD timer; the separate battle countdown overlay is disabled. The running clock and
 score changes use chat notices (every 30 seconds and each of the last 10 seconds)
 and `!feast status`; the optional display HUD is described below. Drops use the
 native Feast medal prefab EObj 2007627. Native opposing-player targeting still
@@ -140,3 +140,10 @@ The server also stores state in SpawnObject.args1 for subsequent spawns, and
 waits for each recipient's object spawn allocation before sending an update.
 The active phase opens the gates; they stay open through sudden death and results,
 and close for the next preparation. This uses native layout control, not a plugin.
+
+Medal piles select native EObjs 2007627/2007628/2007629/2008631 for 1–25,
+26–50, 51–75, and 76+ medals. Partial pickups respawn with the remaining size.
+Per-viewer timeline slots 9/11 show the native blocked variants when the viewer
+cannot collect (own team, death, job lock, inactive match, or held plus reserved
+medals at cap). Slots 3/5 restore eligible visuals. Updates wait for object spawn
+and are resent after reconnect; range alone does not mark a pile blocked.

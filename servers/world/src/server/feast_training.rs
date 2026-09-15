@@ -117,8 +117,6 @@ pub fn command(
         );
         return;
     }
-    let account_id = spawn.account_id;
-    let content_id = spawn.content_id;
     let template = spawn.common.clone();
     let ids: Vec<_> = instance.feast_dummies.keys().copied().collect();
     for id in ids {
@@ -198,24 +196,11 @@ pub fn command(
         common.resource_points = common.max_resource_points;
     }
     super::action::update_actor_hp_mp(network.clone(), instance, owner);
-    let packet = ServerZoneIpcData::Countdown {
-        account_id,
-        content_id,
-        starter_actor_id: owner,
-        starter_name: "Feast practice".into(),
-        unk: 0x5B,
-        duration: 60,
-    };
-    network.lock().send_to_by_actor_id(
-        owner,
-        FromServer::PacketSegment(ServerZoneIpcSegment::new(packet), owner),
-        DestinationNetwork::ZoneClients,
-    );
     super::feast::notice(
         network,
         owner,
         format!(
-            "Created {count} stationary opponents with 5000 HP and 100 medals each. You are Fangs; dummies are Claws. Fresh 60-second countdown. Use !feast attack on|off to control retaliation."
+            "Created {count} stationary opponents with 5000 HP and 100 medals each. You are Fangs; dummies are Claws. Fresh 10-second preparation. Use !feast attack on|off to control retaliation."
         ),
     );
 }
