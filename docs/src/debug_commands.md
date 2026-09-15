@@ -13,6 +13,7 @@ These special debug commands start with `!` and are custom to Kawari.
 | `!emptypacket <opcode> <size>` | Sends an empty IPC packet with a given opcode and size. |
 | `!equip <name>` | Forcefully equip an item, useful for bypassing class/job and other client restrictions. This will *overwrite* any item in that slot! |
 | `!fate <id>` | Spawns a temporary, test FATE for yourself. |
+| `!feast [leave]` | Explore Crystal Tower Training Grounds, or return to Limsa. Requires the territory 745 metadata patch on both server and client; see [Feast setup](development/feast.md#exploration-prototype). |
 | `!festival <id1> <id2> <id3> <id4>` | Sets the festival in the current zone. Multiple festivals can be set together to create interesting effects. |
 | `!finishevent` | Forcefully finishes the current event, useful if the script has an error and you're stuck talking to something. |
 | `!gate` | Spawns a non-functional debug GATE. |
