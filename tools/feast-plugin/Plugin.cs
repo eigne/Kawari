@@ -48,6 +48,9 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private readonly Hook<ActorCastDelegate> actorCast;
     private nint castingActor;
     private ushort castingTimeline;
+    private ushort castingLoop;
+    private readonly Dictionary<ushort, ushort> castLoops = [];
+    private uint lastCastingSlots;
     private long castingEnds;
     private System.Numerics.Vector3 castingOrigin;
     private bool active;
@@ -73,7 +76,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
             (nint)PacketDispatcher.MemberFunctionPointers.HandleActorCastPacket, ActorCast);
         execute.Enable();
         actorCast.Enable();
-        log.Information("Feast casting presentation v3 loaded: preparation pose and casting VFX enabled.");
+        log.Information("Feast casting presentation v4 loaded: start, sustained cast loop, and casting VFX enabled.");
         framework.Update += Update;
         commands.AddHandler("/kfeast", new CommandInfo(Control) {
             HelpMessage = "status | restore (pause) | on. Feast slots automatically load in territory 745 as WHM."
@@ -93,6 +96,19 @@ public sealed unsafe class Plugin : IDalamudPlugin
                 || Environment.TickCount64 >= castingEnds
                 || System.Numerics.Vector3.DistanceSquared(local.Position, castingOrigin) > 0.01f)
                 StopCastingPose();
+            else
+            {
+                var actor = (BattleChara*)castingActor;
+                var baseId = actor->Timeline.TimelineSequencer.GetSlotTimeline(0);
+                var upperId = actor->Timeline.TimelineSequencer.GetSlotTimeline(1);
+                var slots = (uint)baseId | ((uint)upperId << 16);
+                if (slots != lastCastingSlots)
+                {
+                    lastCastingSlots = slots;
+                    log.Information("Feast casting transition: base={Base}, upper={Upper}, expected loop={Loop}",
+                        baseId, upperId, castingLoop);
+                }
+            }
         }
         if (Environment.TickCount64 < nextCheck) return;
         nextCheck = Environment.TickCount64 + 250;
@@ -121,6 +137,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
             var actionId = packet->ActionId;
             var action = data.GetExcelSheet<Lumina.Excel.Sheets.Action>().GetRow(actionId);
             var timeline = checked((ushort)action.AnimationStart.Value.Name.RowId);
+            var loop = FindCastLoop(timeline);
             log.Information("Feast cast received: action {Action}, cast timeline row {Row}, animation {Timeline}, duration {Duration}",
                 actionId, action.AnimationStart.RowId, timeline, packet->CastTime);
             if (timeline == 0) { log.Warning("Feast cast has no preparation timeline"); return; }
@@ -128,9 +145,14 @@ public sealed unsafe class Plugin : IDalamudPlugin
             var actor = (BattleChara*)local.Address;
             castingActor = (nint)actor;
             castingTimeline = timeline;
+            castingLoop = loop;
+            lastCastingSlots = uint.MaxValue;
             castingOrigin = local.Position;
             castingEnds = Environment.TickCount64 + (long)Math.Ceiling(packet->CastTime * 1000);
-            actor->Timeline.TimelineSequencer.PlayTimeline(timeline);
+            // The start is a transition; the second timeline sustains the casting pose.
+            // Let the native animation system choose when to transition, not a guessed timer.
+            actor->Timeline.PlayActionTimeline(timeline, loop);
+            log.Information("Feast casting motion: start={Start}, loop={Loop}", timeline, loop);
             castEffects.Start(local.Address, [
                 action.AnimationStart.Value.VFX.Value.Location.ToString(),
                 action.VFX.Value.VFX.Value.Location.ToString()
@@ -142,19 +164,36 @@ public sealed unsafe class Plugin : IDalamudPlugin
         catch (Exception error) { log.Error(error, "Could not start Feast casting pose"); }
     }
 
+    private ushort FindCastLoop(ushort start)
+    {
+        if (castLoops.TryGetValue(start, out var loop)) return loop;
+        var sheet = data.GetExcelSheet<Lumina.Excel.Sheets.ActionTimeline>();
+        var key = sheet.GetRow(start).Key.ToString();
+        if (!key.EndsWith("_start", StringComparison.Ordinal))
+            throw new InvalidOperationException($"Unexpected casting start timeline: {key}");
+        var loopKey = key[..^6] + "_loop";
+        loop = checked((ushort)sheet.FirstOrDefault(row => row.Key.ToString() == loopKey).RowId);
+        if (loop == 0) throw new InvalidOperationException($"Missing casting loop: {loopKey}");
+        castLoops[start] = loop;
+        return loop;
+    }
+
     private void StopCastingPose()
     {
         castEffects.Stop();
         var address = castingActor;
         var timeline = castingTimeline;
+        var loop = castingLoop;
         castingActor = 0;
         castingTimeline = 0;
+        castingLoop = 0;
         if (address == 0 || objects.LocalPlayer?.Address != address) return;
         var actor = (BattleChara*)address;
         // A completed ActionResult replaces the casting timeline with the release.
         // Never reset that release, even if movement/cancellation follows completion.
         for (uint slot = 0; slot < 14; slot++)
-            if (actor->Timeline.TimelineSequencer.GetSlotTimeline(slot) == timeline)
+            if (actor->Timeline.TimelineSequencer.GetSlotTimeline(slot) is var current
+                && (current == timeline || (loop != 0 && current == loop)))
                 actor->Timeline.TimelineSequencer.SetSlotTimeline(slot, 0);
     }
 

@@ -51,14 +51,20 @@ unfinished. These are presentation packets, not a second application of damage.
 
 For the local player's casted spells, the plugin hooks
 `PacketDispatcher.HandleActorCastPacket` and plays the action's
-`AnimationStart -> ActionCastTimeline.Name` through `TimelineSequencer.PlayTimeline`. The
+`AnimationStart -> ActionCastTimeline.Name` as the intro, paired with its matching
+`_loop` row through `Timeline.PlayActionTimeline(intro, loop)`. The game data gives
+Glare `battle/magic_wht_start` (108) / `battle/magic_wht_loop` (109), and the Cure
+family `battle/magic_cnj_start` (98) / `battle/magic_cnj_loop` (99). The native
+animation system controls the transition; no fixed intro delay is guessed. The
 command transport bypasses normal `UseAction` startup, so the bar and completion
 packet alone were not starting the local casting pose. Movement, the cast deadline,
-and plugin teardown clear only the owned casting timeline;
+and plugin teardown clear only the owned start/loop casting timelines;
 they never reset a different timeline installed by the completion packet. The
 hook covers the four casted Feast spells (Glare, Cure, Cure II, Medica) and does
 not execute a native spell or change the server's damage/healing/cast rules.
 The earlier `OpenCastBar` hook did not fix the user's missing preparation pose.
+Playing only the intro timeline subsequently produced the twirl but omitted the
+sustained casting pose; supplying the loop is a separate required step.
 The packet hook logs accepted action IDs, resolved cast timelines, and the active
 base/upper-body timeline IDs to Astra's `dalamud.log` for live diagnosis.
 
