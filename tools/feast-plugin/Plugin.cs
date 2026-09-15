@@ -87,7 +87,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
         execute.Enable();
         actorCast.Enable();
         actionEffect.Enable();
-        log.Information("Feast presentation v8 loaded: Temperance wings persist for 15 seconds.");
+        log.Information("Feast presentation v9 loaded: Temperance wings fade opacity over one second at expiry.");
         framework.Update += Update;
         commands.AddHandler("/kfeast", new CommandInfo(Control) {
             HelpMessage = "status | restore (pause) | on. Feast slots automatically load in territory 745 as WHM."

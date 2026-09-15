@@ -115,6 +115,13 @@ exit, job change, `/kfeast restore`, and unload remove them. Reapplication repla
 the existing effect. This adds client presentation only; server buff rules are
 unchanged. Other persistent ability visuals are not automatically implemented.
 
+The wings use a separate one-second smoothstep fade of their VfxObject color and
+alpha after the 15-second duration. The short native particle fade used for cast
+effects still cut these wings off visibly, so it is not used for this persistent
+asset. The wing handle is removed only after reaching zero intensity/alpha;
+death, exit, reapplication and unload can still clear it immediately. This does
+not change the working 0.25-second transition for casting particles.
+
 ## Build and install
 
 Install .NET 10 SDK. Put reference DLLs from a matching Dalamud runtime in

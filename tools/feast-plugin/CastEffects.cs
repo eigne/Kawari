@@ -20,6 +20,8 @@ internal sealed unsafe class CastEffects : IDisposable
     private readonly HashSet<nint> owned = [];
     private readonly Dictionary<nint, long> fading = [];
     private readonly Dictionary<nint, long> persistent = [];
+    private readonly Dictionary<nint, (long Start, float R, float G, float B, float A)> wingFades = [];
+    private const int WingFadeMilliseconds = 1000;
     private const float CompletionFadeSeconds = 0.25f;
     private readonly object gate = new();
     private readonly IPluginLog log;
@@ -59,6 +61,7 @@ internal sealed unsafe class CastEffects : IDisposable
             owned.Remove(effect);
             fading.Remove(effect);
             persistent.Remove(effect);
+            wingFades.Remove(effect);
             return remove.Original(effect, immediate);
         }
     }
@@ -84,6 +87,8 @@ internal sealed unsafe class CastEffects : IDisposable
     {
         lock (gate)
         {
+            foreach (var effect in wingFades.Keys.ToArray())
+                if (wingFades.Remove(effect)) remove.Original(effect, 1);
             foreach (var effect in persistent.Keys.ToArray())
                 if (persistent.Remove(effect)) remove.Original(effect, 1);
         }
@@ -120,9 +125,27 @@ internal sealed unsafe class CastEffects : IDisposable
             foreach (var (effect, deadline) in persistent.ToArray())
                 if (now >= deadline && persistent.Remove(effect))
                 {
-                    Fade(effect);
-                    log.Information("Feast persistent VFX duration ended; fading out");
+                    var color = ((VfxObject*)effect)->Color;
+                    wingFades[effect] = (now, color.X, color.Y, color.Z, color.W);
+                    log.Information("Feast wings duration ended; fading opacity over {Duration}ms", WingFadeMilliseconds);
                 }
+            foreach (var (effect, fade) in wingFades.ToArray())
+            {
+                var t = Math.Clamp((now - fade.Start) / (float)WingFadeMilliseconds, 0, 1);
+                // Smoothstep avoids a sudden brightness change at either end. Scale RGB
+                // too, since additive/glowing particles need intensity as well as alpha.
+                var opacity = 1 - t * t * (3 - 2 * t);
+                var vfx = (VfxObject*)effect;
+                vfx->Color.X = fade.R * opacity;
+                vfx->Color.Y = fade.G * opacity;
+                vfx->Color.Z = fade.B * opacity;
+                vfx->Color.W = fade.A * opacity;
+                if (t >= 1 && wingFades.Remove(effect))
+                {
+                    remove.Original(effect, 1);
+                    log.Information("Feast wings fade complete; removed transparent effect");
+                }
+            }
             foreach (var (effect, deadline) in fading.ToArray())
                 if (now >= deadline && fading.Remove(effect)) remove.Original(effect, 1);
         }
