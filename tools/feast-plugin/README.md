@@ -103,6 +103,18 @@ After updating the DLL, disable/re-enable Kawari Feast in Dalamud's plugin list.
 Verify each cast shows its preparation pose, moving midway stops it without a
 release, and a completed cast still plays its release when moving afterward.
 
+## Persistent Temperance visual
+
+After a confirmed Temperance ActionResult (16536), the plugin reads the caster
+status's loop VFX (current-client status 1872 -> StatusLoopVFX 107 ->
+`cnj17wing_c0h`) and attaches the wings for 15 seconds, then fades them. This is
+the duration in the [archived Feast/PvP guide](https://web.archive.org/web/20220409040536/https://na.finalfantasyxiv.com/jobguide/whitemage/#pvp);
+the same page's PvE section says 20 seconds. The persistent handles are separate
+from cast-start VFX, so moving/casting does not remove the wings. Death, arena
+exit, job change, `/kfeast restore`, and unload remove them. Reapplication replaces
+the existing effect. This adds client presentation only; server buff rules are
+unchanged. Other persistent ability visuals are not automatically implemented.
+
 ## Build and install
 
 Install .NET 10 SDK. Put reference DLLs from a matching Dalamud runtime in

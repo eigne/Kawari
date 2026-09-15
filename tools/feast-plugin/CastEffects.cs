@@ -19,6 +19,7 @@ internal sealed unsafe class CastEffects : IDisposable
     private readonly Hook<RemoveDelegate> remove;
     private readonly HashSet<nint> owned = [];
     private readonly Dictionary<nint, long> fading = [];
+    private readonly Dictionary<nint, long> persistent = [];
     private const float CompletionFadeSeconds = 0.25f;
     private readonly object gate = new();
     private readonly IPluginLog log;
@@ -57,8 +58,43 @@ internal sealed unsafe class CastEffects : IDisposable
             // Forget those handles before forwarding, so later cleanup cannot double-free.
             owned.Remove(effect);
             fading.Remove(effect);
+            persistent.Remove(effect);
             return remove.Original(effect, immediate);
         }
+    }
+
+    public void StartPersistent(nint actor, IEnumerable<string> keys, int durationMs)
+    {
+        lock (gate)
+        {
+            // Currently only Temperance uses this group. Reapplication replaces its wings.
+            StopPersistent();
+            foreach (var key in keys.Where(key => !string.IsNullOrWhiteSpace(key)).Distinct())
+            {
+                var path = $"vfx/common/eff/{key}.avfx";
+                var effect = create(path, actor, actor, -1, 0, 0, 0);
+                if (effect != 0) persistent[effect] = Environment.TickCount64 + durationMs;
+                log.Information("Feast persistent VFX {Path}: created={Created}, durationMs={Duration}",
+                    path, effect != 0, durationMs);
+            }
+        }
+    }
+
+    public void StopPersistent()
+    {
+        lock (gate)
+        {
+            foreach (var effect in persistent.Keys.ToArray())
+                if (persistent.Remove(effect)) remove.Original(effect, 1);
+        }
+    }
+
+    private void Fade(nint effect)
+    {
+        fading[effect] = Environment.TickCount64 + 750;
+        var vfx = (VfxObject*)effect;
+        vfx->FadeOutFrames = CompletionFadeSeconds * 60;
+        vfx->SomeFlags |= 0x40;
     }
 
     public void Complete()
@@ -70,10 +106,7 @@ internal sealed unsafe class CastEffects : IDisposable
                 owned.Remove(effect);
                 // Native VfxObject fade units are 1/60 second, independent of FPS.
                 // Keep tracking until native removal or the fallback cleanup deadline.
-                fading[effect] = Environment.TickCount64 + 750;
-                var vfx = (VfxObject*)effect;
-                vfx->FadeOutFrames = CompletionFadeSeconds * 60;
-                vfx->SomeFlags |= 0x40;
+                Fade(effect);
             }
             log.Information("Feast casting VFX fading into release over {Seconds}s", CompletionFadeSeconds);
         }
@@ -84,6 +117,12 @@ internal sealed unsafe class CastEffects : IDisposable
         lock (gate)
         {
             var now = Environment.TickCount64;
+            foreach (var (effect, deadline) in persistent.ToArray())
+                if (now >= deadline && persistent.Remove(effect))
+                {
+                    Fade(effect);
+                    log.Information("Feast persistent VFX duration ended; fading out");
+                }
             foreach (var (effect, deadline) in fading.ToArray())
                 if (now >= deadline && fading.Remove(effect)) remove.Original(effect, 1);
         }
@@ -103,6 +142,7 @@ internal sealed unsafe class CastEffects : IDisposable
     public void Dispose()
     {
         Stop();
+        StopPersistent();
         lock (gate)
         {
             foreach (var effect in fading.Keys.ToArray())

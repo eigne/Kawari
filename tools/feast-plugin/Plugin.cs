@@ -87,7 +87,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
         execute.Enable();
         actorCast.Enable();
         actionEffect.Enable();
-        log.Information("Feast casting presentation v7 loaded: casting VFX fade smoothly into release.");
+        log.Information("Feast presentation v8 loaded: Temperance wings persist for 15 seconds.");
         framework.Update += Update;
         commands.AddHandler("/kfeast", new CommandInfo(Control) {
             HelpMessage = "status | restore (pause) | on. Feast slots automatically load in territory 745 as WHM."
@@ -100,6 +100,8 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private void Update(IFramework _)
     {
         castEffects.Update();
+        if (!active || !Eligible || objects.LocalPlayer?.CurrentHp == 0)
+            castEffects.StopPersistent();
         // Pose cleanup runs every frame, independently of the hotbar polling interval.
         if (castingActor != 0)
         {
@@ -204,6 +206,22 @@ public sealed unsafe class Plugin : IDalamudPlugin
             log.Information("Feast cast completed: pose cleared and effects fading before release action {Action}", header->ActionId);
         }
         actionEffect.Original(entityId, actor, position, header, effects, targets);
+        if (active && Eligible && header != null && header->ActionId == 16536
+            && header->ActionType == (byte)ActionType.Action
+            && objects.LocalPlayer?.EntityId == entityId)
+        {
+            try
+            {
+                // Current client's caster Temperance status supplies the persistent wings.
+                // The archived 6.08 PvP guide specifies 15 seconds (PvE specifies 20).
+                var status = data.GetExcelSheet<Lumina.Excel.Sheets.Status>().GetRow(1872);
+                var keys = new List<string>();
+                foreach (var vfx in status.VFX.Value.VFX)
+                    if (vfx.RowId != 0) keys.Add(vfx.Value.Location.ToString());
+                castEffects.StartPersistent(objects.LocalPlayer!.Address, keys, 15_000);
+            }
+            catch (Exception error) { log.Error(error, "Could not start Temperance wings"); }
+        }
     }
 
     private ushort FindCastLoop(ushort start)
@@ -288,6 +306,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private void Restore()
     {
         StopCastingPose();
+        castEffects.StopPersistent();
         active = false;
         var module = RaptureHotbarModule.Instance();
         if (module != null && client.IsLoggedIn) Recover(module);
