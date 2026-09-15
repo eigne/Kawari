@@ -147,3 +147,13 @@ Per-viewer timeline slots 9/11 show the native blocked variants when the viewer
 cannot collect (own team, death, job lock, inactive match, or held plus reserved
 medals at cap). Slots 3/5 restore eligible visuals. Updates wait for object spawn
 and are resent after reconnect; range alone does not mark a pile blocked.
+
+### Respawn delay
+
+Feast players must wait ten seconds after death before Return is accepted. The
+server records a monotonic deadline at death; repeated death notifications do not
+restart it. Living players clear the previous deadline. The display plugin adds
+an OK countdown to the native revive confirmation using private KFEASTRESPAWN1
+snapshots. It only alters the dialog owned by AgentRevive, and waits for a fresh
+server-ready reply before enabling confirmation. Without the HUD plugin the server
+still rejects early returns, but the native button has no custom countdown.

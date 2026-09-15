@@ -1315,6 +1315,23 @@ pub fn handle_zone_messages(
             // The exploration arena has no duty director to choose a respawn.
             // Return each participant to their own team holding area.
             if instance.zone.id == 745 {
+                let now = std::time::Instant::now();
+                let until = instance
+                    .feast_respawns
+                    .entry(*actor_id)
+                    .or_insert(now + std::time::Duration::from_secs(10));
+                if now < *until {
+                    super::feast::notice(
+                        &network,
+                        *actor_id,
+                        format!(
+                            "Respawn available in {} seconds.",
+                            until.saturating_duration_since(now).as_secs_f64().ceil() as u32
+                        ),
+                    );
+                    return true;
+                }
+                instance.feast_respawns.remove(actor_id);
                 let (feast_position, feast_rotation) =
                     super::feast_match::respawn(instance, *actor_id);
                 instance.cancel_actor_tasks(*actor_id);

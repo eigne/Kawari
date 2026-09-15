@@ -469,6 +469,26 @@ pub fn on_zone_loaded(instance: &mut Instance, actor: ObjectId) {
     }
 }
 
+pub fn begin_respawn_lock(instance: &mut Instance, actor: ObjectId, now: Instant) {
+    instance
+        .feast_respawns
+        .entry(actor)
+        .or_insert(now + std::time::Duration::from_secs(10));
+}
+
+pub fn respawn_remaining(instance: &Instance, actor: ObjectId, now: Instant) -> u32 {
+    instance
+        .feast_respawns
+        .get(&actor)
+        .map(|until| {
+            until
+                .saturating_duration_since(now)
+                .as_millis()
+                .min(u32::MAX as u128) as u32
+        })
+        .unwrap_or(0)
+}
+
 pub fn respawn(instance: &Instance, actor: ObjectId) -> (Position, f32) {
     let team = instance
         .feast_match
@@ -667,6 +687,19 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         gate_viewers: BTreeMap::new(),
         medal_viewers: BTreeMap::new(),
     });
+    instance
+        .feast_respawns
+        .retain(|id, _| inputs.iter().any(|i| i.id == id.0 && !i.alive));
+    for input in &inputs {
+        if !input.alive
+            && matches!(
+                instance.find_actor(ObjectId(input.id)),
+                Some(NetworkedActor::Player { .. })
+            )
+        {
+            begin_respawn_lock(instance, ObjectId(input.id), Instant::now());
+        }
+    }
     let now = runtime.started.elapsed().as_secs_f64();
     runtime.empty_since = None;
     runtime.rules.step(now, &inputs);
@@ -822,6 +855,14 @@ pub fn command(
         return;
     }
     if text == "hud" {
+        super::feast::notice(
+            network,
+            id,
+            format!(
+                "KFEASTRESPAWN1|{}",
+                respawn_remaining(instance, id, Instant::now())
+            ),
+        );
         if let Some(m) = &instance.feast_match {
             super::feast::notice(
                 network,
@@ -1279,6 +1320,38 @@ mod tests {
         tick(&mut instance, &network);
         let runtime = instance.feast_match.as_ref().unwrap();
         assert!(runtime.objects.is_empty() && runtime.fading.is_empty());
+    }
+
+    #[test]
+    fn respawn_lock_expires_at_ten_seconds_without_restarting() {
+        let mut instance = Instance::default();
+        let id = ObjectId(1);
+        let start = Instant::now();
+        begin_respawn_lock(&mut instance, id, start);
+        assert_eq!(respawn_remaining(&instance, id, start), 10000);
+        begin_respawn_lock(&mut instance, id, start + std::time::Duration::from_secs(3));
+        assert_eq!(
+            respawn_remaining(
+                &instance,
+                id,
+                start + std::time::Duration::from_millis(9999)
+            ),
+            1
+        );
+        assert_eq!(
+            respawn_remaining(&instance, id, start + std::time::Duration::from_secs(10)),
+            0
+        );
+        instance.feast_respawns.remove(&id);
+        begin_respawn_lock(
+            &mut instance,
+            id,
+            start + std::time::Duration::from_secs(20),
+        );
+        assert_eq!(
+            respawn_remaining(&instance, id, start + std::time::Duration::from_secs(20)),
+            10000
+        );
     }
 
     #[test]

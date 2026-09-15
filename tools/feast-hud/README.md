@@ -54,3 +54,12 @@ system Fonts directory; the font is not redistributed with the plugin.
 `dotnet run --project tools/feast-hud-tests/Tests.csproj` checks valid and malformed
 snapshot parsing. In game: enter `!feast`, compare against `!feast status`, spawn
 `!feast dummies 2`, verify KO/pickup updates, result, restart and leaving the map.
+
+## Respawn confirmation
+
+In the Feast arena, the plugin adds a countdown to the native revive confirmation
+and disables its OK button until the server's ten-second respawn delay expires.
+Only AgentRevive's SelectYesno dialog is changed. Private KFEASTRESPAWN1 notices
+accompany HUD snapshots; stale data keeps confirmation disabled. The server checks
+the deadline independently. Unloading restores the original button; no combat
+hooks or automatic confirmation are used. Reload the plugin after updating.

@@ -1122,6 +1122,15 @@ pub fn kill_actor(
     instance: &mut Instance,
     from_actor_id: ObjectId,
 ) {
+    if instance.zone.id == 745
+        && matches!(
+            instance.find_actor(from_actor_id),
+            Some(NetworkedActor::Player { .. })
+        )
+    {
+        super::feast_match::begin_respawn_lock(instance, from_actor_id, std::time::Instant::now());
+    }
+
     // TODO: set HP/MP to zero here
 
     let mut network = network.lock();
