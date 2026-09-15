@@ -51,13 +51,18 @@ unfinished. These are presentation packets, not a second application of damage.
 
 For the local player's casted spells, the plugin hooks
 `PacketDispatcher.HandleActorCastPacket` and plays the action's
-`AnimationStart -> ActionCastTimeline.Name` as the intro, paired with its matching
-`_loop` row through `Timeline.PlayActionTimeline(intro, loop)`. The game data gives
+`AnimationStart -> ActionCastTimeline.Name` as the intro, followed by its matching
+`_loop` row. The game data gives
 Glare `battle/magic_wht_start` (108) / `battle/magic_wht_loop` (109), and the Cure
 family `battle/magic_cnj_start` (98) / `battle/magic_cnj_loop` (99). The native
-animation system controls the transition; no fixed intro delay is guessed. The
+intro returning to normal/idle (row 3) triggers the loop; no fixed intro delay is
+guessed. Command casts lack native UseAction state: simply supplying both IDs to
+PlayActionTimeline still returned to idle in live tests. The plugin explicitly
+plays and holds the loop through a temporary `Timeline.BaseOverride`, preserving
+the prior value. A hook on `ActionEffectHandler.Receive` clears preparation and
+restores that value before the matching release executes. The
 command transport bypasses normal `UseAction` startup, so the bar and completion
-packet alone were not starting the local casting pose. Movement, the cast deadline,
+packet alone were not starting the local casting pose. Movement during the cast, completion,
 and plugin teardown clear only the owned start/loop casting timelines;
 they never reset a different timeline installed by the completion packet. The
 hook covers the four casted Feast spells (Glare, Cure, Cure II, Medica) and does
@@ -71,13 +76,19 @@ base/upper-body timeline IDs to Astra's `dalamud.log` for live diagnosis.
 Preparation also needs two actor-attached VFX assets, separate from the motion:
 `Action.AnimationStart.VFX` and `Action.VFX.VFX`. The plugin resolves both keys
 from the installed sheets into `vfx/common/eff/<key>.avfx`, attaches them to the
-caster, and tracks only the handles it created. These are removed on movement,
-the cast deadline, leaving, or unload. A native removal hook forgets effects the
+caster, and tracks only the handles it created. These are removed on interruption,
+completion, leaving, or unload. A native removal hook forgets effects the
 game has already destroyed, avoiding stale handles during later cleanup. Release
 VFX are owned by the normal ActionResult handler and are never included in this
 cleanup. The actor-effect API signatures were checked against the supported
 executable; the implementation follows the documented native calls in
 [VFXEditor's resource loader](https://github.com/0ceal0t/Dalamud-VFXEditor/blob/main/VFXEditor/Interop/ResourceLoader.Vfx.cs).
+
+The casting pose/effects remain active after the local cast-bar deadline until
+the matching ActionResult arrives. Cleaning up at the deadline caused a visible
+idle gap during server tick/network delay. Movement interrupts preparation only
+before that deadline. A two-second grace timeout after the deadline clears a
+stranded pose if no completion packet arrives; logout/death/teardown also clear it.
 
 After updating the DLL, disable/re-enable Kawari Feast in Dalamud's plugin list.
 Verify each cast shows its preparation pose, moving midway stops it without a

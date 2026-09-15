@@ -46,9 +46,13 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private readonly Configuration config;
     private readonly Hook<ExecuteSlotDelegate> execute;
     private readonly Hook<ActorCastDelegate> actorCast;
+    private readonly Hook<ActionEffectDelegate> actionEffect;
     private nint castingActor;
     private ushort castingTimeline;
     private ushort castingLoop;
+    private bool loopStarted;
+    private ushort previousBaseOverride;
+    private uint castingAction;
     private readonly Dictionary<ushort, ushort> castLoops = [];
     private uint lastCastingSlots;
     private long castingEnds;
@@ -60,6 +64,10 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private long nextClick;
     private delegate byte ExecuteSlotDelegate(RaptureHotbarModule* module, HotbarSlot* slot);
     private delegate void ActorCastDelegate(uint entityId, ActorCastPacket* packet);
+    private delegate void ActionEffectDelegate(uint entityId, Character* actor,
+        System.Numerics.Vector3* position, ActionEffectHandler.Header* header,
+        ActionEffectHandler.TargetEffects* effects,
+        FFXIVClientStructs.FFXIV.Client.Game.Object.GameObjectId* targets);
 
     public Plugin(IDalamudPluginInterface pi, IClientState client, IObjectTable objects,
         IPlayerState player, IFramework framework, IChatGui chat, ICommandManager commands,
@@ -74,9 +82,12 @@ public sealed unsafe class Plugin : IDalamudPlugin
             (nint)MemberFunctionPointers.ExecuteSlot, ExecuteSlot);
         actorCast = interop.HookFromAddress<ActorCastDelegate>(
             (nint)PacketDispatcher.MemberFunctionPointers.HandleActorCastPacket, ActorCast);
+        actionEffect = interop.HookFromAddress<ActionEffectDelegate>(
+            (nint)ActionEffectHandler.MemberFunctionPointers.Receive, ActionEffect);
         execute.Enable();
         actorCast.Enable();
-        log.Information("Feast casting presentation v4 loaded: start, sustained cast loop, and casting VFX enabled.");
+        actionEffect.Enable();
+        log.Information("Feast casting presentation v6 loaded: sustained loop hands off directly to release.");
         framework.Update += Update;
         commands.AddHandler("/kfeast", new CommandInfo(Control) {
             HelpMessage = "status | restore (pause) | on. Feast slots automatically load in territory 745 as WHM."
@@ -92,15 +103,30 @@ public sealed unsafe class Plugin : IDalamudPlugin
         if (castingActor != 0)
         {
             var local = objects.LocalPlayer;
+            var now = Environment.TickCount64;
             if (!active || !Eligible || local == null || local.Address != castingActor
-                || Environment.TickCount64 >= castingEnds
-                || System.Numerics.Vector3.DistanceSquared(local.Position, castingOrigin) > 0.01f)
+                || local.CurrentHp == 0 || now >= castingEnds + 2000
+                // After the cast bar completes, wait for the authoritative release.
+                // Ending the pose at the local deadline exposes a frame of idle while
+                // the server tick/network response is still in flight.
+                || (now < castingEnds && System.Numerics.Vector3.DistanceSquared(local.Position, castingOrigin) > 0.01f))
                 StopCastingPose();
             else
             {
                 var actor = (BattleChara*)castingActor;
                 var baseId = actor->Timeline.TimelineSequencer.GetSlotTimeline(0);
                 var upperId = actor->Timeline.TimelineSequencer.GetSlotTimeline(1);
+                // On this client command casts finish their intro into normal/idle (row 3).
+                // They do not have UseAction's native casting state to sustain the loop.
+                if (!loopStarted && baseId == 3 && upperId == 0)
+                {
+                    previousBaseOverride = actor->Timeline.BaseOverride;
+                    loopStarted = true;
+                    actor->Timeline.BaseOverride = castingLoop;
+                    actor->Timeline.TimelineSequencer.PlayTimeline(castingLoop);
+                    baseId = actor->Timeline.TimelineSequencer.GetSlotTimeline(0);
+                    log.Information("Feast sustained loop started: loop={Loop}, base={Base}", castingLoop, baseId);
+                }
                 var slots = (uint)baseId | ((uint)upperId << 16);
                 if (slots != lastCastingSlots)
                 {
@@ -146,12 +172,12 @@ public sealed unsafe class Plugin : IDalamudPlugin
             castingActor = (nint)actor;
             castingTimeline = timeline;
             castingLoop = loop;
+            castingAction = actionId;
+            loopStarted = false;
             lastCastingSlots = uint.MaxValue;
             castingOrigin = local.Position;
             castingEnds = Environment.TickCount64 + (long)Math.Ceiling(packet->CastTime * 1000);
-            // The start is a transition; the second timeline sustains the casting pose.
-            // Let the native animation system choose when to transition, not a guessed timer.
-            actor->Timeline.PlayActionTimeline(timeline, loop);
+            actor->Timeline.TimelineSequencer.PlayTimeline(timeline);
             log.Information("Feast casting motion: start={Start}, loop={Loop}", timeline, loop);
             castEffects.Start(local.Address, [
                 action.AnimationStart.Value.VFX.Value.Location.ToString(),
@@ -162,6 +188,21 @@ public sealed unsafe class Plugin : IDalamudPlugin
                 actor->Timeline.TimelineSequencer.GetSlotTimeline(1));
         }
         catch (Exception error) { log.Error(error, "Could not start Feast casting pose"); }
+    }
+
+    private void ActionEffect(uint entityId, Character* actor, System.Numerics.Vector3* position,
+        ActionEffectHandler.Header* header, ActionEffectHandler.TargetEffects* effects,
+        FFXIVClientStructs.FFXIV.Client.Game.Object.GameObjectId* targets)
+    {
+        // Remove our sustained base override BEFORE the native release handler runs.
+        // A later movement/deadline cleanup can therefore never replace the release.
+        if (castingActor != 0 && (nint)actor == castingActor && header != null
+            && header->ActionId == castingAction && header->ActionType == (byte)ActionType.Action)
+        {
+            StopCastingPose();
+            log.Information("Feast cast completed: preparation cleared before release action {Action}", header->ActionId);
+        }
+        actionEffect.Original(entityId, actor, position, header, effects, targets);
     }
 
     private ushort FindCastLoop(ushort start)
@@ -184,11 +225,16 @@ public sealed unsafe class Plugin : IDalamudPlugin
         var address = castingActor;
         var timeline = castingTimeline;
         var loop = castingLoop;
+        var restoreOverride = loopStarted;
         castingActor = 0;
         castingTimeline = 0;
         castingLoop = 0;
+        castingAction = 0;
+        loopStarted = false;
         if (address == 0 || objects.LocalPlayer?.Address != address) return;
         var actor = (BattleChara*)address;
+        if (restoreOverride && actor->Timeline.BaseOverride == loop)
+            actor->Timeline.BaseOverride = previousBaseOverride;
         // A completed ActionResult replaces the casting timeline with the release.
         // Never reset that release, even if movement/cancellation follows completion.
         for (uint slot = 0; slot < 14; slot++)
@@ -298,9 +344,11 @@ public sealed unsafe class Plugin : IDalamudPlugin
         commands.RemoveHandler("/kfeast");
         execute.Disable();
         actorCast.Disable();
+        actionEffect.Disable();
         Restore();
         execute.Dispose();
         actorCast.Dispose();
+        actionEffect.Dispose();
         castEffects.Dispose();
     }
 }
