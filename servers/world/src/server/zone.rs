@@ -24,9 +24,9 @@ use crate::{
 };
 use kawari::{
     common::{
-        DistanceRange, DropIn, DropInLayer, DropInObjectData, ENTRANCE_CIRCLE_IDS, EOBJ_EXIT,
-        EOBJ_HOUSING_ENTRANCE, EOBJ_SHORTCUT, EOBJ_SHORTCUT_EXPLORER_MODE, EventState, HandlerType,
-        ObjectId, Position, WARP_DELAY, euler_to_direction, internal_housing_row,
+        CharacterMode, DistanceRange, DropIn, DropInLayer, DropInObjectData, ENTRANCE_CIRCLE_IDS,
+        EOBJ_EXIT, EOBJ_HOUSING_ENTRANCE, EOBJ_SHORTCUT, EOBJ_SHORTCUT_EXPLORER_MODE, EventState,
+        HandlerType, ObjectId, Position, WARP_DELAY, euler_to_direction, internal_housing_row,
     },
     config::get_config,
     ipc::zone::{
@@ -871,8 +871,11 @@ fn begin_change_zone<'a>(
 
         // inform the players in this zone that this actor left
         if let Some(current_instance) = data.find_actor_instance_mut(actor_id) {
-            // HACK: This is to prevent actors from disappearing when warping within the same zone.
-            if current_instance.zone.id != destination_zone_id {
+            // Ordinary same-zone warps only move the player. Death returns need
+            // the full spawn handshake to restore HP/MP and clear the dead mode.
+            if current_instance.zone.id != destination_zone_id
+                || matches!(warp_type, WarpType::Resurrection)
+            {
                 network.remove_actor(current_instance, actor_id);
                 needs_init_zone = true;
             }
@@ -1097,6 +1100,44 @@ fn do_change_zone(
     }
 }
 
+fn can_return_after_death(actor: &NetworkedActor) -> bool {
+    let NetworkedActor::Player { spawn, .. } = actor else {
+        return false;
+    };
+    let common = &spawn.common;
+    common.max_health_points > 0
+        && (common.health_points == 0 || common.mode == CharacterMode::Dead)
+}
+
+#[cfg(test)]
+mod death_return_tests {
+    use super::*;
+
+    #[test]
+    fn return_after_death_requires_initialized_dead_player() {
+        let mut instance = Instance::default();
+        let id = ObjectId(123);
+        instance.insert_empty_actor(id);
+        let actor = instance.find_actor_mut(id).unwrap();
+        assert!(!can_return_after_death(actor));
+
+        actor.get_common_spawn_mut().max_health_points = 1500;
+        actor.get_common_spawn_mut().health_points = 1500;
+        assert!(!can_return_after_death(actor));
+
+        actor.get_common_spawn_mut().health_points = 0;
+        assert!(can_return_after_death(actor));
+
+        // The GM kill command can mark the actor dead before HP is updated.
+        actor.get_common_spawn_mut().health_points = 1500;
+        actor.get_common_spawn_mut().mode = CharacterMode::Dead;
+        assert!(can_return_after_death(actor));
+
+        actor.get_common_spawn_mut().mode = CharacterMode::Normal;
+        assert!(!can_return_after_death(actor));
+    }
+}
+
 /// Process zone-related messages.
 pub fn handle_zone_messages(
     data: Arc<Mutex<WorldServer>>,
@@ -1252,6 +1293,51 @@ pub fn handle_zone_messages(
                 0,
             );
 
+            true
+        }
+        ToServer::ReturnAfterDeath(from_id, actor_id, homepoint) => {
+            let mut data = data.lock();
+            let Some(instance) = data.find_actor_instance_mut(*actor_id) else {
+                return true;
+            };
+            let Some(actor) = instance.find_actor(*actor_id) else {
+                return true;
+            };
+            if !can_return_after_death(actor) {
+                tracing::warn!(
+                    ?actor_id,
+                    "Ignoring death return from a living or uninitialized actor"
+                );
+                return true;
+            }
+            let mut game_data = game_data.lock();
+            let Some((pop_range, zone_id)) = game_data.get_aetheryte(*homepoint, false) else {
+                tracing::error!(homepoint, "Cannot return to invalid homepoint");
+                return true;
+            };
+            instance.cancel_actor_tasks(*actor_id);
+            tracing::info!(
+                ?actor_id,
+                homepoint,
+                zone_id,
+                "Returning player after death"
+            );
+            let mut network = network.lock();
+            // A full zone initialization creates a living player with full HP/MP.
+            // This must also happen when the homepoint is in the current zone.
+            change_zone_warp_to_pop_range(
+                &mut data,
+                &mut network,
+                &mut game_data,
+                Some(zone_id),
+                pop_range,
+                *actor_id,
+                *from_id,
+                WarpType::Resurrection,
+                0,
+                0,
+                0,
+            );
             true
         }
         ToServer::WarpAetheryte(from_id, actor_id, aetheryte_id, housing_aethernet) => {

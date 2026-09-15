@@ -959,6 +959,19 @@ async fn process_packet(
                         }
                         ClientZoneIpcData::ClientTrigger(trigger) => {
                             match trigger.trigger {
+                                ClientTriggerCommand::Resurrect { kind: 8 } => {
+                                    connection
+                                        .handle
+                                        .send(ToServer::ReturnAfterDeath(
+                                            connection.id,
+                                            connection.player_data.character.actor_id,
+                                            connection.player_data.aetheryte.homepoint as u32,
+                                        ))
+                                        .await;
+                                }
+                                ClientTriggerCommand::Resurrect { kind } => {
+                                    tracing::warn!(kind, "Unsupported resurrection request");
+                                }
                                 ClientTriggerCommand::RequestTitleList {} => {
                                     let ipc =
                                         ServerZoneIpcSegment::new(ServerZoneIpcData::TitleList {

@@ -332,6 +332,8 @@ pub enum ToServer {
     Warp(ClientId, ObjectId, u32),
     /// Warp with the specified aetheryte id.
     WarpAetheryte(ClientId, ObjectId, u32, bool),
+    /// Return after death to the homepoint read from the character's saved data.
+    ReturnAfterDeath(ClientId, ObjectId, u32),
     /// Ready to spawn the player (this happens during initrequest)
     ReadySpawnPlayer(ClientId, ObjectId, u16, Position, f32, Option<u8>),
     /// Ready to send the ZoneIn ACS

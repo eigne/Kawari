@@ -11,6 +11,10 @@ use crate::ipc::zone::client::HouseId;
 #[binrw]
 #[derive(Debug, PartialEq, Clone, IntoStaticStr)]
 pub enum ClientTriggerCommand {
+    /// Accepting a raise (5) or returning to the homepoint after death (8).
+    #[brw(magic = 200u32)]
+    Resurrect { kind: u32 },
+
     /// The player sheathes/unsheathes their weapon.
     #[brw(magic = 1u32)]
     ToggleWeapon {
@@ -552,6 +556,16 @@ mod tests {
     use crate::common::{ObjectId, ObjectTypeId, ObjectTypeKind};
 
     use crate::client_zone_tests_dir;
+
+    #[test]
+    fn read_return_after_death() {
+        // The observed packet has category 200, return kind 8, and no target.
+        let mut bytes = [0u8; 32];
+        bytes[..4].copy_from_slice(&200u32.to_le_bytes());
+        bytes[4..8].copy_from_slice(&8u32.to_le_bytes());
+        let trigger = ClientTrigger::read_le(&mut Cursor::new(bytes)).unwrap();
+        assert_eq!(trigger.trigger, ClientTriggerCommand::Resurrect { kind: 8 });
+    }
 
     #[test]
     fn read_toggle_sign() {
