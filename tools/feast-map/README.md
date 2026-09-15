@@ -1,7 +1,10 @@
 # Crystal Tower Training Grounds exploration
 
 This prototype restores **territory 745** as an ordinary exploration area. It adds
-`!feast` to enter and `!feast leave` to return to Limsa. It does not implement Feast
+`!feast` to enter and `!feast leave` to return to Limsa. Accepting Return after death
+in territory 745 respawns you at the arena entry point with full HP/MP. The client
+may still name your homepoint in the confirmation; your saved homepoint is unchanged.
+It does not implement Feast
 combat, teams, a match timer, or matchmaking.
 
 The supported Windows client build is **2026.06.18.0000.0000 (7.51h2)**. The arena's

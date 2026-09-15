@@ -1310,6 +1310,35 @@ pub fn handle_zone_messages(
                 );
                 return true;
             }
+            // The exploration arena has no duty director to choose a respawn.
+            // Keep its death returns at the same PC arrival used by !feast.
+            if instance.zone.id == 745 {
+                instance.cancel_actor_tasks(*actor_id);
+                let mut game_data = game_data.lock();
+                let mut network = network.lock();
+                let (target_instance, needs_init_zone) = begin_change_zone(
+                    &mut data,
+                    &mut network,
+                    &mut game_data,
+                    Some(745),
+                    *actor_id,
+                    WarpType::Resurrection,
+                    0,
+                    0,
+                    0,
+                );
+                do_change_zone(
+                    &mut network,
+                    target_instance,
+                    needs_init_zone,
+                    Some(Position(Vec3::new(-37.0, 1.0, 0.0))),
+                    Some(1.570451),
+                    *from_id,
+                    WarpType::Resurrection,
+                );
+                tracing::info!(?actor_id, "Respawning player in the Feast arena");
+                return true;
+            }
             let mut game_data = game_data.lock();
             let Some((pop_range, zone_id)) = game_data.get_aetheryte(*homepoint, false) else {
                 tracing::error!(homepoint, "Cannot return to invalid homepoint");
