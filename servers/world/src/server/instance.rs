@@ -114,6 +114,7 @@ pub struct Instance {
     pub director: Option<DirectorData>,
     pub enemy_ai_disabled: bool,
     pub feast_whm: Option<super::feast::FeastWhiteMage>,
+    pub feast_match: Option<super::feast_match::Runtime>,
 }
 
 impl Instance {

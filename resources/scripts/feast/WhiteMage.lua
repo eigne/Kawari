@@ -25,6 +25,7 @@ local function has(id, name)
     return a and a.statuses[name] and a.statuses[name].expires > M.now
 end
 local function friendly(a,b)
+    if a.match_team and b.match_team then return a.match_team==b.match_team end
     return a.id == b.id or (M.players[a.id] and M.players[b.id]
         and M.players[a.id].team == M.players[b.id].team)
 end
@@ -42,7 +43,7 @@ end
 local function enemies(source,center,radius)
     local result={}
     for _,a in pairs(M.actors) do
-        if valid(a) and not friendly(source,a) and (not a.player or M.players[a.id])
+        if valid(a) and not friendly(source,a) and (not a.player or M.players[a.id] or a.match_team)
             and distance(center,a)<=radius then table.insert(result,a) end
     end
     table.sort(result,function(a,b) return a.id<b.id end)
@@ -67,6 +68,9 @@ end
 function M.modify_damage(source,target,amount,now)
     M.now=now
     local b=state(target)
+    local a=state(source)
+    if (a and a.match_active==false) or (b and b.match_active==false) then return 0 end
+    if a and b and a.match_team and b.match_team and friendly(a,b) then return 0 end
     if not b then return amount end
     if b.invulnerable then return 0 end
     local factor=outgoing(source,false)
@@ -193,6 +197,7 @@ function M.sync(snapshots,now)
         local old=state(snap.id)
         snap.statuses=old and old.statuses or {}
         M.actors[snap.id]=snap; present[snap.id]=true
+        if M.players[snap.id] and snap.match_team then M.players[snap.id].team=snap.match_team end
         if snap.hp<=0 then
             if snap.statuses.temperance then emit("temperance_visual",snap.id,snap.id,0) end
             if snap.statuses.bolt then emit("speed",snap.id,snap.id,100) end
@@ -220,6 +225,7 @@ local function error_for(id,name,target,finishing)
     if not p then return "Use !whm on first." end
     if not d then return "Unknown Feast action; use !whm list." end
     if not valid(a) then return "Cannot act while dead." end
+    if a.match_active==false then return "Feast combat is closed until the match begins." end
     if has(id,"attunement") then return "Attunement prevents actions." end
     if not d.usable_while_cc and M.blocked(id,false) then return "Crowd control prevents this action." end
     for _,status in ipairs(a.native_statuses or {}) do
@@ -227,7 +233,8 @@ local function error_for(id,name,target,finishing)
             or native_cc[status]=="silence") then return "Crowd control prevents this action." end
     end
     if not valid(b) then return "Select a living target in this arena." end
-    if d.target=="enemy" and (friendly(a,b) or (b.player and not M.players[b.id])) then return "Select an enemy." end
+    if b.match_active==false then return "That player is not an active match participant." end
+    if d.target=="enemy" and (friendly(a,b) or (b.player and not M.players[b.id] and not b.match_team)) then return "Select an enemy." end
     if (d.target=="ally" or d.target=="other_ally") and not friendly(a,b) then return "Select a teammate or yourself." end
     if d.target=="other_ally" and a.id==b.id then return "Rescue requires another teammate." end
     if distance(a,b)>d.range and d.target~="self" then return "Target is out of range." end
@@ -322,9 +329,9 @@ function M.command(id,text,target,now)
     if name=="on" then
         if a.job~=24 then return "Equip White Mage before enabling Feast White Mage." end
         if M.players[id] then return "Feast White Mage is already enabled." end
-        M.players[id]={team="fang",cooldowns={},gcd=0,lilies=0,blood=0,adrenaline=0,
+        M.players[id]={team=a.match_team or "fang",cooldowns={},gcd=0,lilies=0,blood=0,adrenaline=0,
             lily_time=0,last_tick=now,combat_until=0,loadout={protect=true,largesse=true}}
-        return "Feast White Mage enabled (team fang). Use !whm list. Additional actions: protect, largesse."
+        return "Feast White Mage enabled (team "..M.players[id].team.."). Use !whm list. Additional actions: protect, largesse."
     end
     if name=="off" then
         if has(id,"temperance") then emit("temperance_visual",id,id,0) end
@@ -345,6 +352,7 @@ function M.command(id,text,target,now)
     if name=="team" or name=="loadout" then
         if a.combat or p.combat_until>now or p.pending then return "Cannot change team/loadout in combat." end
         if name=="team" then
+            if a.match_team then return "The arena assigns and locks match teams automatically." end
             if args[2]~="fang" and args[2]~="claw" then return "Use !whm team fang|claw." end
             p.team=args[2]; return "Team set to "..p.team
         end

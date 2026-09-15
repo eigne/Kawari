@@ -1,4 +1,4 @@
--- Exploration only: territory 745 must be restored on both server and client.
+-- Territory 745 must be restored on both server and client.
 -- See tools/feast-map/README.md for the reversible metadata patch.
 required_rank = GM_RANK_DEBUG
 command_sender = "[feast] "
@@ -14,7 +14,7 @@ function onCommand(player, args, name)
     end
 
     if #args ~= 0 then
-        printf(player, "Usage: !feast to enter, !feast leave to return to Limsa.")
+        printf(player, "Usage: !feast to enter, !feast leave to exit, !feast status for medals/time, !feast restart after a result.")
         return
     end
 
@@ -26,5 +26,5 @@ function onCommand(player, args, name)
     else
         player:change_territory(745, position, 1.570451)
     end
-    printf(player, "Entering Crystal Tower Training Grounds. Use !feast leave to exit.")
+    printf(player, "Entering Crystal Tower Training Grounds. Match preparation starts automatically. Use !feast status for medals/time, !feast leave to exit.")
 end

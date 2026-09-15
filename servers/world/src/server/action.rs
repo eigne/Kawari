@@ -44,6 +44,7 @@ pub fn handle_action_messages(
             if let Some(instance) = data.find_actor_instance_mut(*from_actor_id)
                 && instance.zone.id == 745
             {
+                super::feast_match::tick(instance, &network);
                 let group = if request.action_type == ActionType::Action
                     && super::feast::native_action_name(request.action_id).is_some()
                 {

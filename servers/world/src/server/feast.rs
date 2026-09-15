@@ -280,6 +280,8 @@ struct Snapshot {
     combat: bool,
     invulnerable: bool,
     native_statuses: Vec<u16>,
+    match_team: Option<&'static str>,
+    match_active: bool,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -377,6 +379,12 @@ fn snapshots(instance: &Instance) -> Vec<Snapshot> {
                 job: s.class_job,
                 combat,
                 invulnerable,
+                match_team: instance
+                    .feast_match
+                    .as_ref()
+                    .and_then(|m| m.rules.players.get(&id.0))
+                    .map(|p| p.team.name()),
+                match_active: !player || super::feast_match::can_act(instance, *id),
                 native_statuses: actor
                     .status_effects()
                     .map(|effects| effects.data().iter().map(|s| s.effect_id).collect())
@@ -667,6 +675,15 @@ pub fn native_action(
     cooldown_group: Option<u32>,
 ) {
     if instance.zone.id != 745 {
+        return;
+    }
+    if !super::feast_match::can_act(instance, actor) {
+        notice(network, actor, "Feast combat is closed: wait for the countdown, or join the next match. Jobs are locked during a match.".into());
+        network.lock().send_to_by_actor_id(
+            actor,
+            FromServer::ActorControlSelf(ActorControlCategory::CancelCast {}),
+            DestinationNetwork::ZoneClients,
+        );
         return;
     }
     tick(instance, network);

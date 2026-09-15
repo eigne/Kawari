@@ -170,4 +170,14 @@ test("Temperance emits native visual start and expiry",function()
     for _,e in ipairs(m.drain()) do if e.kind=="temperance_visual" then stops=stops+1;eq(e.amount,0) end end
     eq(stops,1)
 end)
+test("match countdown, results, and teams constrain combat",function()
+    local m=fresh();m.actors[1].match_active=false
+    assert(m.command(1,"glare",3,0):find("closed"));eq(m.actors[3].hp,20000)
+    m.actors[1].match_active=true;m.command(1,"glare",3,0)
+    m.actors[1].match_active=false;m.advance(1.5);eq(m.actors[3].hp,20000)
+    m.actors[1].match_active=true;m.actors[1].match_team="fang";m.actors[2].match_team="claw"
+    assert(m.command(1,"cure",2,2.4):find("teammate"))
+    assert(m.command(1,"team claw",0,2.4):find("locks"))
+    m.actors[2].match_active=false;eq(m.modify_damage(1,2,1000,2.4),0)
+end)
 return count

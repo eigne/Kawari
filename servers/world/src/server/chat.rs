@@ -157,6 +157,13 @@ fn process_debug_commands(
     let parts: Vec<&str> = chat_message.split(' ').collect();
 
     match parts[0] {
+        "!feast" if matches!(parts.get(1), Some(&"status") | Some(&"restart")) => {
+            let mut data = data.lock();
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
+                super::feast_match::command(instance, &network, from_actor_id, parts[1]);
+            }
+            true
+        }
         "!whm" => {
             let mut data = data.lock();
             if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
