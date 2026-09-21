@@ -1,6 +1,37 @@
 # Feast restoration handoff — start here
 
-Updated 2026-09-15 (Asia/Tokyo). Workspace: `C:\dev\kawaridev\Kawari`.
+Updated 2026-09-21 (Asia/Tokyo). Workspace: `C:\dev\kawaridev\Kawari`.
+
+## September 21 rules audit and candidate (latest)
+
+User requested previous changes committed, then independent research and implementation
+of missing Feast rules, prioritizing surviving native logic/assets. Previous accepted
+animation/eligibility fixes committed as `17c18861`. New mechanics: `235e6a76`.
+Broader task is NOT complete.
+
+Current candidate adds 60s preparation, 600-medal early victory, Culling status994 and
+damage/stacks/KO/overtime rules, persistent disconnect drops, timed supply waves,
+original layout-bound supply NPCs and native kit EObjects, team aggregate damage
+ownership, proximity pickup, adrenaline/Wolf's Heart rewards and native gauge input.
+Japanese official guide resolved misleading English wording: KIT OWNERSHIP IS BY
+TEAM DAMAGE, not the individual highest contributor. Reward requires ground pickup.
+
+See `docs/src/development/feast-rules-audit.md` for sources, evidence and remaining
+work. Box HP5000, kit lifetime60, equal-damage Fangs tie-break and passive180s gauge
+are explicit provisional choices; do not claim exact historical fidelity. Original
+box/kit resources and status rows verified by new `--supplies` asset audit mode.
+Do not claim native targeting, box rendering, pickup effects or speed are verified.
+
+Validation:51 world tests,28 HUD protocol checks; HUD and audit build clean; Oodle
+world binary built. Server started 2026-09-21T05:55:02Z after client absent and fresh
+DB online0. Runner69908/world23584; all8services started, stderr empty.
+User was asked asynchronously to enter Feast and test boxes at4:30, destruction,
+kit pickup and adrenaline. Await that live acceptance; no restart while online.
+
+Outstanding broad work includes native supply validation, historical HP/expiry,
+Culling weather, native party casts/statuses, job kits beyond WHM, LoS/stat scaling,
+full matchmaking/results/rewards and ranked integration. The audit records these
+explicitly. User wants independent progress, not a claim that all work is finished.
 
 ## New continuation state (supersedes deployed-state notes below)
 

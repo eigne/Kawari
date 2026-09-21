@@ -20,3 +20,8 @@ live playback. Missing resources produce null sizes. Action IDs come from the
 server's historical Feast kit; the client still preserves names and end/hit
 references on removed rows, even where Icon=784 and IsPvP=false.
 
+
+Supply audit: append `--supplies` to the command to verify original box/kit
+prefabs, their dependencies and retained statuses. Results for the installed
+7.51h2 client are recorded in `supplies-7.51h2.json`. The audit proves resource
+presence, not live rendering or historical box HP/expiry behavior.

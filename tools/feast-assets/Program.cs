@@ -6,8 +6,9 @@ using Lumina.Data;
 using Lumina.Excel.Sheets;
 
 // Read-only audit: emits metadata, never extracts or modifies game assets.
-if (args.Length != 1) throw new ArgumentException("Usage: dotnet run --project tools/feast-assets -- <game/sqpack>");
+if (args.Length is < 1 or > 2) throw new ArgumentException("Usage: dotnet run --project tools/feast-assets -- <game/sqpack>");
 using var game = new GameData(args[0]);
+if (args.Length == 2 && args[1] == "--supplies") { SupplyAssets.Run(game); return; }
 uint[] ids = [8895,8896,18945,17789,17790,17791,18946,17793,13975,9620,17794,1584,18942,18943,17690,17832,17688,18957,17689,3362];
 var actions = game.GetExcelSheet<Lumina.Excel.Sheets.Action>() ?? throw new InvalidOperationException("Action sheet missing");
 var timelineSheet = game.GetExcelSheet<ActionTimeline>() ?? throw new InvalidOperationException("ActionTimeline sheet missing");

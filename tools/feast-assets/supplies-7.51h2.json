@@ -1,0 +1,160 @@
+{
+  "Assets": [
+    {
+      "Path": "bg/ffxiv/pvp_xx/shared/for_bg/sgbg_l1p2_a0_gmc04.sgb",
+      "Bytes": 3209,
+      "Sha256": "20E657CE8AF769AE83CDA57876A1D6873134E94A909861A122E6A43D7AF32FBC",
+      "TimelineNames": [
+        "box_pop",
+        "box_exp",
+        "box_yell_off",
+        "box_yell_off_a",
+        "box_yell_on",
+        "box_yell_on_a"
+      ],
+      "Dependencies": [
+        {
+          "Path": "bg/ffxiv/pvp_xx/pvp/l1p2/bgparts/l1p2_g0_jam04.mdl",
+          "Bytes": 85988
+        },
+        {
+          "Path": "bgcommon/world/common/vfx_for_bg/eff/b0816pop01_y.avfx",
+          "Bytes": 27528
+        },
+        {
+          "Path": "bgcommon/world/common/vfx_for_bg/eff/b0816smok1_y.avfx",
+          "Bytes": 26728
+        },
+        {
+          "Path": "bgcommon/sound/fst/placednpc_Gembox_pop.scd",
+          "Bytes": 50560
+        },
+        {
+          "Path": "bgcommon/sound/fst/placednpc_Gembox_exp.scd",
+          "Bytes": 76416
+        }
+      ]
+    },
+    {
+      "Path": "bg/ffxiv/pvp_xx/shared/for_bg/sgbg_l1p2_a0_gmc05.sgb",
+      "Bytes": 3213,
+      "Sha256": "3B19415FB8539E424EE49FA0D3C64D9E9B0A8ACCB3AA148F5554D471D961A2AE",
+      "TimelineNames": [
+        "box_pop",
+        "box_exp",
+        "box_white_off",
+        "box_white_off_a",
+        "box_white_on",
+        "box_white_on_a"
+      ],
+      "Dependencies": [
+        {
+          "Path": "bgcommon/world/common/vfx_for_bg/eff/b0816pop01_y.avfx",
+          "Bytes": 27528
+        },
+        {
+          "Path": "bgcommon/world/common/vfx_for_bg/eff/b0816smok1_y.avfx",
+          "Bytes": 26728
+        },
+        {
+          "Path": "bg/ffxiv/pvp_xx/pvp/l1p2/bgparts/l1p2_g0_jam05.mdl",
+          "Bytes": 113588
+        },
+        {
+          "Path": "bgcommon/sound/fst/placednpc_Gembox_pop.scd",
+          "Bytes": 50560
+        },
+        {
+          "Path": "bgcommon/sound/fst/placednpc_Gembox_exp.scd",
+          "Bytes": 76416
+        }
+      ]
+    },
+    {
+      "Path": "bgcommon/world/pvp/shared/for_bg/sgbg_w_pvp_001_04a.sgb",
+      "Bytes": 5703,
+      "Sha256": "C0DAEBAEE64987E40C73B2D8DB1BEAA5A5AE0051D42F8A64AC7F05AC926DE8A5",
+      "TimelineNames": [
+        "gem_white_off",
+        "gem_white_off_a",
+        "gem_white_f",
+        "gem_white_f_a",
+        "gem_white_c",
+        "gem_white_c_a",
+        "gem_white_n",
+        "gem_white_n_a"
+      ],
+      "Dependencies": [
+        {
+          "Path": "bgcommon/sound/fst/placednpc_PvPpoint_depop.scd",
+          "Bytes": 73376
+        },
+        {
+          "Path": "bgcommon/world/pvp/001/bgparts/w_pvp_001_04a.mdl",
+          "Bytes": 5352
+        },
+        {
+          "Path": "bgcommon/world/common/vfx_for_bg/eff/b0811jam03_o.avfx",
+          "Bytes": 69840
+        },
+        {
+          "Path": "bgcommon/world/common/vfx_for_bg/eff/b0811jam02_o.avfx",
+          "Bytes": 69904
+        },
+        {
+          "Path": "bgcommon/world/common/vfx_for_bg/eff/b0811jam01_o.avfx",
+          "Bytes": 69920
+        }
+      ]
+    },
+    {
+      "Path": "bgcommon/world/pvp/shared/for_bg/sgbg_w_pvp_001_05a.sgb",
+      "Bytes": 5687,
+      "Sha256": "4BD7489DE1456E607811347E5FE7E8B199F0C412C11FD6426190151246E6C563",
+      "TimelineNames": [
+        "gem_wht_off",
+        "gem_wht_off_a",
+        "gem_wht_f",
+        "gem_wht_f_a",
+        "gem_wht_c",
+        "gem_wht_c_a",
+        "gem_wht_n",
+        "gem_wht_n_a"
+      ],
+      "Dependencies": [
+        {
+          "Path": "bgcommon/sound/fst/placednpc_PvPpoint_depop.scd",
+          "Bytes": 73376
+        },
+        {
+          "Path": "bgcommon/world/pvp/001/bgparts/w_pvp_001_05a.mdl",
+          "Bytes": 6024
+        },
+        {
+          "Path": "bgcommon/world/common/vfx_for_bg/eff/b0811jam01_o.avfx",
+          "Bytes": 69920
+        },
+        {
+          "Path": "bgcommon/world/common/vfx_for_bg/eff/b0811jam02_o.avfx",
+          "Bytes": 69904
+        },
+        {
+          "Path": "bgcommon/world/common/vfx_for_bg/eff/b0811jam03_o.avfx",
+          "Bytes": 69840
+        }
+      ]
+    }
+  ],
+  "Statuses": [
+    {
+      "Id": 994,
+      "Name": "Marked for Culling",
+      "Description": "Damage taken is increased. The greater the stack, the higher the increase."
+    },
+    {
+      "Id": 1149,
+      "Name": "Wolf\u0027s Heart Kit",
+      "Description": "Movement speed is increased while restoring MP over time."
+    }
+  ]
+}
