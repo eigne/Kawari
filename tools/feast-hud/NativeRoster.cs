@@ -44,6 +44,7 @@ internal static unsafe class NativeRoster
                 numbers->SetValue(n + 8, (int)Math.Max(1u, actor.MaxHp));
                 numbers->SetValue(n + 10, (int)actor.CurrentMp);
                 numbers->SetValue(n + 11, (int)Math.Max(1u, actor.MaxMp));
+                numbers->SetValue(n + 12, p.Adrenaline);
                 strings->SetValue(s + 5, actor.Name.TextValue, managed: true);
                 strings->SetValue(s + 6, "", managed: true);
                 for (int icon = 0; icon < 10; icon++) strings->SetValue(s + 7 + icon, "", managed: true);

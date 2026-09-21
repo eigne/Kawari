@@ -308,6 +308,7 @@ struct Snapshot {
     native_statuses: Vec<u16>,
     match_team: Option<&'static str>,
     match_active: bool,
+    match_culling: u8,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -363,6 +364,10 @@ impl FeastWhiteMage {
             let row = row?;
             Ok((row.get(1)?, row.get(2)?))
         }).collect()
+    }
+
+    pub fn adrenaline(&self, id: u32) -> u8 {
+        self.function("adrenaline").and_then(|f| f.call(id)).unwrap_or(0)
     }
 
     pub fn enabled(&self, id: ObjectId) -> bool {
@@ -427,6 +432,7 @@ fn snapshots(instance: &Instance) -> Vec<Snapshot> {
                     .and_then(|m| m.rules.players.get(&id.0))
                     .map(|p| p.team.name()),
                 match_active: !player || super::feast_match::can_act(instance, *id),
+                match_culling: actor.status_effects().and_then(|s| s.get(994)).map_or(0, |s| s.param as u8),
                 native_statuses: actor
                     .status_effects()
                     .map(|effects| effects.data().iter().map(|s| s.effect_id).collect())
@@ -517,6 +523,13 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                 );
             }
             "interrupt" => instance.cancel_actor_tasks(target),
+            "wolfs_heart" => {
+                if let Some(effects) = instance.find_actor_mut(target).and_then(|a| a.status_effects_mut()) {
+                    if event.amount > 0 { effects.add(1149, 0, event.amount as f32); }
+                    else { effects.remove(1149); }
+                }
+                super::effect::send_effects_list(network.clone(), instance, target);
+            }
             "temperance_visual" => {
                 if let Some(effects) = instance
                     .find_actor_mut(target)
@@ -543,6 +556,11 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                 super::action::update_actor_hp_mp(network.clone(), instance, target);
             }
             "damage" => {
+                if let Some(m) = &mut instance.feast_match {
+                    if m.rules.players.get(&event.actor).is_some_and(|p| p.present && p.alive) {
+                        m.supplies.record_damage(event.actor, target, event.amount);
+                    }
+                }
                 if let Some(NetworkedActor::Npc {
                     newly_hated_actor, ..
                 }) = instance.find_actor_mut(target)
@@ -986,4 +1004,18 @@ pub fn correct_position(
         ),
         DestinationNetwork::ZoneClients,
     );
+}
+
+/// Supply effects remain authoritative in the combat engine; native statuses provide visuals.
+pub fn grant_supply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, id: ObjectId, kind: super::feast_supplies::Kind) {
+    let Some(engine) = &instance.feast_whm else { return; };
+    let result = (|| -> mlua::Result<Vec<Event>> {
+        engine.sync(&snapshots(instance))?;
+        engine.function("supply")?.call::<()>((id.0, kind == super::feast_supplies::Kind::WolfsHeart, engine.now()))?;
+        engine.drain()
+    })();
+    match result {
+        Ok(events) => apply(instance, network, events),
+        Err(error) => tracing::error!(%error, "Feast supply reward failed"),
+    }
 }

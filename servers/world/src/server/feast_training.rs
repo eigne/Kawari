@@ -200,7 +200,7 @@ pub fn command(
         network,
         owner,
         format!(
-            "Created {count} stationary opponents with 5000 HP and 100 medals each. You are Fangs; dummies are Claws. Fresh 10-second preparation. Use !feast attack on|off to control retaliation."
+            "Created {count} stationary opponents with 5000 HP and 100 medals each. You are Fangs; dummies are Claws. Fresh 60-second preparation. Use !feast attack on|off to control retaliation."
         ),
     );
 }

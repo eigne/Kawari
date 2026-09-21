@@ -75,6 +75,7 @@ function M.modify_damage(source,target,amount,now)
     if not b then return amount end
     if b.invulnerable then return 0 end
     local factor=outgoing(source,false)
+    factor=factor*(1+0.1*math.min(5,b.match_culling or 0))
     if has(target,"dia") then factor=factor*1.1 end
     if has(target,"protect") then factor=factor*0.8 end
     if temperance_aura(b) then factor=factor*0.9 end
@@ -211,8 +212,12 @@ function M.sync(snapshots,now)
         snap.statuses=old and old.statuses or {}
         M.actors[snap.id]=snap; present[snap.id]=true
         if M.players[snap.id] and snap.match_team then M.players[snap.id].team=snap.match_team end
+        if snap.match_active==false and snap.statuses.wolfs_heart then
+            snap.statuses.wolfs_heart=nil; emit("wolfs_heart",snap.id,snap.id,0)
+        end
         if snap.hp<=0 then
             if snap.statuses.temperance then emit("temperance_visual",snap.id,snap.id,0) end
+            if snap.statuses.wolfs_heart then emit("wolfs_heart",snap.id,snap.id,0) end
             if snap.statuses.bolt then emit("speed",snap.id,snap.id,100) end
             snap.statuses={}
             local p=M.players[snap.id]
@@ -289,6 +294,13 @@ function M.advance(now)
     M.now=now
     for id,a in pairs(M.actors) do
         for name,s in pairs(a.statuses) do
+            if name=="wolfs_heart" and valid(a) then
+                while s.next_tick<=now and s.next_tick<=s.expires do
+                    a.mp=math.min(10000,a.mp+200)
+                    emit("mp",id,id,a.mp)
+                    s.next_tick=s.next_tick+1
+                end
+            end
             if s.potency and valid(a) then
                 while s.next_tick<=now and s.next_tick<=s.expires do
                     -- Regen snapshots healing modifiers when applied.
@@ -298,6 +310,7 @@ function M.advance(now)
                 end
             end
             if s.expires<=now then
+                if name=="wolfs_heart" then emit("wolfs_heart",id,id,0) end
                 if name=="temperance" then emit("temperance_visual",id,id,0) end
                 if name=="bolt" then emit("speed",id,id,100) end
                 a.statuses[name]=nil
@@ -308,6 +321,8 @@ function M.advance(now)
         local a=state(id)
         if valid(a) then
             local elapsed=math.max(0,now-p.last_tick)
+            -- Three-minute passive fill; halted in preparation and after the match.
+            if a.match_active==true then p.adrenaline=math.min(100,p.adrenaline+elapsed*100/180) end
             local fighting=a.combat or p.combat_until>p.last_tick
             if fighting then
                 local active=a.combat and elapsed or math.max(0,math.min(now,p.combat_until)-p.last_tick)
@@ -382,7 +397,7 @@ function M.command(id,text,target,now)
             if s.expires>now then table.insert(statuses,status) end
         end
         table.sort(statuses)
-        return string.format("Feast WHM: team=%s lilies=%d blood=%d/3 adrenaline=%d/100 MP=%d; %s",p.team,p.lilies,p.blood,p.adrenaline,a.mp,table.concat(statuses,", "))
+        return string.format("Feast WHM: team=%s lilies=%d blood=%d/3 adrenaline=%d/100 MP=%d; %s",p.team,p.lilies,p.blood,math.floor(p.adrenaline),a.mp,table.concat(statuses,", "))
     end
     if name=="team" or name=="loadout" then
         if a.combat or p.combat_until>now or p.pending then return "Cannot change team/loadout in combat." end
@@ -398,7 +413,7 @@ function M.command(id,text,target,now)
         p.loadout={[args[2]]=true,[args[3]]=true}; return "Additional action loadout updated."
     end
     if name=="adrenaline" then
-        -- Test control until match/objective-based adrenaline gain is implemented.
+        -- Explicit test control, independent of normal match generation.
         p.adrenaline=100; return "Test control: adrenaline filled."
     end
     local d=actions[name]
@@ -419,5 +434,22 @@ function M.command(id,text,target,now)
     end
     complete(id,name,target)
     return ""
+end
+
+function M.supply(id,wolfs_heart,now)
+    M.now=now
+    local a=state(id); local p=M.players[id]
+    if not valid(a) or not p then return end
+    if wolfs_heart then
+        buff(a,a,"wolfs_heart",60)
+        a.statuses.wolfs_heart.next_tick=now+1
+        emit("wolfs_heart",id,id,60)
+    else
+        p.adrenaline=math.min(100,p.adrenaline+25)
+    end
+end
+function M.adrenaline(id)
+    local p=M.players[id]
+    return p and math.floor(p.adrenaline) or 0
 end
 return M

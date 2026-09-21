@@ -61,6 +61,7 @@ mod feast;
 mod feast_director;
 mod feast_match;
 mod feast_training;
+mod feast_supplies;
 mod instance;
 mod linkshell;
 mod network;

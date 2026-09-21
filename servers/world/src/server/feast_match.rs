@@ -1,7 +1,7 @@
 //! Small-team Feast match rules. Time and positions are supplied by the world server.
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const COUNTDOWN: f64 = 10.0;
+pub const COUNTDOWN: f64 = 60.0;
 pub const MATCH_TIME: f64 = 360.0;
 pub const SUDDEN_DEATH: f64 = 120.0;
 // The official guide does not specify these two values. Prototype tuning.
@@ -86,6 +86,7 @@ pub struct Match {
     last_clock: u32,
     pub announcements: Vec<String>,
     pub pickups: Vec<PickupVisual>,
+    last_knockout: f64,
 }
 
 impl Match {
@@ -99,6 +100,7 @@ impl Match {
             last_clock: u32::MAX,
             announcements: Vec::new(),
             pickups: Vec::new(),
+            last_knockout: now + COUNTDOWN,
         }
     }
 
@@ -109,6 +111,17 @@ impl Match {
                 Team::Fang => (f + p.medals, c),
                 Team::Claw => (f, c + p.medals),
             })
+    }
+
+    /// Final Feast: 90 seconds without a KO, then one stack every 15 seconds.
+    /// Sudden death starts at one immediately and ignores further KOs.
+    pub fn culling_stacks(&self, now: f64) -> u8 {
+        let first = match self.phase {
+            Phase::Active => self.last_knockout + 90.0,
+            Phase::SuddenDeath => self.deadline - SUDDEN_DEATH,
+            _ => return 0,
+        };
+        if now < first { 0 } else { (1.0 + ((now - first) / 15.0).floor()).min(5.0) as u8 }
     }
 
     pub fn active(&self, id: u32, job: u8) -> bool {
@@ -302,6 +315,7 @@ impl Match {
             if was_present && !p.present {
                 self.drop_medals(id, true, now);
             } else if was_present && was_alive && !p.alive {
+                self.last_knockout = now;
                 self.drop_medals(id, false, now);
             }
             // Rejoining restores only unclaimed disconnect drops, not ordinary KO drops.
@@ -321,7 +335,7 @@ impl Match {
             return;
         }
         self.drops.retain(|drop| {
-            if now >= drop.expires {
+            if !drop.abandoned && now >= drop.expires {
                 self.players.get_mut(&drop.owner).unwrap().medals += drop.medals;
                 false
             } else {
@@ -383,6 +397,11 @@ impl Match {
             self.finish(Some(team), now);
             return;
         }
+        let (fang, claw) = self.scores();
+        if fang >= 600 || claw >= 600 {
+            self.finish(Some(if fang >= 600 { Team::Fang } else { Team::Claw }), now);
+            return;
+        }
         self.clock(now);
     }
 
@@ -419,6 +438,7 @@ pub struct Runtime {
     gate_viewers: BTreeMap<(u32, u32), bool>,
     medal_viewers: BTreeMap<(u32, u32), SharedGroupTimelineState>,
     next_director_snapshot: f64,
+    pub supplies: super::feast_supplies::Supplies,
 }
 
 // The start_col layer centers the two jails at x = +/-58, y = 0.25.
@@ -659,6 +679,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
             let empty_since = *m.empty_since.get_or_insert(now);
             m.rules.step(now, &[]);
             if now - empty_since >= 30.0 {
+                m.supplies.clear(instance, network);
                 for object in m
                     .objects
                     .values()
@@ -688,6 +709,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         gate_viewers: BTreeMap::new(),
         medal_viewers: BTreeMap::new(),
         next_director_snapshot: 0.0,
+        supplies: Default::default(),
     });
     instance
         .feast_respawns
@@ -705,6 +727,20 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     let now = runtime.started.elapsed().as_secs_f64();
     runtime.empty_since = None;
     runtime.rules.step(now, &inputs);
+    // Reuse the surviving Marked for Culling status and native stack icon.
+    let stacks = runtime.rules.culling_stacks(now);
+    for input in &inputs {
+        let id = ObjectId(input.id);
+        let desired = if input.alive { u16::from(stacks) } else { 0 };
+        if let Some(effects) = instance.find_actor_mut(id).and_then(|a| a.status_effects_mut()) {
+            if effects.get(994).map_or(0, |s| s.param) != desired {
+                effects.remove(994);
+                if desired > 0 { effects.add(994, desired, -1.0); }
+                super::effect::send_effects_list(network.clone(), instance, id);
+            }
+        }
+    }
+    super::feast_supplies::tick(instance, network, &runtime.rules, &mut runtime.supplies, now);
     sync_jails(instance, network, &mut runtime, &inputs);
     let expired: Vec<_> = runtime
         .fading
@@ -904,7 +940,8 @@ pub fn command(
                 super::feast_training::command(instance, network, id, &["dummies", &count]);
                 return;
             }
-            if let Some(old) = instance.feast_match.take() {
+            if let Some(mut old) = instance.feast_match.take() {
+        old.supplies.clear(instance, network);
                 for object in old
                     .objects
                     .values()
@@ -952,7 +989,8 @@ pub fn command(
 }
 
 pub fn reset_training(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
-    if let Some(old) = instance.feast_match.take() {
+    if let Some(mut old) = instance.feast_match.take() {
+        old.supplies.clear(instance, network);
         for object in old
             .objects
             .values()
@@ -996,6 +1034,7 @@ pub fn reset_training(instance: &mut Instance, network: &Arc<Mutex<NetworkState>
         gate_viewers: BTreeMap::new(),
         medal_viewers: BTreeMap::new(),
         next_director_snapshot: 0.0,
+        supplies: Default::default(),
     });
 }
 
@@ -1438,6 +1477,54 @@ mod tests {
             m.hud_snapshot(COUNTDOWN + 3.0, 1)
                 .starts_with("KFEASTHUD1|claw|0|50|100|")
         );
+    }
+
+    #[test]
+    fn culling_resets_on_ko_but_not_during_sudden_death() {
+        let (mut m, mut p) = active();
+        assert_eq!(m.culling_stacks(COUNTDOWN + 89.999), 0);
+        assert_eq!(m.culling_stacks(COUNTDOWN + 90.0), 1);
+        assert_eq!(m.culling_stacks(COUNTDOWN + 105.0), 2);
+        assert_eq!(m.culling_stacks(COUNTDOWN + 150.0), 5);
+        p[1].alive = false;
+        m.step(COUNTDOWN + 151.0, &p);
+        assert_eq!(m.culling_stacks(COUNTDOWN + 151.0), 0);
+        assert_eq!(m.culling_stacks(COUNTDOWN + 241.0), 1);
+        // Let unclaimed medals return, so regulation ends tied.
+        m.step(COUNTDOWN + 220.0, &p);
+        let sudden = COUNTDOWN + MATCH_TIME;
+        m.step(sudden, &p);
+        assert_eq!(m.phase, Phase::SuddenDeath);
+        assert_eq!(m.culling_stacks(sudden), 1);
+        p[0].alive = false;
+        m.step(sudden + 20.0, &p);
+        assert_eq!(m.culling_stacks(sudden + 20.0), 2);
+        assert_eq!(m.culling_stacks(sudden + 60.0), 5);
+        m.step(sudden + SUDDEN_DEATH, &p);
+        assert_eq!(m.culling_stacks(sudden + SUDDEN_DEATH), 0);
+    }
+
+    #[test]
+    fn disconnect_drop_remains_after_ordinary_expiry() {
+        let (mut m, p) = active();
+        m.step(COUNTDOWN + 1.0, &p[1..]);
+        m.step(COUNTDOWN + DROP_LIFETIME + 2.0, &p[1..]);
+        assert_eq!(m.drops.len(),1);
+        assert_eq!(m.players[&1].medals,0);
+        m.step(COUNTDOWN + DROP_LIFETIME + 3.0, &p);
+        assert!(m.drops.is_empty());
+        assert_eq!(m.players[&1].medals,100);
+    }
+
+    #[test]
+    fn six_hundred_medals_ends_regulation_immediately() {
+        let (mut m, p) = active();
+        m.players.get_mut(&1).unwrap().medals = 599;
+        m.step(COUNTDOWN + 1.0, &p);
+        assert_eq!(m.phase, Phase::Active);
+        m.players.get_mut(&1).unwrap().medals = 600;
+        m.step(COUNTDOWN + 2.0, &p);
+        assert_eq!(m.phase, Phase::Finished(Some(Team::Fang)));
     }
 
     #[test]

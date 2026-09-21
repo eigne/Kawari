@@ -4,6 +4,7 @@ namespace Kawari.FeastHud;
 
 public sealed record Participant(uint Id, byte Team, ushort Medals, byte Job, bool Alive)
 {
+    public byte Adrenaline { get; init; }
     public IReadOnlyList<PartyAction> Actions { get; init; } = [];
     public string JobAbbreviation => Job switch
     {
@@ -68,6 +69,12 @@ public sealed class DirectorFrames
                     || players[index].Actions.Any(a => a.Slot == action.Slot))
                 { pending = null; return false; }
                 players[index] = players[index] with { Actions = players[index].Actions.Append(action).OrderBy(a => a.Slot).ToArray() };
+                return false;
+            case 0xF5 when pending != null:
+                uint gaugeOwner = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(1, 4));
+                int gaugeIndex = players.FindIndex(p => p.Id == gaugeOwner);
+                if (gaugeIndex < 0 || data[5] > 100) { pending = null; return false; }
+                players[gaugeIndex] = players[gaugeIndex] with { Adrenaline = data[5] };
                 return false;
             case 0xF3 when pending != null:
                 Current = new(pending with { Ground = BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(1, 2)) }, players.ToArray(), respawn);

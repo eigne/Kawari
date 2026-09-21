@@ -42,7 +42,7 @@ pub fn npc_behavior(
         return;
     }
     let test_dummies: std::collections::HashSet<_> =
-        instance.feast_dummies.keys().copied().collect();
+        instance.feast_dummies.keys().copied().chain(instance.feast_match.iter().flat_map(|m| m.supplies.boxes.keys().copied())).collect();
     let action_blocked: std::collections::HashSet<_> = instance
         .actors
         .keys()

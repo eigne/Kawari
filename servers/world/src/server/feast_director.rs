@@ -30,6 +30,11 @@ pub fn send(instance: &Instance, rules: &Match, now: f64, network: &mut NetworkS
             data[9] = u8::from(p.alive);
             records.push(data);
             if let Some(engine) = &instance.feast_whm {
+                let mut gauge = [0; 10];
+                gauge[0] = 0xF5;
+                gauge[1..5].copy_from_slice(&id.to_le_bytes());
+                gauge[5] = engine.adrenaline(id).min(100);
+                records.push(gauge);
                 match engine.party_actions(id) {
                     Ok(actions) => for (slot, (action, remaining)) in actions.into_iter().take(3).enumerate() {
                         let mut cooldown = [0; 10];
@@ -111,7 +116,7 @@ mod tests {
             Input { id: 2, job: 24, alive: true, position: [0.0; 3] },
         ]);
         let snapshot = Snapshot::from_match(&rules, 1.2, 1, 1501);
-        assert_eq!(snapshot.data, [0xF1, 8, 9, 0, 100, 0, 100, 0, 100, 2]);
+        assert_eq!(snapshot.data, [0xF1, 8, 59, 0, 100, 0, 100, 0, 100, 2]);
         let other = Snapshot::from_match(&rules, 1.2, 2, 0);
         assert_eq!(other.data[1], 16);
         let spectator = Snapshot::from_match(&rules, 1.2, 99, 0);

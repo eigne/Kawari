@@ -77,7 +77,7 @@ internal sealed unsafe class NativeDirector : IDisposable
     private void Receive(EventFramework* framework, EventId id, byte sequence, byte unknown, byte* data, ulong length)
     {
         if (InArena && id.Id == 0x80039C56 && data != null && length >= 10 && length <= 12
-            && data[0] is >= 0xF1 and <= 0xF4)
+            && data[0] is >= 0xF1 and <= 0xF5)
         {
             if (frames.Accept(new ReadOnlySpan<byte>(data, 10)))
             {
