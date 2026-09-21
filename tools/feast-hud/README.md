@@ -1,5 +1,15 @@
 # Feast HUD
 
+## Local spell presentation alignment
+
+The native GetSpellIdForAction hook resolves WHM Feast button IDs to historical
+spell IDs before the client starts prediction and its cast display. This matches
+the server's ActorCast/ActionResult spell_id while leaving button request/recast
+IDs intact. It addresses the mixed placeholder-caster/Feast-target animation
+and the identity mismatch associated with the reported slidecast-bar regression.
+Requires a client restart. Live slidecast completion still needs verification;
+movement and genuine cancellation handling are unchanged.
+
 ## Native party lists (current candidate)
 
 Follow-up: player/enemy widgets explicitly use the recipient's Feast team,

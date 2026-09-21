@@ -1,5 +1,17 @@
 # Feast White Mage prototype
 
+## Original animation routing candidate
+
+The server now keeps the historical Feast ID in ActorCast/ActionResult spell_id,
+while acknowledging the actual button ID in action_id and preserving its request
+sequence. Previously the acknowledgement overwrote both IDs and therefore selected
+the placeholder animation. All20 historical rows' AnimationStart, VFX,
+AnimationEnd and ActionTimelineHit values match the cached6.08ActionCSV exactly.
+No metadata or game asset patch is required for this animation routing candidate.
+All45worldtests pass, including all20 animation/acknowledgement mappings.
+Live caster/target playback remains to be verified. Hotbar names/icons/tooltips
+still use the transitional buttons; this change concerns animation presentation.
+
 ## Removed-action asset audit (2026-09-15)
 
 The installed June 7.51h2 client retains the historical action names and end/hit

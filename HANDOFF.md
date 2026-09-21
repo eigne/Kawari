@@ -4,6 +4,43 @@ Updated 2026-09-15 (Asia/Tokyo). Workspace: `C:\dev\kawaridev\Kawari`.
 
 ## New continuation state (supersedes deployed-state notes below)
 
+LATEST PvP eligibility regression fix: User's next test rejected every skill as
+unable to use in PvP. Verified June native UseAction RVA8EB0D0: calls spell
+resolver8DDBB0, adjusts result8EAA20, passes resolved ID to GetActionStatus8E7CC0
+at8EB310. Our override recognized only placeholder button IDs. NativeActions
+now includes Actions.Select(FeastSpells.Resolve), allowing all20 historical IDs
+through the same WHM/745 scoped override. Casting/recast checks remain intact
+using the ID actually presented by native code. DLL rebuilt at registered path;
+24existing protocol tests pass. Client restart required, no server restart.
+Earlier claim that resolver changes only presentation was too narrow: native
+UseAction also uses its result during action adjustment/eligibility. Server
+already accepts historical IDs as well as transitional ones. Live usability,
+timing and animation/slidecast regressions still require retest.
+
+LATEST CLIENT FIX 2026-09-16: User reports Benison caster animation + Protect
+target effect and castbar freezing visually during slidecast after server-only
+historical spell_id change. FeastHotbars now hooks native static
+ActionManager.GetSpellIdForAction, resolving transitional buttons to identical
+historical Feast spell IDs BEFORE local prediction. Scoped to WHMterritory745,
+Action type and implemented buttons; ordinary requests/recasts keep button IDs.
+New FeastSpells.cs includes all20 actions and upgraded aliases. This removes
+local/server spell identity mismatch; no movement/cancellation suppression or
+fake castbar is introduced. Release DLL rebuilt at registered path;24existing
+protocolchecks pass. Client restart required; no server changes/restart. Both
+caster animation and slidecast visual completion need live retest. If freeze
+persists, trace native cast cancel/update; do not assume identity fix proves it.
+
+ORIGINAL ANIMATIONS latest: User requests original Feast animations for usable
+spells. server/feast.rs now separates button_id from historical animation_id;
+ActorCast and ActionResult retain historical spell_id while actual request
+action_id/type/sequence are acknowledged. Prior code overwrote spell_id too.
+All20 AnimationStart/VFX/AnimationEnd/ActionTimelineHit values compared to cached
+6.08 CSV and match exactly. Added all20 acknowledgement regression;45tests pass.
+Button metadata/icons/tooltips unchanged. Live original-effect playback pending.
+Client/Astra absent and freshDBonline0 confirmed before deployment; original
+animation production build passed; runner34724 restarted successfully. Previous logs saved as
+target/pre-feast-original-animations-server.log and -stderr.log.
+
 COMMITTED through current native HUD work at user's request: c7c41846 duty entry,
 5daa44ae rules/director transport,6cab7e56 client HUD,1b84350c documentation.
 Oodle binary intentionally left untracked. Latest asset investigation finds all

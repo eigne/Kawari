@@ -21,14 +21,19 @@ internal sealed unsafe class FeastHotbars : IDisposable
 {
     private static readonly uint[] Actions = [16533, 16532, 120, 135, 124, 16531, 16534, 16535,
         3570, 3571, 16536, 7568, 3, 140, 7432, 25861, 16560, 7571, 7433, 208];
-    private static readonly HashSet<uint> NativeActions = [..Actions, 119, 127, 3568, 7431, 25859, 121, 132, 133, 37010];
+    // UseAction resolves the spell, adjusts it, then calls GetActionStatus with
+    // that resolved ID. Recognize both stages, not just the original hotbar ID.
+    private static readonly HashSet<uint> NativeActions = [..Actions, ..Actions.Select(FeastSpells.Resolve),
+        119, 127, 3568, 7431, 25859, 121, 132, 133, 37010];
     private readonly IDalamudPluginInterface pi;
     private readonly IClientState client;
     private readonly IPlayerState player;
     private readonly IObjectTable objects;
     private readonly Hook<ActionStatus> status;
+    private readonly Hook<SpellId> spell;
     private readonly FeastHotbarConfig config;
     private bool applied;
+    private delegate uint SpellId(ActionType type, uint id);
     private delegate uint ActionStatus(ActionManager* manager, ActionType type, uint id, ulong target,
         [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.I1)] bool recast,
         [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.I1)] bool casting, uint* extra);
@@ -38,8 +43,13 @@ internal sealed unsafe class FeastHotbars : IDisposable
         this.pi = pi; this.client = client; this.player = player; this.objects = objects;
         config = pi.GetPluginConfig() as FeastHotbarConfig ?? new();
         status = interop.HookFromAddress<ActionStatus>((nint)ActionManager.MemberFunctionPointers.GetActionStatus, GetStatus);
-        status.Enable();
+        try { spell = interop.HookFromAddress<SpellId>((nint)ActionManager.MemberFunctionPointers.GetSpellIdForAction, GetSpell); }
+        catch { status.Dispose(); throw; }
+        status.Enable(); spell.Enable();
     }
+    private uint GetSpell(ActionType type, uint id)
+        => Eligible && type == ActionType.Action && NativeActions.Contains(id)
+            ? FeastSpells.Resolve(id) : spell.Original(type, id);
     private uint GetStatus(ActionManager* manager, ActionType type, uint id, ulong target, bool recast, bool casting, uint* extra)
     {
         // Retail's PvE/PvP, lily and unlock gates describe a different ruleset.
@@ -94,7 +104,7 @@ internal sealed unsafe class FeastHotbars : IDisposable
     }
     public void Dispose()
     {
-        status.Dispose();
+        spell.Dispose(); status.Dispose();
         var module = RaptureHotbarModule.Instance();
         if (module != null && module->ModuleReady && module->PvPHotbarsActive && module->ActiveHotbarClassJobId == 24)
         { Restore(module); config.Slots.Clear(); pi.SavePluginConfig(config); }

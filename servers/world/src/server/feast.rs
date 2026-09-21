@@ -3,6 +3,31 @@
 mod tests {
     use super::*;
     #[test]
+    fn historical_animation_survives_placeholder_acknowledgement() {
+        let lua = Lua::new();
+        let engine: Table = lua.load(include_str!("../../../../resources/scripts/feast/WhiteMage.lua")).eval().unwrap();
+        let actions: Table = engine.get("actions").unwrap();
+        let mut count = 0;
+        for pair in actions.pairs::<String, Table>() {
+            let (name, definition) = pair.unwrap();
+            let historical: u32 = definition.get("id").unwrap();
+            assert_eq!(animation_id(&name), Some(historical));
+            let request = kawari::ipc::zone::ActionRequest {
+                action_id: button_id(&name).unwrap(), action_type: ActionType::Action,
+                sequence: 123, ..Default::default()
+            };
+            let mut result = ActionResult { action_id: historical, spell_id: historical as u16, ..Default::default() };
+            acknowledge_result(&mut result, &request);
+            assert_eq!(result.action_id, request.action_id, "{name} button acknowledgement");
+            assert_eq!(result.source_sequence, 123);
+            assert_eq!(result.spell_id, historical as u16, "{name} historical animation");
+            assert_eq!(native_action_name(historical), Some(name.as_str()));
+            assert_eq!(native_action_name(request.action_id), Some(name.as_str()));
+            count += 1;
+        }
+        assert_eq!(count, 20);
+    }
+    #[test]
     fn native_requests_enable_arena_rules_and_keep_cast_sequence() {
         let lua = Lua::new();
         let table: Table = lua
@@ -79,7 +104,7 @@ mod tests {
         assert_eq!(native_action_name(u32::MAX), None);
     }
     #[test]
-    fn feast_presentation_uses_current_actions_without_mutating_hp() {
+    fn feast_presentation_uses_historical_actions_without_mutating_hp() {
         let mut instance = Instance::default();
         instance.insert_empty_actor(ObjectId(1));
         let hp = instance
@@ -98,7 +123,7 @@ mod tests {
         assert!(matches!(
             presentation(&instance, &event),
             Some(ServerZoneIpcData::ActorCast {
-                action_id: 16533,
+                action_id: 17789,
                 cast_time: 1.5,
                 target: ObjectId(2),
                 ..
@@ -111,7 +136,7 @@ mod tests {
         let Some(ServerZoneIpcData::ActionResult(result)) = presentation(&instance, &event) else {
             panic!("Expected action result")
         };
-        assert_eq!(result.action_id, 135);
+        assert_eq!(result.action_id, 8896);
         assert_eq!(result.source_sequence, 0);
         assert_eq!(result.target_id_again.object_id, ObjectId(2));
         assert!(matches!(
@@ -441,7 +466,6 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                     let mut packet = packet;
                     if let ServerZoneIpcData::ActorCast {
                         action_id,
-                        spell_id,
                         ..
                     } = &mut packet
                         && let Some(request) = instance
@@ -450,7 +474,6 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                             .and_then(|engine| engine.native_requests.get(&source))
                     {
                         *action_id = request.action_id;
-                        *spell_id = request.action_id as u16;
                     }
                     if let ServerZoneIpcData::ActionResult(ref mut result) = packet {
                         if let Some(request) = instance
@@ -458,10 +481,7 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                             .as_mut()
                             .and_then(|engine| engine.native_requests.remove(&source))
                         {
-                            result.source_sequence = request.sequence;
-                            result.action_id = request.action_id;
-                            result.spell_id = request.action_id as u16;
-                            result.action_type = request.action_type;
+                            acknowledge_result(result, &request);
                         }
                         result.global_sequence = network.global_action_sequence;
                         network.global_action_sequence =
@@ -576,8 +596,8 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
     }
 }
 
-/// Existing client actions supply presentation only; Lua remains authoritative.
-fn animation_id(name: &str) -> Option<u32> {
+/// Transitional button IDs used by the current client hotbars.
+fn button_id(name: &str) -> Option<u32> {
     Some(match name {
         "cure" => 120,
         "cure2" => 135,
@@ -601,6 +621,42 @@ fn animation_id(name: &str) -> Option<u32> {
         "rain" => 208,
         _ => return None,
     })
+}
+
+// Original 6.08 Feast rows retain identical cast/VFX/end/hit references in
+// June 7.51h2. The wire spell_id selects presentation independently of the
+// requested button action_id and its sequence/cooldown acknowledgement.
+fn animation_id(name: &str) -> Option<u32> {
+    Some(match name {
+        "cure" => 8895,
+        "cure2" => 8896,
+        "medica" => 18945,
+        "glare" => 17789,
+        "dia" => 17790,
+        "solace" => 17791,
+        "rapture" => 18946,
+        "misery" => 17793,
+        "tetra" => 13975,
+        "assize" => 9620,
+        "temperance" => 17794,
+        "purify" => 1584,
+        "bolt" => 18942,
+        "kit" => 18943,
+        "repose" => 17690,
+        "protect" => 17832,
+        "rescue" => 17688,
+        "largesse" => 18957,
+        "attunement" => 17689,
+        "rain" => 3362,
+        _ => return None,
+    })
+}
+
+fn acknowledge_result(result: &mut ActionResult, request: &kawari::ipc::zone::ActionRequest) {
+    result.source_sequence = request.sequence;
+    result.action_id = request.action_id;
+    result.action_type = request.action_type;
+    // Preserve spell_id: this is the original Feast animation, not the button.
 }
 
 fn presentation(instance: &Instance, event: &Event) -> Option<ServerZoneIpcData> {
@@ -691,7 +747,7 @@ pub(super) fn native_action_name(id: u32) -> Option<&'static str> {
             "rain",
         ]
         .into_iter()
-        .find(|name| animation_id(name) == Some(id)),
+        .find(|name| button_id(name) == Some(id) || animation_id(name) == Some(id)),
     }
 }
 
