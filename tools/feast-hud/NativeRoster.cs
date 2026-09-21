@@ -8,7 +8,7 @@ namespace Kawari.FeastHud;
 // this array contract. Keep real row components, HUD positions and mouse events.
 internal static unsafe class NativeRoster
 {
-    public static void Update(DirectorFrame? frame, IObjectTable objects, ITargetManager targets)
+    public static void Update(DirectorFrame? frame, IObjectTable objects, ITargetManager targets, IDataManager data)
     {
         var ui = RaptureAtkModule.Instance();
         if (ui == null) return;
@@ -46,7 +46,13 @@ internal static unsafe class NativeRoster
                 numbers->SetValue(n + 11, (int)Math.Max(1u, actor.MaxMp));
                 numbers->SetValue(n + 12, p.Adrenaline);
                 strings->SetValue(s + 5, actor.Name.TextValue, managed: true);
-                strings->SetValue(s + 6, "", managed: true);
+                // Verified native row renderer RVA13C5ED2: n+13 is a 0..100
+                // cast percentage; s+6 replaces the name while the bar is visible.
+                bool casting = p.Alive && actor.IsCasting && actor.TotalCastTime > 0;
+                int progress = casting ? Math.Clamp((int)(actor.CurrentCastTime / actor.TotalCastTime * 100), 1, 100) : 0;
+                numbers->SetValue(n + 13, progress);
+                string castName = casting ? data.GetExcelSheet<Lumina.Excel.Sheets.Action>()?.GetRowOrDefault(actor.CastActionId)?.Name.ToString() ?? "" : "";
+                strings->SetValue(s + 6, castName, managed: true);
                 for (int icon = 0; icon < 10; icon++) strings->SetValue(s + 7 + icon, "", managed: true);
                 numbers->SetValue(n + 15, p.Actions.Count);
                 for (int icon = 0; icon < p.Actions.Count; icon++)

@@ -36,11 +36,11 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private bool InArena => client.IsLoggedIn && client.TerritoryType == 745;
     public Plugin(IDalamudPluginInterface pi, IClientState client, IFramework framework,
         IChatGui chat, ICommandManager commands, IGameGui gameGui, IObjectTable objects,
-        IGameInteropProvider interop, IAddonLifecycle lifecycle, IPluginLog log, IPlayerState player, ITargetManager targets)
+        IGameInteropProvider interop, IAddonLifecycle lifecycle, IPluginLog log, IPlayerState player, ITargetManager targets, IDataManager data)
     {
         this.gameGui = gameGui; this.objects = objects;
         this.pi = pi; this.client = client; this.framework = framework; this.chat = chat; this.commands = commands;
-        native = new NativeDirector(client, objects, lifecycle, interop, log, targets);
+        native = new NativeDirector(client, objects, lifecycle, interop, log, targets, data);
         try { hotbars = new FeastHotbars(pi, client, player, objects, interop); }
         catch { native.Dispose(); throw; }
         // Bahnschrift is Windows' DIN-derived UI face. Bake real font glyphs rather

@@ -22,7 +22,7 @@ version with role-based medal limits, not early eight-minute Feast or CC.
 | Supplies | Once-only waves, attackable NPCs bound to original layout, team damage accounting |
 | Kits | Original native event objects, team-restricted proximity pickup, single consumption |
 | Rewards | Adrenaline cap, passive fill, 60 one-second MP ticks, native status 1149 |
-| Presentation | F5 adrenaline director record, native party gauge input |
+| Presentation | F5 adrenaline director record, native party gauge input and native cast bars |
 | Cleanup | Finished/reset/empty match cleanup for boxes, kits and controllers |
 
 Gameplay remains server-side. Client work only consumes presentation data.
@@ -51,14 +51,14 @@ Do not describe this candidate as a complete or exact Feast recreation.
 - Exact equal-damage supply tie-break: **Fangs wins provisionally**, not historically verified.
 - Ordinary KO medal lifetime remains **60 seconds provisional**; disconnect drops persist.
 - Passive adrenaline uses 180 seconds. Confirm final-version rate, combat/KO modifiers,
-  death retention and native gauge scale against captures.
+  death retention against captures. Native gauge scale is verified as 0..100 in the June row renderer.
 - Native box appearance/targetability, break/pickup animations and Wolf's Heart movement
   must be verified in the running client. Unit tests cannot establish rendering or speed.
 - Culling weather changes are still missing; status and damage are implemented.
 - The supported combat kit remains WHM. Other historical jobs, stat normalization,
   damage scaling, full crowd-control resistance and line-of-sight still need work.
-- Native party cast/status presentation remains incomplete; native targeting and
-  additional cooldowns exist, but the cooldown icons currently occupy status slots.
+- Native party status presentation remains incomplete; native casting, targeting and
+  additional cooldowns exist, but cooldown icons currently occupy status slots.
 - Full role-based matchmaking, eight-player admission, result/reward packets,
   quick chat, inactivity handling and ranked seasons are not complete. Practice mode
   intentionally permits incomplete teams. These require separate integration work.
@@ -69,3 +69,18 @@ Rust tests cover match boundaries, supply waves, layout bindings, destruction an
 cleanup. Lua tests cover Culling damage, capped adrenaline and Wolf's Heart expiry.
 C# protocol tests cover atomic F5 gauge frames and malformed/unknown-owner rejection.
 Live acceptance remains required, especially the native bound supply NPCs.
+
+## Original executable recovered for further native-code research
+
+Read-only extraction from the existing local patch archive recovered the complete
+March 1, 2022 executable (40,178,584 bytes) into ignored scratch storage:
+`target/feast-director-research/ffxiv_dx11-6.08.exe`.
+SHA256: `4b0a86b3cb5354619a97bc70918492169cf457eaa2bd825cb9e95e17c6c57883`.
+It was not executed, installed or committed. Original `PvPColosseumHeader` and
+`PvPColosseumPartyList` references are present and available for continued analysis.
+
+June renderer RVA13C5ED2 reads cast percentage from row+13 (divides by100) and
+cast name from string row+6. RVA13C5FA4 reads adrenaline from row+12, compares
+against100 and scales the native gauge. These existing controls are now fed.
+The arena LVB lists weather variants91/63; identifying the Culling variant still
+needs verification, so no guessed weather override was installed.

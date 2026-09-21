@@ -17,6 +17,7 @@ internal sealed unsafe class NativeDirector : IDisposable
     private readonly IClientState client;
     private readonly IObjectTable objects;
     private readonly ITargetManager targets;
+    private readonly IDataManager data;
     private readonly IAddonLifecycle lifecycle;
     private readonly IPluginLog log;
     private readonly Hook<Refresh> refresh;
@@ -35,10 +36,10 @@ internal sealed unsafe class NativeDirector : IDisposable
     private delegate void SetData(EventFramework* framework, EventId id, byte sequence, byte unknown, byte* data, ulong length);
 
     public NativeDirector(IClientState client, IObjectTable objects, IAddonLifecycle lifecycle,
-        IGameInteropProvider interop, IPluginLog log, ITargetManager targets)
+        IGameInteropProvider interop, IPluginLog log, ITargetManager targets, IDataManager data)
     {
         this.client = client; this.objects = objects; this.lifecycle = lifecycle; this.log = log;
-        this.targets = targets;
+        this.targets = targets; this.data = data;
         var module = Process.GetCurrentProcess().MainModule!;
         imageBase = module.BaseAddress;
         using var file = File.OpenRead(module.FileName);
@@ -72,7 +73,7 @@ internal sealed unsafe class NativeDirector : IDisposable
         }
         // Keep native opening/closing and HUD positioning; replace all CC reads.
         if (!((AgentInterface*)agent)->IsAgentActive()) open(agent, context);
-        NativeRoster.Update(Environment.TickCount64 - Received < 2500 ? Frame : null, objects, targets);
+        NativeRoster.Update(Environment.TickCount64 - Received < 2500 ? Frame : null, objects, targets, data);
     }
     private void Receive(EventFramework* framework, EventId id, byte sequence, byte unknown, byte* data, ulong length)
     {

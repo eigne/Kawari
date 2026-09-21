@@ -29,9 +29,18 @@ User was asked asynchronously to enter Feast and test boxes at4:30, destruction,
 kit pickup and adrenaline. Await that live acceptance; no restart while online.
 
 Outstanding broad work includes native supply validation, historical HP/expiry,
-Culling weather, native party casts/statuses, job kits beyond WHM, LoS/stat scaling,
+Culling weather, native party statuses, job kits beyond WHM, LoS/stat scaling,
 full matchmaking/results/rewards and ranked integration. The audit records these
 explicitly. User wants independent progress, not a claim that all work is finished.
+
+Additional native research: recovered 6.08 executable read-only from local
+D2022.03.01 patch into target/feast-director-research/ffxiv_dx11-6.08.exe.
+SHA2564b0a86b3cb5354619a97bc70918492169cf457eaa2bd825cb9e95e17c6c57883.
+Never executed/installed/committed. Original PvPColosseum UI references survive.
+June row renderer confirms cast percentage n+13 and spell string s+6, plus gauge
+n+12 is0..100. Native cast bars now wired and DLL rebuilt at registered path while
+client absent. Still awaiting live confirmation. Arena LVB weather91/63 found but
+Culling variant unverified, so no weather override. Temporary Rust probe removed.
 
 ## New continuation state (supersedes deployed-state notes below)
 
