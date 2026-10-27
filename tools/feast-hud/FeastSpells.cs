@@ -4,6 +4,14 @@ namespace Kawari.FeastHud;
 // Button IDs still identify requests/recasts; spell IDs identify presentation.
 public static class FeastSpells
 {
+    private sealed record HistoricalIcon(uint Id, uint Icon);
+    private static readonly Dictionary<uint, uint> Icons = System.Text.Json.JsonSerializer.Deserialize<HistoricalIcon[]>(
+        typeof(FeastSpells).Assembly.GetManifestResourceStream("FeastWhmIcons.json")!,
+        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!.ToDictionary(a => a.Id, a => a.Icon);
+
+    // Removed Action rows now contain icon 784. Keep the original 6.08 icon IDs.
+    public static uint Icon(uint buttonId) => Icons.GetValueOrDefault(Resolve(buttonId));
+
     public static uint Resolve(uint id) => id switch
     {
         120 => 8895, 135 => 8896, 124 or 133 or 37010 => 18945,

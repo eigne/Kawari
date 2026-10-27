@@ -274,8 +274,8 @@ pub fn remove_effect(
 
     // Then send the actor control to lose the effect
     {
-        let mut network = network.lock();
         let data = data.lock();
+        let mut network = network.lock();
 
         let ipc = ActorControlCategory::LoseEffect {
             effect_id: effect_id as u32,

@@ -62,6 +62,17 @@ test("dia debuff increases subsequent hits and expires",function()
     local m=fresh();m.command(1,"dia",3,0);eq(m.actors[3].hp,19200)
     eq(m.modify_damage(1,3,1000,1),1100);eq(m.modify_damage(1,3,1000,15),1000)
     m.advance(15);eq(m.actors[3].hp,19200,"Dia is not a DoT")
+    local visual={};for _,e in ipairs(m.drain()) do if e.kind=="dia_visual" then table.insert(visual,e) end end
+    eq(#visual,2);eq(visual[1].amount,15);eq(visual[1].target,3);eq(visual[2].amount,0)
+end)
+test("Assize presentation includes damage and healing recipients",function()
+    local m=fresh();m.command(1,"assize",0,0)
+    local visual;for _,e in ipairs(m.drain()) do if e.kind=="animation" then visual=e end end
+    local damage,healing=0,0
+    for _,hit in ipairs(visual.hits) do
+        if hit.healing then healing=healing+1 else damage=damage+1;eq(hit.amount,1000) end
+    end
+    eq(damage,2);eq(healing,2)
 end)
 test("solace costs lily, nourishes blood, five regen ticks",function()
     local m=fresh();m.players[1].lilies=1;m.players[1].blood=2
@@ -274,7 +285,7 @@ end)
 
 test("party HUD reports selected actions and authoritative remaining cooldown",function()
     local m=fresh();local a=m.party_actions(1,0)
-    eq(#a,3);eq(a[1][1],1584);eq(a[2][1],17832);eq(a[3][1],18957)
+    eq(#a,3);eq(a[1][1],3362);eq(a[2][1],17832);eq(a[3][1],18957)
     eq(a[2][2],0);m.command(1,"protect",2,0)
     eq(m.party_actions(1,0.1)[2][2],449)
     eq(m.party_actions(1,45)[2][2],0)
@@ -282,5 +293,35 @@ test("party HUD reports selected actions and authoritative remaining cooldown",f
     eq(#m.party_actions(999,0),0)
     m.command(1,"loadout rescue attunement",0,45)
     a=m.party_actions(1,45);eq(#a,3);eq(a[2][1],17688);eq(a[3][1],17689)
+end)
+test("three lily spends unlock one Misery and cannot be spammed",function()
+    local m=fresh();m.actors[1].match_active=true;m.actors[1].combat=true
+    assert(m.command(1,"solace",2,0):find("No lilies"))
+    assert(m.command(1,"misery",3,0):find("full bloom"))
+    m.advance(30);eq(m.players[1].lilies,3)
+    m.command(1,"solace",2,30);m.command(1,"rapture",0,33);m.command(1,"solace",2,36)
+    eq(m.players[1].lilies,0);eq(m.players[1].blood,3)
+    m.command(1,"misery",3,39);eq(m.players[1].blood,0);eq(m.actors[3].hp,17600)
+    assert(m.command(1,"misery",3,39):find("full bloom"));eq(m.actors[3].hp,17600)
+end)
+test("lilies stop at cap and during preparation",function()
+    local m=fresh();m.actors[1].combat=true;m.actors[1].match_active=false
+    m.advance(60);eq(m.players[1].lilies,0)
+    m.actors[1].match_active=true;m.advance(95);eq(m.players[1].lilies,3);eq(m.players[1].lily_time,0)
+    m.command(1,"solace",2,100);m.advance(109.9);eq(m.players[1].lilies,2)
+    m.advance(110);eq(m.players[1].lilies,3)
+end)
+test("Rain consumes full gauge once and affects living nearby allies only",function()
+    local m=fresh();m.players[1].adrenaline=100
+    m.actors[1].statuses.heavy={expires=10};m.actors[2].statuses.bind={expires=10}
+    m.actors[4].hp=1000 -- enemy
+    m.command(1,"rain",0,0)
+    eq(m.actors[1].hp,20000);eq(m.actors[2].hp,11000)
+    eq(m.actors[4].hp,1000);eq(m.actors[5].hp,1000)
+    assert(not m.actors[1].statuses.heavy);assert(not m.actors[2].statuses.bind)
+    eq(m.adrenaline(1),0)
+    assert(m.command(1,"rain",0,0):find("Adrenaline"));eq(m.actors[2].hp,11000)
+    m.actors[2].hp=0;m.players[1].adrenaline=100;m.command(1,"rain",0,1)
+    eq(m.actors[2].hp,0,"Rain must not resurrect like Pulse of Life")
 end)
 return count

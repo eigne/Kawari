@@ -178,3 +178,36 @@ pub(crate) fn compress<T: ReadWriteIpcSegment>(
         }
     }
 }
+
+#[cfg(all(test, feature = "server"))]
+mod tests {
+    use super::*;
+    use crate::ipc::zone::{AoeActionResult, ServerZoneIpcData, ServerZoneIpcSegment};
+    use crate::packet::SegmentType;
+
+    #[test]
+    fn aoe_effect8_serializes_at_declared_wire_size() {
+        let segment = PacketSegment {
+            segment_type: SegmentType::Ipc,
+            data: SegmentData::Ipc(ServerZoneIpcSegment::new(
+                ServerZoneIpcData::AoeEffect8(AoeActionResult {
+                    action_id: 9620,
+                    spell_id: 9620,
+                    effect_count: 8,
+                    ..Default::default()
+                }),
+            )),
+            ..Default::default()
+        };
+        let expected = segment.calc_size() as usize;
+        let (bytes, length) = compress(
+            &mut ConnectionState::None,
+            &CompressionType::Uncompressed,
+            &[segment],
+        );
+        assert_eq!(expected, 668); // 16-byte segment + 16-byte IPC + 636-byte payload
+        assert_eq!(length, expected);
+        assert_eq!(bytes.len(), expected);
+        assert_eq!(u32::from_le_bytes(bytes[..4].try_into().unwrap()) as usize, expected);
+    }
+}

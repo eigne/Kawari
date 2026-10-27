@@ -65,9 +65,8 @@ pub fn handle_chat_messages(
             }
 
             // If it wasn't a debug command, send to other players:
-            let mut network = network.lock();
-
             let data = data.lock();
+            let mut network = network.lock();
 
             // First grab the sender's instance, since zone chat operates in the same zone as the sender.
             let Some(sender_instance) = data.find_actor_instance(*from_actor_id) else {

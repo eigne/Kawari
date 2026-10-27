@@ -1114,9 +1114,92 @@ fn can_return_after_death(actor: &NetworkedActor) -> bool {
         && (common.health_points == 0 || common.mode == CharacterMode::Dead)
 }
 
+fn prepare_feast_respawn(instance: &mut Instance, network: &mut NetworkState, actor: ObjectId) {
+    // Reinitialize the player inside this duty. Looking up territory 745 through
+    // ensure_exists would move them into a public instance with content ID zero.
+    let segment = ServerZoneIpcSegment::new(ServerZoneIpcData::PrepareZoning {
+        target_zone: instance.zone.id,
+        warp_type: WarpType::Resurrection,
+        fade_out_time: 1,
+        log_message: 0,
+        animation: 0,
+        param4: 0,
+        hide_character: 0,
+        param_7: 0,
+        unk1: 0,
+        unk2: 0,
+    });
+    network.send_to_by_actor_id(
+        actor,
+        FromServer::PacketSegment(segment, actor),
+        DestinationNetwork::ZoneClients,
+    );
+    network.remove_actor(instance, actor);
+    instance.insert_empty_actor(actor);
+}
+
+fn defer_feast_respawn(
+    instance: &mut Instance,
+    client: ClientId,
+    actor: ObjectId,
+    homepoint: u32,
+    deadline: std::time::Instant,
+) {
+    // The native PvP client fades out before sending ReturnAfterDeath. Dropping
+    // an early request leaves it black indefinitely; retain it until the lock
+    // expires. Retries must not schedule duplicate warps.
+    if !instance.queued_task.iter().any(|task| {
+        task.from_actor_id == actor
+            && matches!(task.data, QueuedTaskData::FeastRespawn { .. })
+    }) {
+        instance.queued_task.push(super::instance::QueuedTask {
+            point: deadline,
+            from_id: client,
+            from_actor_id: actor,
+            data: QueuedTaskData::FeastRespawn { homepoint },
+        });
+    }
+}
+
 #[cfg(test)]
 mod death_return_tests {
     use super::*;
+
+    #[test]
+    fn feast_respawn_keeps_the_duty_and_other_participants() {
+        let mut instance = Instance::default();
+        instance.zone.id = 745;
+        instance.content_finder_condition_id = 476;
+        let actor = ObjectId(123);
+        let opponent = ObjectId(456);
+        instance.insert_empty_actor(actor);
+        instance.insert_empty_actor(opponent);
+        instance.find_actor_mut(actor).unwrap().get_common_spawn_mut().health_points = 42;
+        prepare_feast_respawn(&mut instance, &mut NetworkState::default(), actor);
+        assert_eq!(instance.content_finder_condition_id, 476);
+        assert_eq!(instance.actors.len(), 2);
+        assert!(instance.find_actor(opponent).is_some());
+        assert_eq!(instance.find_actor(actor).unwrap().get_common_spawn().health_points, 0);
+    }
+
+    #[test]
+    fn early_feast_return_is_retained_once_at_original_deadline() {
+        let mut instance = Instance::default();
+        let actor = ObjectId(123);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(7);
+        defer_feast_respawn(&mut instance, ClientId::default(), actor, 2, deadline);
+        defer_feast_respawn(
+            &mut instance,
+            ClientId::default(),
+            actor,
+            2,
+            deadline + std::time::Duration::from_secs(3),
+        );
+        assert_eq!(instance.queued_task.len(), 1);
+        assert_eq!(instance.queued_task[0].point, deadline);
+        instance.cancel_actor_tasks(actor);
+        assert!(instance.queued_task.is_empty());
+    }
 
     #[test]
     fn return_after_death_requires_initialized_dead_player() {
@@ -1317,8 +1400,7 @@ pub fn handle_zone_messages(
                 );
                 return true;
             }
-            // The exploration arena has no duty director to choose a respawn.
-            // Return each participant to their own team holding area.
+            // Return each participant to their own holding area in this match.
             if instance.zone.id == 745 {
                 let now = std::time::Instant::now();
                 let until = instance
@@ -1326,12 +1408,14 @@ pub fn handle_zone_messages(
                     .entry(*actor_id)
                     .or_insert(now + std::time::Duration::from_secs(10));
                 if now < *until {
+                    let deadline = *until;
+                    defer_feast_respawn(instance, *from_id, *actor_id, *homepoint, deadline);
                     super::feast::notice(
                         &network,
                         *actor_id,
                         format!(
                             "Respawn available in {} seconds.",
-                            until.saturating_duration_since(now).as_secs_f64().ceil() as u32
+                            deadline.saturating_duration_since(now).as_secs_f64().ceil() as u32
                         ),
                     );
                     return true;
@@ -1340,23 +1424,12 @@ pub fn handle_zone_messages(
                 let (feast_position, feast_rotation) =
                     super::feast_match::respawn(instance, *actor_id);
                 instance.cancel_actor_tasks(*actor_id);
-                let mut game_data = game_data.lock();
                 let mut network = network.lock();
-                let (target_instance, needs_init_zone) = begin_change_zone(
-                    &mut data,
-                    &mut network,
-                    &mut game_data,
-                    Some(745),
-                    *actor_id,
-                    WarpType::Resurrection,
-                    0,
-                    0,
-                    0,
-                );
+                prepare_feast_respawn(instance, &mut network, *actor_id);
                 do_change_zone(
                     &mut network,
-                    target_instance,
-                    needs_init_zone,
+                    instance,
+                    true,
                     Some(feast_position),
                     Some(feast_rotation),
                     *from_id,
@@ -1566,8 +1639,8 @@ pub fn handle_zone_messages(
             rotation,
             plot_index,
         ) => {
-            let mut network = network.lock();
             let data = data.lock();
+            let mut network = network.lock();
 
             let Some(instance) = data.find_actor_instance(*from_actor_id) else {
                 return true;
@@ -1602,8 +1675,8 @@ pub fn handle_zone_messages(
             rotation,
             indoors,
         ) => {
-            let mut network = network.lock();
             let data = data.lock();
+            let mut network = network.lock();
 
             let Some(instance) = data.find_actor_instance(*from_actor_id) else {
                 return true;

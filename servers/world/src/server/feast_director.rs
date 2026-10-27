@@ -50,6 +50,26 @@ pub fn send(instance: &Instance, rules: &Match, now: f64, network: &mut NetworkS
             }
         }
         let mut commit = [0; 10];
+        if let Some(engine) = &instance.feast_whm {
+            if let Ok(gauge) = engine.job_gauge(actor.0) {
+                if gauge.len() == 7 && matches!(gauge[0],19|20|21|22|23|24|25|27|28|30|31|32|33|34|35|37|38|39|40) {
+                    let mut data = [0;10]; data[0] = 0xF7;
+                    for i in 0..6 { data[i+1] = gauge[i] as u8; }
+                    data[7..9].copy_from_slice(&gauge[6].to_le_bytes());
+                    records.push(data);
+                }
+            }
+            if let Ok(actions) = engine.hotbar(actor.0) {
+                for (base, resolved, cast, recast) in actions {
+                    let mut data = [0; 10]; data[0] = 0xF6;
+                    data[2..4].copy_from_slice(&base.to_le_bytes());
+                    data[4..6].copy_from_slice(&resolved.to_le_bytes());
+                    data[6..8].copy_from_slice(&cast.to_le_bytes());
+                    data[8..10].copy_from_slice(&recast.to_le_bytes());
+                    records.push(data);
+                }
+            }
+        }
         commit[0] = 0xF3;
         let ground = rules.drops.iter().map(|d| u32::from(d.medals)).sum::<u32>().min(u16::MAX as u32) as u16;
         commit[1..3].copy_from_slice(&ground.to_le_bytes());

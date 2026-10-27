@@ -490,6 +490,11 @@ impl ZoneConnection {
                         .find_content_time_limit(content_id)
                         .unwrap_or_default()
                         * 60;
+                    if content_finder_condition_id == 476 {
+                        // The native duty timer starts on entry. Feast's match
+                        // clock starts after its preparation period.
+                        lua_content.duration = crate::server::FEAST_DUTY_DURATION;
+                    }
                 }
 
                 let flags = if self
@@ -503,13 +508,17 @@ impl ZoneConnection {
                     0
                 };
 
-                // Initialize the content director
-                self.actor_control_self(ActorControlCategory::InitDirector {
-                    handler_id: director_id,
-                    content_id,
-                    flags,
-                })
-                .await;
+                // A Feast respawn reloads the player, but the existing native
+                // director survives. Initializing it twice leaves a second CC
+                // HUD alive after the normal departure terminates the first.
+                if content_finder_condition_id != 476 || self.content_handler_id != director_id {
+                    self.actor_control_self(ActorControlCategory::InitDirector {
+                        handler_id: director_id,
+                        content_id,
+                        flags,
+                    })
+                    .await;
+                }
 
                 if director_type.requires_content_id() {
                     self.content_handler_id = director_id;

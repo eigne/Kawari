@@ -3,6 +3,81 @@
 mod tests {
     use super::*;
     #[test]
+    fn assize_packet_contains_each_hit_and_dia_has_native_status() {
+        let mut instance=Instance::default();
+        instance.insert_empty_actor(ObjectId(1)); instance.insert_empty_actor(ObjectId(2));
+        let event=Event { kind:"animation".into(), message:"assize".into(),actor:1,target:1,
+            hits:vec![Hit{target:2,amount:1000,healing:false},Hit{target:1,amount:2000,healing:true}],..Default::default() };
+        let Some(ServerZoneIpcData::AoeEffect8(result))=presentation(&instance,&event) else { panic!("missing area result") };
+        assert_eq!(result.effect_count,2); assert_eq!(result.spell_id,9620);
+        assert_eq!(result.target_ids[0].object_id,ObjectId(2));
+        assert!(matches!(result.effects[0][0].kind,EffectKind::Damage{amount:1000,..}));
+        assert!(matches!(result.effects[1][0].kind,EffectKind::Heal{amount:2000,..}));
+        let network=Arc::new(Mutex::new(NetworkState::default()));
+        apply(&mut instance,&network,vec![Event{kind:"dia_visual".into(),actor:1,target:2,amount:15,..Default::default()}]);
+        let effect=instance.find_actor(ObjectId(2)).unwrap().status_effects().unwrap().get(2035).unwrap();
+        assert_eq!(effect.duration,15.0); assert_eq!(effect.source_actor_id,ObjectId(1));
+        apply(&mut instance,&network,vec![Event{kind:"dia_visual".into(),actor:1,target:2,amount:0,..Default::default()}]);
+        assert!(instance.find_actor(ObjectId(2)).unwrap().status_effects().unwrap().get(2035).is_none());
+        apply(&mut instance,&network,vec![Event{kind:"control_visual".into(),actor:1,target:2,amount:5000,message:"1344".into(),..Default::default()}]);
+        let heavy=instance.find_actor(ObjectId(2)).unwrap().status_effects().unwrap().get(1344).unwrap();
+        assert_eq!(heavy.duration,5.0); assert_eq!(heavy.param,50); assert_eq!(heavy.source_actor_id,ObjectId(1));
+        apply(&mut instance,&network,vec![Event{kind:"control_visual".into(),actor:1,target:2,message:"1344".into(),..Default::default()}]);
+        assert!(instance.find_actor(ObjectId(2)).unwrap().status_effects().unwrap().get(1344).is_none());
+    }
+    #[test]
+    fn historical_jobs_rules_and_native_ids() {
+        let lua = Lua::new();
+        lua.globals().set("make_engine", lua.load(include_str!("../../../../resources/scripts/feast/WhiteMage.lua")).into_function().unwrap()).unwrap();
+        lua.globals().set("base_jobs", lua.load(include_str!("../../../../resources/scripts/feast/Jobs.lua")).eval::<Function>().unwrap()).unwrap();
+        lua.globals().set("extra_jobs", lua.load(include_str!("../../../../resources/scripts/feast/AdditionalJobs.lua")).eval::<Function>().unwrap()).unwrap();
+        lua.globals().set("extra_data", lua.load(include_str!("../../../../resources/scripts/feast/AdditionalActionData.lua")).eval::<Table>().unwrap()).unwrap();
+        lua.load("function install_jobs(m) base_jobs(m); extra_jobs(m,extra_data) end").exec().unwrap();
+        let checks: u32 = lua.load(include_str!("../../../../resources/tests/feast_jobs.lua")).eval().unwrap();
+        assert!(checks > 100);
+        let all_checks: u32 = lua.load(include_str!("../../../../resources/tests/feast_all_jobs.lua")).eval().unwrap();
+        assert!(all_checks > 500);
+        let engine = FeastWhiteMage::new().unwrap();
+        let actions: Table = engine.lua.globals().get::<Table>("feast").unwrap().get("actions").unwrap();
+        for action in job_actions() {
+            let definition: Table = actions.get(action.key.as_str()).unwrap();
+            assert_eq!(definition.get::<u32>("id").unwrap(), action.id);
+            assert_eq!(animation_id(&action.key), Some(action.id));
+        }
+        engine.lua.load("feast.sync({{id=1,job=25,player=true,hp=10000,max_hp=10000,mp=10000,x=0,y=0,z=0}},0); feast.command(1,'on',0,0)").exec().unwrap();
+        assert!(engine.hotbar(1).unwrap().iter().any(|row| *row == (8862,8862,0,2400)));
+        assert_eq!(engine.job_gauge(1).unwrap()[0],25);
+        engine.lua.load("feast.sync({{id=1,job=24,player=true,hp=10000,max_hp=10000,mp=10000,x=0,y=0,z=0,combat=true,match_active=true}},0); feast.advance(12.5)").exec().unwrap();
+        assert_eq!(engine.job_gauge(1).unwrap(), vec![24,1,0,0,0,0,2500]);
+    }
+    #[test]
+    fn native_rain_heals_once_and_consumes_the_server_gauge() {
+        let mut instance = Instance::default();
+        instance.zone.id = 745;
+        let id = ObjectId(1);
+        instance.insert_empty_actor(id);
+        let common = instance.find_actor_mut(id).unwrap().get_common_spawn_mut();
+        common.class_job = 24;
+        common.health_points = 1000;
+        common.max_health_points = 20000;
+        common.resource_points = 10000;
+        common.max_resource_points = 10000;
+        let network = Arc::new(Mutex::new(NetworkState::default()));
+        let request = kawari::ipc::zone::ActionRequest {
+            action_id: 3362, action_type: ActionType::Action, sequence: 1,
+            target: kawari::common::ObjectTypeId { object_id: id, ..Default::default() },
+            ..Default::default()
+        };
+        native_action(&mut instance, &network, id, &request, None);
+        assert_eq!(instance.find_actor(id).unwrap().get_common_spawn().health_points, 1000);
+        instance.feast_whm.as_ref().unwrap().lua.load("feast.players[1].adrenaline=100").exec().unwrap();
+        native_action(&mut instance, &network, id, &request, None);
+        assert_eq!(instance.find_actor(id).unwrap().get_common_spawn().health_points, 11000);
+        assert_eq!(instance.feast_whm.as_ref().unwrap().adrenaline(1), 0);
+        native_action(&mut instance, &network, id, &request, None);
+        assert_eq!(instance.find_actor(id).unwrap().get_common_spawn().health_points, 11000);
+    }
+    #[test]
     fn historical_animation_survives_placeholder_acknowledgement() {
         let lua = Lua::new();
         let engine: Table = lua.load(include_str!("../../../../resources/scripts/feast/WhiteMage.lua")).eval().unwrap();
@@ -66,7 +141,7 @@ mod tests {
         native_action(&mut instance, &network, id, &request, Some(57));
         let engine = instance.feast_whm.as_ref().unwrap();
         assert!(engine.enabled(id));
-        assert_eq!(engine.party_actions(id.0).unwrap(), vec![(1584, 0), (17832, 0), (18957, 0)]);
+        assert_eq!(engine.party_actions(id.0).unwrap(), vec![(3362, 0), (17832, 0), (18957, 0)]);
         assert_eq!(engine.native_requests[&id].sequence, 42);
         assert_eq!(
             instance
@@ -301,6 +376,7 @@ struct Snapshot {
     x: f32,
     y: f32,
     z: f32,
+    rotation: f32,
     player: bool,
     job: u8,
     combat: bool,
@@ -311,9 +387,10 @@ struct Snapshot {
     match_culling: u8,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default)]
 struct Event {
+    hits: Vec<Hit>,
     kind: String,
     actor: u32,
     target: u32,
@@ -325,14 +402,43 @@ struct Event {
     z: f32,
 }
 
+#[derive(Debug, Default, Clone, Deserialize)]
+struct Hit { target: u32, amount: u32, healing: bool }
+
 impl FeastWhiteMage {
+    pub fn job_gauge(&self, id: u32) -> mlua::Result<Vec<u16>> {
+        self.function("job_gauge")?.call(id)
+    }
+    pub fn bot_action(&self, id: ObjectId, target: ObjectId, heal: Option<ObjectId>) -> mlua::Result<(String,u32,u64)> {
+        self.function("bot_action")?.call((id.0,target.0,heal.map_or(0,|id|id.0)))
+    }
+    pub fn hotbar(&self, id: u32) -> mlua::Result<Vec<(u16,u16,u16,u16)>> {
+        self.lua.from_value(self.function("hotbar")?.call(id)?)
+    }
     fn new() -> mlua::Result<Self> {
         let lua = Lua::new();
         let path = get_config()
             .filesystem
             .locate_script_file("feast/WhiteMage.lua");
+        #[cfg(not(test))]
         let source = std::fs::read(&path).map_err(mlua::Error::external)?;
+        #[cfg(test)]
+        let source: &[u8] = include_bytes!("../../../../resources/scripts/feast/WhiteMage.lua");
         let engine: Table = lua.load(source).set_name(path).eval()?;
+        #[cfg(not(test))]
+        let jobs = std::fs::read(get_config().filesystem.locate_script_file("feast/Jobs.lua")).map_err(mlua::Error::external)?;
+        #[cfg(test)]
+        let jobs: &[u8] = include_bytes!("../../../../resources/scripts/feast/Jobs.lua");
+        lua.load(jobs).eval::<Function>()?.call::<()>(engine.clone())?;
+        #[cfg(not(test))]
+        let extra = std::fs::read(get_config().filesystem.locate_script_file("feast/AdditionalJobs.lua")).map_err(mlua::Error::external)?;
+        #[cfg(test)]
+        let extra: &[u8] = include_bytes!("../../../../resources/scripts/feast/AdditionalJobs.lua");
+        #[cfg(not(test))]
+        let data = std::fs::read(get_config().filesystem.locate_script_file("feast/AdditionalActionData.lua")).map_err(mlua::Error::external)?;
+        #[cfg(test)]
+        let data: &[u8] = include_bytes!("../../../../resources/scripts/feast/AdditionalActionData.lua");
+        lua.load(extra).eval::<Function>()?.call::<()>((engine.clone(),lua.load(data).eval::<Table>()?))?;
         lua.globals().set("feast", engine)?;
         Ok(Self {
             lua,
@@ -401,7 +507,7 @@ fn snapshots(instance: &Instance) -> Vec<Snapshot> {
                 NetworkedActor::Npc {
                     currently_invulnerable,
                     ..
-                } => (false, *currently_invulnerable),
+                } => (instance.feast_dummies.get(id).is_some_and(|d| d.autonomous), *currently_invulnerable),
                 _ => return None,
             };
             let s = actor.get_common_spawn();
@@ -422,6 +528,7 @@ fn snapshots(instance: &Instance) -> Vec<Snapshot> {
                 x: s.position.0.x,
                 y: s.position.0.y,
                 z: s.position.0.z,
+                rotation: s.rotation,
                 player,
                 job: s.class_job,
                 combat,
@@ -462,6 +569,12 @@ pub fn notice(network: &Arc<Mutex<NetworkState>>, id: ObjectId, message: String)
 }
 
 fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Vec<Event>) {
+    let events = events.into_iter().flat_map(|event| {
+        // Supplies may bring an arena cast above eight targets; never drop effects.
+        if event.kind == "animation" && event.hits.len() > 8 {
+            event.hits.chunks(8).map(|hits| Event { hits: hits.to_vec(), ..event.clone() }).collect::<Vec<_>>()
+        } else { vec![event] }
+    });
     for event in events {
         let target = ObjectId(event.target);
         match event.kind.as_str() {
@@ -493,6 +606,15 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                         network.global_action_sequence =
                             network.global_action_sequence.wrapping_add(1);
                     }
+                    if let ServerZoneIpcData::AoeEffect8(ref mut result) = packet {
+                        if let Some(request) = instance.feast_whm.as_mut().and_then(|engine| engine.native_requests.remove(&source)) {
+                            result.source_sequence = request.sequence;
+                            result.action_id = request.action_id;
+                            result.action_type = request.action_type;
+                        }
+                        result.global_sequence = network.global_action_sequence;
+                        network.global_action_sequence = network.global_action_sequence.wrapping_add(1);
+                    }
                     network.send_in_range_inclusive_instance(
                         source,
                         instance,
@@ -512,6 +634,25 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                     DestinationNetwork::ZoneClients,
                 );
             }
+            "job_cooldown" => {
+                if let Some(action) = job_actions().iter().find(|a| a.key == event.message && a.group >= 0) {
+                    if let Some(engine) = instance.feast_whm.as_ref() {
+                        match engine.function("recast").and_then(|f| f.call::<(u32,u32)>((target.0,event.message.as_str(),engine.now()))) {
+                            Ok((elapsed,total)) => network.lock().send_to_by_actor_id(target, FromServer::ActorControlSelf(ActorControlCategory::SetCooldownTimer {
+                                cooldown_group: action.group as u32, unk1: elapsed, unk2: total,
+                            }), DestinationNetwork::ZoneClients),
+                            Err(error) => tracing::warn!(%error,"Feast reduced cooldown snapshot failed"),
+                        }
+                    }
+                }
+            }
+            "reset_action_cooldown" => {
+                if let Some(action) = job_actions().iter().find(|a| a.key == event.message && a.group >= 0) {
+                    network.lock().send_to_by_actor_id(target, FromServer::ActorControlSelf(ActorControlCategory::SetCooldownTimer {
+                        cooldown_group: action.group as u32, unk1: 0, unk2: 0,
+                    }), DestinationNetwork::ZoneClients);
+                }
+            }
             "cancel" => {
                 if let Some(engine) = instance.feast_whm.as_mut() {
                     engine.native_requests.remove(&target);
@@ -530,15 +671,27 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                 }
                 super::effect::send_effects_list(network.clone(), instance, target);
             }
-            "temperance_visual" => {
+            "control_visual" => {
+                let Ok(status) = event.message.parse::<u16>() else { continue };
+                if !matches!(status, 1343 | 1344 | 1345 | 1347 | 1348 | 1315 | 1316) { continue; }
+                if let Some(effects) = instance.find_actor_mut(target).and_then(|a| a.status_effects_mut()) {
+                    if event.amount > 0 {
+                        effects.add(status, if status == 1344 { 50 } else { 0 }, event.amount as f32 / 1000.0);
+                        effects.add_from(status, event.amount as f32 / 1000.0, ObjectId(event.actor));
+                    } else { effects.remove(status); }
+                }
+                super::effect::send_effects_list(network.clone(), instance, target);
+            }
+            "dia_visual" | "temperance_visual" => {
+                let status = if event.kind == "dia_visual" { 2035 } else { 1872 };
                 if let Some(effects) = instance
                     .find_actor_mut(target)
                     .and_then(|actor| actor.status_effects_mut())
                 {
                     if event.amount > 0 {
-                        effects.add(1872, 0, event.amount as f32);
+                        effects.add_from(status, event.amount as f32, ObjectId(event.actor));
                     } else {
-                        effects.remove(1872);
+                        effects.remove(status);
                     }
                 }
                 super::effect::send_effects_list(network.clone(), instance, target);
@@ -582,10 +735,15 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
             ),
             "notice" => notice(network, ObjectId(event.actor), event.message),
             "move" => {
+                use kawari::common::{JumpState, MoveAnimationState, MoveAnimationType};
                 let position = Position(glam::Vec3::new(event.x, event.y, event.z));
                 if let Some(actor) = instance.find_actor_mut(target) {
                     actor.get_common_spawn_mut().position = position;
                 }
+                let rotation = instance.find_actor(target).map_or(0.0,|a|a.get_common_spawn().rotation);
+                network.lock().send_in_range_inclusive_instance(target,instance,
+                    FromServer::ActorMove(target,position,rotation,MoveAnimationType::empty(),MoveAnimationState::None,JumpState::NoneOrFalling),
+                    DestinationNetwork::ZoneClients);
                 correct_position(instance, network, target, position);
             }
             "speed" | "cleanse" | "remove_holmgang" => {
@@ -614,6 +772,14 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
     }
 }
 
+#[derive(Deserialize)]
+struct JobAction { id: u32, key: String, group: i32, secondary: i32 }
+fn job_actions() -> &'static [JobAction] {
+    static ACTIONS: std::sync::LazyLock<Vec<JobAction>> = std::sync::LazyLock::new(||
+        serde_json::from_str(include_str!("../../../../resources/feast-actions.json")).expect("checked Feast action catalog"));
+    &ACTIONS
+}
+
 /// Transitional button IDs used by the current client hotbars.
 fn button_id(name: &str) -> Option<u32> {
     Some(match name {
@@ -637,7 +803,7 @@ fn button_id(name: &str) -> Option<u32> {
         "largesse" => 25861,
         "attunement" => 7433,
         "rain" => 208,
-        _ => return None,
+        _ => return job_actions().iter().find(|a| a.key == name).map(|a| a.id),
     })
 }
 
@@ -666,7 +832,7 @@ fn animation_id(name: &str) -> Option<u32> {
         "largesse" => 18957,
         "attunement" => 17689,
         "rain" => 3362,
-        _ => return None,
+        _ => return job_actions().iter().find(|a| a.key == name).map(|a| a.id),
     })
 }
 
@@ -696,8 +862,24 @@ fn presentation(instance: &Instance, event: &Event) -> Option<ServerZoneIpcData>
             rotation: common.rotation,
             interruptible: false,
             ballista_entity_id: ObjectId::default(),
-            position: actor.position(),
+            position: if matches!(event.message.as_str(), "soten" | "cometeor") { Position(glam::Vec3::new(event.x,event.y,event.z)) } else { actor.position() },
         }
+    } else if event.hits.len() > 1 || event.hits.first().is_some_and(|h| h.target != event.target) {
+        let mut result = kawari::ipc::zone::AoeActionResult {
+            animation_target_id: target, action_id, spell_id: action_id as u16,
+            action_type: ActionType::Action, animation_lock: kawari::common::ANIMATION_LOCK_TIME,
+            rotation: common.rotation, position: actor.position(),
+            effect_count: event.hits.len().min(8) as u8, ..Default::default()
+        };
+        for (i, hit) in event.hits.iter().take(8).enumerate() {
+            let visual = Event { kind: "animation".into(), actor: event.actor, target: hit.target,
+                amount: hit.amount, healing: hit.healing, message: event.message.clone(), ..Default::default() };
+            if let Some(ServerZoneIpcData::ActionResult(single)) = presentation(instance, &visual) {
+                result.effects[i] = single.effects;
+                result.target_ids[i] = single.target_id_again;
+            }
+        }
+        ServerZoneIpcData::AoeEffect8(result)
     } else {
         let mut effects = [ActionEffect::default(); 8];
         let amount = event.amount.min(u16::MAX as u32) as u16;
@@ -737,6 +919,7 @@ fn presentation(instance: &Instance, event: &Event) -> Option<ServerZoneIpcData>
 }
 
 pub(super) fn native_action_name(id: u32) -> Option<&'static str> {
+    if let Some(action) = job_actions().iter().find(|a| a.id == id) { return Some(&action.key); }
     // Include upgraded actions selected automatically by the current client.
     match id {
         119 | 127 | 3568 | 7431 | 25859 => Some("glare"),
@@ -776,6 +959,9 @@ pub fn native_action(
     request: &kawari::ipc::zone::ActionRequest,
     cooldown_group: Option<u32>,
 ) {
+    let historical = native_action_name(request.action_id)
+        .and_then(|name| job_actions().iter().find(|a| a.key == name));
+    let cooldown_group = historical.and_then(|a| u32::try_from(a.group).ok()).or(cooldown_group);
     if instance.zone.id != 745 {
         return;
     }
@@ -796,20 +982,20 @@ pub fn native_action(
         let engine = instance
             .feast_whm
             .as_ref()
-            .ok_or_else(|| mlua::Error::external("Feast currently supports White Mage only."))?;
+            .ok_or_else(|| mlua::Error::external("Feast job rules are not loaded."))?;
         let name =
             name.ok_or_else(|| mlua::Error::external("This action is not in the Feast kit."))?;
         if !engine.enabled(actor) {
             return Err(mlua::Error::external(
-                "Equip White Mage to use the Feast kit.",
+                "Equip WHM, BLM, SAM, or PLD to use the Feast kit.",
             ));
         }
         if instance
             .find_actor(actor)
-            .is_none_or(|a| a.get_common_spawn().class_job != 24)
+            .is_none_or(|a| !matches!(a.get_common_spawn().class_job, 19 | 20 | 21 | 22 | 23 | 24 | 25 | 27 | 28 | 30 | 31 | 32 | 33 | 34 | 35 | 37 | 38 | 39 | 40))
         {
             return Err(mlua::Error::external(
-                "Feast currently supports White Mage only.",
+                "Feast supports WHM, BLM, SAM, and PLD.",
             ));
         }
         engine.sync(&snapshots(instance))?;
@@ -835,6 +1021,12 @@ pub fn native_action(
                     .unwrap()
                     .native_requests
                     .insert(actor, request.clone());
+                if historical.is_some_and(|a| a.secondary == 57) {
+                    network.lock().send_to_by_actor_id(actor,
+                        FromServer::ActorControlSelf(ActorControlCategory::SetCooldownTimer {
+                            cooldown_group: 57, unk1: 0, unk2: 240,
+                        }), DestinationNetwork::ZoneClients);
+                }
                 if let Some(group) = cooldown_group {
                     let engine = instance.feast_whm.as_ref().unwrap();
                     match engine
@@ -936,13 +1128,45 @@ pub fn command(
     }
 }
 
+/// Bridge from the native ground-target cursor until the generic location-action
+/// IPC is implemented. Coordinates and all combat rules are validated here/Lua.
+pub fn ground_action(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, actor: ObjectId, words: &[&str]) {
+    if instance.zone.id != 745 || !super::feast_match::can_act(instance,actor) { return; }
+    let ["ground", action, x, y, z] = words else { return; };
+    let (Ok(action),Ok(x),Ok(y),Ok(z)) = (action.parse::<u32>(),x.parse::<f32>(),y.parse::<f32>(),z.parse::<f32>()) else { return; };
+    if ![x,y,z].into_iter().all(f32::is_finite) || !matches!(action,7857|3361|8812) { return; }
+    tick(instance,network);
+    let Some(engine)=instance.feast_whm.as_ref() else { return; };
+    let name=match action {7857=>"soten",8812=>"shukuchi",_=>"cometeor"};
+    let result=(|| -> mlua::Result<_> {
+        engine.sync(&snapshots(instance))?;
+        let response: String=engine.function("ground_command")?.call((actor.0,name,x,y,z,engine.now()))?;
+        Ok((response,engine.drain()?))
+    })();
+    match result {
+        Ok((response,events)) => {
+            if events.iter().any(|e| e.actor==actor.0 && matches!(e.kind.as_str(),"cast"|"animation")) {
+                if let Some(metadata)=job_actions().iter().find(|a| a.id==action && a.group>=0) {
+                    if let Ok((elapsed,total))=engine.function("recast").and_then(|f| f.call::<(u32,u32)>((actor.0,name,engine.now()))) {
+                        network.lock().send_to_by_actor_id(actor,FromServer::ActorControlSelf(ActorControlCategory::SetCooldownTimer {
+                            cooldown_group:metadata.group as u32,unk1:elapsed,unk2:total,
+                        }),DestinationNetwork::ZoneClients);
+                    }
+                }
+            }
+            apply(instance,network,events); notice(network,actor,response);
+        },
+        Err(error) => tracing::warn!(%error,"Feast ground action failed"),
+    }
+}
+
 pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     if instance.zone.id != 745 {
         return;
     }
     let players: Vec<_> = snapshots(instance)
         .into_iter()
-        .filter(|actor| actor.player && actor.job == 24)
+        .filter(|actor| actor.player && matches!(actor.job, 19 | 20 | 21 | 22 | 23 | 24 | 25 | 27 | 28 | 30 | 31 | 32 | 33 | 34 | 35 | 37 | 38 | 39 | 40))
         .map(|actor| ObjectId(actor.id))
         .collect();
     for actor in players {

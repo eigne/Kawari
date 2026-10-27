@@ -625,13 +625,13 @@ pub fn execute_action(
         }
     }
 
+    let data = data.lock();
     let mut network = network.lock();
     let msg = FromServer::NewTasks(lua_player.queued_tasks);
     network.send_to(from_id, msg, DestinationNetwork::ZoneClients);
 
     // Update cooldowns, currently only for the GM command
     {
-        let data = data.lock();
 
         let Some(instance) = data.find_actor_instance(from_actor_id) else {
             return;

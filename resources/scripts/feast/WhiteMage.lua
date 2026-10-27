@@ -51,11 +51,14 @@ local function enemies(source,center,radius)
     return result
 end
 local function buff(source,target,name,duration,potency)
+    if M.immune and M.immune(target,name) then return end
     target.statuses[name]={source=source.id,expires=M.now+duration,
         potency=potency,next_tick=M.now+3}
+    if name=="dia" then emit("dia_visual",source.id,target.id,duration) end
 end
 local function outgoing(id, healing)
     local scale=has(id,"temperance") and 1.2 or 1
+    if M.outgoing then scale=scale*M.outgoing(id,healing) end
     if healing and has(id,"largesse") then scale=scale*1.25 end
     return scale
 end
@@ -81,6 +84,7 @@ function M.modify_damage(source,target,amount,now)
     if temperance_aura(b) then factor=factor*0.9 end
     if has(target,"attunement") then factor=factor*0.01 end
     amount=math.max(0,math.floor(amount*factor+0.000001))
+    if M.incoming then amount=M.incoming(a,b,amount) end
     if amount>0 then b.statuses.sleep=nil end
     if M.players[source] then M.players[source].combat_until=now+10 end
     if M.players[target] then M.players[target].combat_until=now+10 end
@@ -91,10 +95,13 @@ local function damage(a,b,amount)
     b.hp=math.max(0,b.hp-amount)
     emit("hp",a.id,b.id,b.hp)
     emit("damage",a.id,b.id,amount)
+    if M.after_damage then M.after_damage(a,b,amount) end
+    return amount
 end
 local function heal(a,b,amount,percent)
     if not valid(b) then return end -- healing does not resurrect
     if not percent then amount=amount*outgoing(a.id,true) end
+    if M.healing_received then amount=M.healing_received(a,b,amount) end
     local before=b.hp
     b.hp=math.min(b.max_hp,b.hp+math.floor(amount+0.000001))
     emit("hp",a.id,b.id,b.hp)
@@ -185,14 +192,14 @@ add("rain",3362,"self",0,0,0,0,function(a)
 end,{adrenaline=true})
 
 function M.enabled(id) return M.players[id]~=nil end
-function M.blocked(id, movement)
+function M.blocked(id, movement, physical)
     local a=state(id)
     if not a then return false end
     if has(id,"attunement") or has(id,"stun") or has(id,"sleep") then return true end
     if movement then return has(id,"bind") or false end
-    return has(id,"silence") or false
+    return (not physical and has(id,"silence")) or false
 end
-local function cancel_cast(id,name)
+local function cancel_cast(id,name,prepared)
     local p=M.players[id]
     name=name or (p and p.pending and p.pending.name)
     if p and name and actions[name].gcd then
@@ -200,6 +207,12 @@ local function cancel_cast(id,name)
         -- casts keep their original timing, without an extra post-cast GCD.
         p.gcd=0
         emit("reset_gcd",id,id)
+    end
+    local reserved=prepared or (p and p.pending and p.pending.definition)
+    if p and reserved and reserved.cooldown_recast then
+        local d=reserved; local times=p.cooldowns[d.cooldown or name]
+        if times then table.remove(times) end
+        emit("reset_action_cooldown",id,id,0,name)
     end
     if p then p.pending=nil end
     emit("cancel",id,id)
@@ -209,6 +222,12 @@ function M.sync(snapshots,now)
     local present={}
     for _,snap in ipairs(snapshots) do
         local old=state(snap.id)
+        if old and old.job~=snap.job and M.players[snap.id] then
+            local p=M.players[snap.id]
+            if p.pending then cancel_cast(snap.id) end
+            p.gcd=0; p.cooldowns={}; old.statuses={}
+            if M.initialize and (snap.job==24 or (M.jobs and M.jobs[snap.job])) then M.initialize(snap,p) end
+        end
         snap.statuses=old and old.statuses or {}
         M.actors[snap.id]=snap; present[snap.id]=true
         if M.players[snap.id] and snap.match_team then M.players[snap.id].team=snap.match_team end
@@ -223,6 +242,7 @@ function M.sync(snapshots,now)
             local p=M.players[snap.id]
             if p then
                 if p.pending then cancel_cast(snap.id) end
+                if M.reset_job then M.reset_job(p) end
                 p.pending=nil; p.lilies=0; p.blood=0; p.lily_time=0; p.combat_until=0
             end
         end
@@ -231,24 +251,33 @@ function M.sync(snapshots,now)
         if not present[id] then M.actors[id]=nil; M.players[id]=nil end
     end
 end
+local function definition(id,name)
+    local d=actions[name]
+    if d and M.effective then return M.effective(state(id),d) end
+    return d
+end
 local function available(p,d)
-    local times=p.cooldowns[d.name] or {}
+    local times=p.cooldowns[d.cooldown or d.name] or {}
     local active={}
     for _,time in ipairs(times) do if time>M.now then table.insert(active,time) end end
-    p.cooldowns[d.name]=active
+    p.cooldowns[d.cooldown or d.name]=active
     return #active<d.charges
 end
-local function error_for(id,name,target,finishing,cast_origin)
-    local p=M.players[id]; local a=state(id); local d=actions[name]; local b=state(target)
+local function error_for(id,name,target,finishing,cast_origin,prepared)
+    local p=M.players[id]; local a=state(id); local d=prepared or definition(id,name); local b=state(target)
+    if d and d.point then b=d.point end
     if not p then return "Use !whm on first." end
     if not d then return "Unknown Feast action; use !whm list." end
+    if d.target=="ground" and not d.point then return "Select a point on the ground." end
     if not valid(a) then return "Cannot act while dead." end
+    if d.job and d.job~=a.job and not (d.jobs and d.jobs[a.job]) then return "This action belongs to another job." end
+    if M.allowed and not M.allowed(a,d) then return "This additional action belongs to another role." end
     if a.match_active==false then return "Feast combat is closed until the match begins." end
     if has(id,"attunement") then return "Attunement prevents actions." end
-    if not d.usable_while_cc and M.blocked(id,false) then return "Crowd control prevents this action." end
+    if not d.usable_while_cc and M.blocked(id,false,d.weapon) then return "Crowd control prevents this action." end
     for _,status in ipairs(a.native_statuses or {}) do
-        if not d.usable_while_cc and (native_cc[status]=="stun" or native_cc[status]=="sleep"
-            or native_cc[status]=="silence") then return "Crowd control prevents this action." end
+        if not (M.owns_native_status and M.owns_native_status(id,status)) and not d.usable_while_cc and (native_cc[status]=="stun" or native_cc[status]=="sleep"
+            or (native_cc[status]=="silence" and not d.weapon)) then return "Crowd control prevents this action." end
     end
     if not valid(b) then return "Select a living target in this arena." end
     if b.match_active==false then return "That player is not an active match participant." end
@@ -261,24 +290,37 @@ local function error_for(id,name,target,finishing,cast_origin)
     if d.lily and p.lilies<1 then return "No lilies available." end
     if d.blood and p.blood<3 then return "The Blood Lily is not in full bloom." end
     if d.adrenaline and p.adrenaline<100 then return "Adrenaline is not full." end
+    if d.check then local err=d.check(a,b,p); if err then return err end end
     if not finishing then
         if p.pending then return "Already casting." end
         if d.gcd and p.gcd>M.now then return "Global cooldown is active." end
-        if not d.gcd and not available(p,d) then return "Action is on cooldown." end
+        if (not d.gcd or d.cooldown_recast) and not available(p,d) then return "Action is on cooldown." end
     end
 end
-local function complete(id,name,target,cast_origin)
-    local p=M.players[id]; local a=state(id); local d=actions[name]; local b=state(target)
-    local err=error_for(id,name,target,true,cast_origin)
-    if err then cancel_cast(id,name); emit("notice",id,id,0,err); return end
+local function complete(id,name,target,cast_origin,prepared)
+    local p=M.players[id]; local a=state(id); local d=prepared or definition(id,name); local b=state(target)
+    if d and d.point then b=d.point end
+    local err=error_for(id,name,target,true,cast_origin,d)
+    if err then cancel_cast(id,name,d); emit("notice",id,id,0,err); return end
     a.mp=a.mp-d.mp; if d.mp>0 then emit("mp",id,id,a.mp) end
     if d.lily then p.lilies=p.lilies-1; p.blood=math.min(3,p.blood+1) end
     if d.blood then p.blood=0 end
     if d.adrenaline then p.adrenaline=0 end
     local before=b.hp
+    if M.before_action then M.before_action(a,d) end
+    local first_effect=#M.events+1
     d.run(a,b)
+    if M.after_action then M.after_action(a,d) end
     emit("animation",id,target,math.abs(b.hp-before),name)
     M.events[#M.events].healing=b.hp>before
+    local animation=M.events[#M.events]; animation.hits={}
+    for i=first_effect,#M.events-1 do
+        local e=M.events[i]
+        if (e.kind=="damage" or e.kind=="heal") and e.amount>0 then
+            table.insert(animation.hits,{target=e.target,amount=e.amount,healing=e.kind=="heal"})
+        end
+    end
+    if d.point then M.events[#M.events].x=d.point.x; M.events[#M.events].y=d.point.y; M.events[#M.events].z=d.point.z end
     emit("notice",id,id,0,"Feast "..name.." executed.")
 end
 -- Movement is recorded at packet processing time, independently of the next
@@ -305,7 +347,7 @@ function M.advance(now)
                 while s.next_tick<=now and s.next_tick<=s.expires do
                     -- Regen snapshots healing modifiers when applied.
                     local source=state(s.source) or a
-                    heal(source,a,s.potency,true)
+                    if s.dot then damage(source,a,s.potency) else heal(source,a,s.potency,true) end
                     s.next_tick=s.next_tick+3
                 end
             end
@@ -313,6 +355,7 @@ function M.advance(now)
                 if name=="wolfs_heart" then emit("wolfs_heart",id,id,0) end
                 if name=="temperance" then emit("temperance_visual",id,id,0) end
                 if name=="bolt" then emit("speed",id,id,100) end
+                if name=="dia" then emit("dia_visual",s.source,id,0) end
                 a.statuses[name]=nil
             end
         end
@@ -324,18 +367,21 @@ function M.advance(now)
             -- Three-minute passive fill; halted in preparation and after the match.
             if a.match_active==true then p.adrenaline=math.min(100,p.adrenaline+elapsed*100/180) end
             local fighting=a.combat or p.combat_until>p.last_tick
-            if fighting then
+            if M.advance_job then M.advance_job(a,p,elapsed) end
+            if fighting and a.job==24 and a.match_active~=false and p.lilies<3 then
                 local active=a.combat and elapsed or math.max(0,math.min(now,p.combat_until)-p.last_tick)
                 p.lily_time=p.lily_time+active
-                while p.lily_time>=10 do p.lilies=math.min(3,p.lilies+1); p.lily_time=p.lily_time-10 end
+                while p.lily_time>=10 and p.lilies<3 do p.lilies=p.lilies+1; p.lily_time=p.lily_time-10 end
+                -- A full gauge cannot bank a fourth lily for an immediate refill.
+                if p.lilies==3 then p.lily_time=0 end
             end
             if p.pending then
                 local cast=p.pending
-                if M.blocked(id,false) or cast.moved_early
+                if M.blocked(id,false,cast.definition and cast.definition.weapon) or cast.moved_early
                     or (now<cast.ends-SLIDECAST_WINDOW and distance(a,cast.origin)>0.1) then
                     cancel_cast(id,cast.name); emit("notice",id,id,0,"Cast interrupted.")
                 elseif now>=cast.ends then
-                    p.pending=nil; complete(id,cast.name,cast.target,cast.origin)
+                    p.pending=nil; complete(id,cast.name,cast.target,cast.origin,cast.definition)
                 end
             end
         end
@@ -344,13 +390,14 @@ function M.advance(now)
 end
 -- Native recast details use elapsed/total in units of ten milliseconds.
 function M.recast(id,name,now)
-    local p=M.players[id]; local d=actions[name]
+    local p=M.players[id]; local d=definition(id,name)
+    if p and p.last_input==name then d=p.last_definition end
     if not p or not d then return 0,0 end
-    local total=d.recast*d.charges
+    local total=(d.cooldown_recast or d.recast)*d.charges
     local remaining
-    if d.gcd then remaining=math.max(0,p.gcd-now)
+    if d.gcd and not d.cooldown_recast then remaining=math.max(0,p.gcd-now)
     else
-        local times=p.cooldowns[name] or {}
+        local times=p.cooldowns[d.cooldown or name] or {}
         remaining=math.max(0,(times[#times] or now)-now)
     end
     return math.floor(math.max(0,total-remaining)*100),math.floor(total*100)
@@ -359,9 +406,13 @@ end
 function M.party_actions(id,now)
     local p=M.players[id]; local result={}
     if not p then return result end
-    for _,name in ipairs({"purify","repose","protect","rescue","largesse","attunement"}) do
-        if name=="purify" or p.loadout[name] then
-            local times=p.cooldowns[name] or {}
+    local job=state(id).job
+    -- The first party slot is adrenaline, not a third additional action.
+    local adrenaline=({[19]=3359,[21]=3359,[32]=3359,[37]=3359,[20]=3360,[22]=3360,[30]=3360,[34]=3360,[39]=3360,[23]=4249,[31]=4249,[38]=4249,[25]=3361,[27]=3361,[35]=3361,[24]=3362,[28]=3362,[33]=3362,[40]=3362})[job]
+    if adrenaline then table.insert(result,{adrenaline,0}) end
+    for _,name in ipairs(M.party_list and M.party_list(state(id).job) or {"purify","repose","protect","rescue","largesse","attunement"}) do
+        if actions[name].additional and p.loadout[name] and #result<3 then
+            local times=p.cooldowns[actions[name].cooldown or name] or {}
             table.insert(result,{actions[name].id,math.ceil(math.max(0,(times[1] or now)-now)*10)})
         end
     end
@@ -377,11 +428,12 @@ function M.command(id,text,target,now)
     local a=state(id)
     if not a or not a.player then return "Player is not ready." end
     if name=="on" then
-        if a.job~=24 then return "Equip White Mage before enabling Feast White Mage." end
+        if a.job~=24 and not (M.jobs and M.jobs[a.job]) then return "This Feast job is not implemented." end
         if M.players[id] then return "Feast White Mage is already enabled." end
         M.players[id]={team=a.match_team or "fang",cooldowns={},gcd=0,lilies=0,blood=0,adrenaline=0,
             lily_time=0,last_tick=now,combat_until=0,loadout={protect=true,largesse=true}}
-        return "Feast White Mage enabled (team "..M.players[id].team.."). Use !whm list. Additional actions: protect, largesse."
+        if M.initialize then M.initialize(a,M.players[id]) end
+        return "Feast rules enabled (team "..M.players[id].team.."). Use !feast actions or !feast loadout <first> <second>."
     end
     if name=="off" then
         if has(id,"temperance") then emit("temperance_visual",id,id,0) end
@@ -389,10 +441,14 @@ function M.command(id,text,target,now)
         if has(id,"bolt") then emit("speed",id,id,100) end
         M.players[id]=nil; a.statuses={}; return "Feast White Mage disabled."
     end
-    if name=="list" then return "cure cure2 medica glare dia solace rapture misery tetra assize temperance purify bolt kit repose protect rescue largesse attunement rain" end
+    if name=="list" then
+        local names={}; for key,d in pairs(actions) do if not d.job or d.job==a.job or (d.jobs and d.jobs[a.job]) then table.insert(names,key) end end
+        table.sort(names); return table.concat(names," ")
+    end
     local p=M.players[id]
     if not p then return "Use !whm on first." end
     if name=="status" then
+        if M.job_status then local status=M.job_status(a,p); if status then return status end end
         local statuses={}; for status,s in pairs(a.statuses) do
             if s.expires>now then table.insert(statuses,status) end
         end
@@ -410,29 +466,33 @@ function M.command(id,text,target,now)
             or not actions[args[2]].additional or not actions[args[3]].additional or args[4] then
             return "Choose two distinct actions: repose protect rescue largesse attunement."
         end
+        if M.allowed and (not M.allowed(a,actions[args[2]]) or not M.allowed(a,actions[args[3]])) then return "Select additional actions for your role." end
         p.loadout={[args[2]]=true,[args[3]]=true}; return "Additional action loadout updated."
     end
     if name=="adrenaline" then
         -- Explicit test control, independent of normal match generation.
         p.adrenaline=100; return "Test control: adrenaline filled."
     end
-    local d=actions[name]
+    if M.resolve then name=M.resolve(a,name) end
+    local d=definition(id,name)
     if not d then return "Unknown Feast action; use !whm list." end
     if d.target=="self" or args[2]=="self" then target=id
     elseif target==0 and d.target=="ally" then target=id end
-    local err=error_for(id,name,target,false)
+    local err=error_for(id,name,target,false,nil,d)
     if err then return err end
-    if d.gcd then p.gcd=now+d.recast
-    else
-        local times=p.cooldowns[name]
-        table.insert(times,math.max(now,times[#times] or now)+d.recast)
+    p.last_input=args[1]; p.last_definition=d
+    if d.gcd then p.gcd=now+d.recast end
+    if not d.gcd or d.cooldown_recast then
+        local times=p.cooldowns[d.cooldown or name]
+        table.insert(times,math.max(now,times[#times] or now)+(d.cooldown_recast or d.recast))
     end
     if d.cast>0 then
-        p.pending={name=name,target=target,ends=now+d.cast,origin={x=a.x,y=a.y,z=a.z}}
+        p.pending={definition=d,name=name,target=target,ends=now+d.cast,origin={x=a.x,y=a.y,z=a.z}}
         emit("cast",id,target,math.floor(d.cast*1000),name)
+        if d.point then M.events[#M.events].x=d.point.x; M.events[#M.events].y=d.point.y; M.events[#M.events].z=d.point.z end
         return string.format("Casting Feast %s (%.1fs).",name,d.cast)
     end
-    complete(id,name,target)
+    complete(id,name,target,nil,d)
     return ""
 end
 
@@ -452,4 +512,10 @@ function M.adrenaline(id)
     local p=M.players[id]
     return p and math.floor(p.adrenaline) or 0
 end
+M.internal={add=add,state=state,has=has,buff=buff,damage=damage,heal=heal,emit=emit,
+    allies=allies,enemies=enemies,friendly=friendly,valid=valid,distance=distance,outgoing=outgoing,
+    healing_potency=function(a,b,n)
+        n=n*outgoing(a.id,true)
+        return M.healing_received and M.healing_received(a,b,n) or n
+    end}
 return M

@@ -7,6 +7,12 @@ pub struct StatusEffects {
 }
 
 impl StatusEffects {
+    pub fn add_from(&mut self, effect_id: u16, duration: f32, source: kawari::common::ObjectId) {
+        let effect = self.find_or_create_status_effect(effect_id, 0);
+        effect.duration = duration;
+        effect.source_actor_id = source;
+        self.dirty = true;
+    }
     pub fn add(&mut self, effect_id: u16, effect_param: u16, duration: f32) {
         let status_effect = self.find_or_create_status_effect(effect_id, effect_param);
         status_effect.duration = duration;

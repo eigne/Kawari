@@ -1,0 +1,3574 @@
+[
+  {
+    "id": 8858,
+    "name": "Fire",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 473,
+        "path": "chara/action/magic/thm_black/fire.tmb",
+        "bytes": 1359,
+        "dependencies": {
+          "chara/action/battle/magic_thm_end.tmb": 583,
+          "sound/vfx/magic/SE_VFX_Magic_Fire_Lv1c.scd": 31344,
+          "sound/vfx/magic/SE_VFX_Magic_Fire_Lv1t.scd": 55008,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_fire1/eff/mgc_fire1c0t.avfx": 24836,
+          "vfx/action/mgc_fire1/eff/mgc_fire1c1t.avfx": 48312,
+          "vfx/action/mgc_fire1/eff/mgc_fire1t0t.avfx": 29380,
+          "vfx/action/mgc_fire1/eff/mgc_fire1t1t.avfx": 72648,
+          "vfx/action/mgc_fire1/texture/clud001at.atex": 21952,
+          "vfx/action/mgc_fire1/texture/fire_s001c_h.atex": 21952,
+          "vfx/action/mgc_fire1/texture/fire_u007a_h.atex": 21952,
+          "vfx/action/mgc_fire1/texture/fire001bt.atex": 21952,
+          "vfx/action/mgc_fire1/texture/fire007bm.atex": 11016,
+          "vfx/action/mgc_fire1/texture/fire601_c.atex": 11040,
+          "vfx/action/mgc_fire1/texture/fire605_c.atex": 11016,
+          "vfx/action/mgc_fire1/texture/glow001at.atex": 5541,
+          "vfx/action/mgc_fire1/texture/glow001f.atex": 21925,
+          "vfx/action/mgc_fire1/texture/ice_s001a_h.atex": 5568,
+          "vfx/action/mgc_fire1/texture/prsm001bt.atex": 11016,
+          "vfx/action/mgc_fire1/texture/ring_s001b_h.atex": 21925,
+          "vfx/action/mgc_fire1/texture/smoke_s001c_h.atex": 21952,
+          "vfx/action/mgc_fire1/texture/snic001ct.atex": 21952,
+          "vfx/common/eff/cmth_shoot1c.avfx": 41460,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1903,
+        "path": "chara/action/magic/thm_black/fire_hit.tmb",
+        "bytes": 425,
+        "dependencies": {
+          "sound/vfx/magic/SE_VFX_Magic_Fire_Lv1c2.scd": 53952,
+          "vfx/action/mgc_fire1/eff/mgc_fire1t0t.avfx": 29380,
+          "vfx/action/mgc_fire1/texture/clud001at.atex": 21952,
+          "vfx/action/mgc_fire1/texture/fire_s001c_h.atex": 21952,
+          "vfx/action/mgc_fire1/texture/fire_u007a_h.atex": 21952,
+          "vfx/action/mgc_fire1/texture/glow001at.atex": 5541,
+          "vfx/action/mgc_fire1/texture/smoke_s001c_h.atex": 21952
+        }
+      }
+    ]
+  },
+  {
+    "id": 8859,
+    "name": "Blizzard",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 474,
+        "path": "chara/action/magic/thm_black/blizzard.tmb",
+        "bytes": 780,
+        "dependencies": {
+          "chara/action/battle/magic_thm_end.tmb": 583,
+          "sound/vfx/magic/SE_VFX_Magic_Brizard_Lv1_t.scd": 100288,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_blizad1/eff/mgc_blizad1t0h.avfx": 71180,
+          "vfx/action/mgc_blizad1/texture/glss_u01ah.atex": 21952,
+          "vfx/action/mgc_blizad1/texture/ice001bm.atex": 21976,
+          "vfx/action/mgc_blizad1/texture/jew_u02ah.atex": 11016,
+          "vfx/action/mgc_blizad1/texture/ligt005ac.atex": 5568,
+          "vfx/action/mgc_blizad1/texture/mas_s01ah.atex": 21925,
+          "vfx/action/mgc_blizad1/texture/smk_s01ch.atex": 21952,
+          "vfx/action/mgc_blizad1/texture/snc_u01ah.atex": 21952,
+          "vfx/common/eff/cmth_shoot1c.avfx": 41460,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8860,
+    "name": "Thunder",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 475,
+        "path": "chara/action/magic/thm_black/thunder.tmb",
+        "bytes": 984,
+        "dependencies": {
+          "chara/action/battle/magic_thm_end.tmb": 583,
+          "sound/vfx/magic/SE_VFX_Magic_Thunder_Lv1_c.scd": 47088,
+          "sound/vfx/magic/SE_VFX_Magic_Thunder_Lv1_t.scd": 34848,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_thunder1/eff/mgc_thnd1c0c.avfx": 98116,
+          "vfx/action/mgc_thunder1/eff/mgc_thnd1t0c.avfx": 60968,
+          "vfx/action/mgc_thunder1/texture/aura026bm.atex": 11016,
+          "vfx/action/mgc_thunder1/texture/dist_002f.atex": 11016,
+          "vfx/action/mgc_thunder1/texture/elc_uv_017.atex": 21944,
+          "vfx/action/mgc_thunder1/texture/elct004_c.atex": 21952,
+          "vfx/action/mgc_thunder1/texture/glow601_c.atex": 5541,
+          "vfx/action/mgc_thunder1/texture/glow602_c.atex": 5541,
+          "vfx/action/mgc_thunder1/texture/glow603_c.atex": 5541,
+          "vfx/action/mgc_thunder1/texture/hit001cm.atex": 5541,
+          "vfx/action/mgc_thunder1/texture/kira_f02m.atex": 21952,
+          "vfx/common/eff/cmth_shoot1c.avfx": 41460,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18935,
+    "name": "Thunder II",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 480,
+        "path": "chara/action/magic/thm_black/thunderla.tmb",
+        "bytes": 990,
+        "dependencies": {
+          "chara/action/battle/magic_thm_end.tmb": 583,
+          "sound/vfx/magic/SE_VFX_Magic_Thunder_Lv2_c2.scd": 46464,
+          "sound/vfx/magic/SE_VFX_Magic_Thunder_Lv2_t2.scd": 64240,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_thunderla1/eff/mgc_thul1c0c.avfx": 104816,
+          "vfx/action/mgc_thunderla1/eff/mgc_thul1t0c.avfx": 69140,
+          "vfx/action/mgc_thunderla1/texture/aura026bm.atex": 11016,
+          "vfx/action/mgc_thunderla1/texture/dist_002f.atex": 11016,
+          "vfx/action/mgc_thunderla1/texture/elc_uv_017.atex": 21944,
+          "vfx/action/mgc_thunderla1/texture/elct004_c.atex": 21952,
+          "vfx/action/mgc_thunderla1/texture/elct006_c.atex": 11003,
+          "vfx/action/mgc_thunderla1/texture/glow003_c.atex": 5541,
+          "vfx/action/mgc_thunderla1/texture/glow601_c.atex": 5541,
+          "vfx/action/mgc_thunderla1/texture/glow602_c.atex": 5541,
+          "vfx/action/mgc_thunderla1/texture/glow603_c.atex": 5541,
+          "vfx/action/mgc_thunderla1/texture/hit001cm.atex": 5541,
+          "vfx/action/mgc_thunderla1/texture/kira_f02m.atex": 21952,
+          "vfx/action/mgc_thunderla1/texture/snic602_c.atex": 21952,
+          "vfx/action/mgc_thunderla1/texture/x0_ligt023_c_t.atex": 21952,
+          "vfx/common/eff/cmth_shoot1c.avfx": 41460,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8866,
+    "name": "Flare",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 20,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 487,
+        "path": "chara/action/magic/thm_black/flare.tmb",
+        "bytes": 903,
+        "dependencies": {
+          "chara/action/battle/magic_blk_end.tmb": 259,
+          "sound/vfx/magic/SE_VFX_Magic_Flare_t.scd": 84016,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_flare1/eff/mgc_flare1t0s.avfx": 177136,
+          "vfx/action/mgc_flare1/texture/anm_line2.atex": 11016,
+          "vfx/action/mgc_flare1/texture/bl_line_01.atex": 5560,
+          "vfx/action/mgc_flare1/texture/elct001at.atex": 11016,
+          "vfx/action/mgc_flare1/texture/elct001bt.atex": 11016,
+          "vfx/action/mgc_flare1/texture/flas001ct.atex": 2824,
+          "vfx/action/mgc_flare1/texture/hinoko_anm.atex": 11016,
+          "vfx/action/mgc_flare1/texture/hit_x001a_h.atex": 21925,
+          "vfx/action/mgc_flare1/texture/line.atex": 2848,
+          "vfx/action/mgc_flare1/texture/ring_s001a_h.atex": 21925,
+          "vfx/action/mgc_flare1/texture/ring003af.atex": 21925,
+          "vfx/action/mgc_flare1/texture/snic001bt.atex": 21925,
+          "vfx/action/mgc_flare1/texture/uv_fire_1.atex": 11016,
+          "vfx/action/mgc_flare1/texture/uv_fire_2.atex": 87488,
+          "vfx/camera/eff/syougeki_roll_m.avfx": 6388,
+          "vfx/common/eff/cmbl_shoot1c.avfx": 107904,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist_002f.atex": 11016,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/glow603_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952,
+          "vfx/common/texture/snic602_c.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8867,
+    "name": "Freeze",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 20,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 482,
+        "path": "chara/action/magic/thm_black/freeze.tmb",
+        "bytes": 672,
+        "dependencies": {
+          "chara/action/battle/magic_blk_end.tmb": 259,
+          "sound/vfx/magic/SE_VFX_Magic_Freeze_t.scd": 86784,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_freez1/eff/mgc_freez1t0m.avfx": 191912,
+          "vfx/action/mgc_freez1/texture/ele002bm.atex": 5560,
+          "vfx/action/mgc_freez1/texture/fire007dm.atex": 5568,
+          "vfx/action/mgc_freez1/texture/frz_kir01m.atex": 5568,
+          "vfx/action/mgc_freez1/texture/frz_kir02m.atex": 5560,
+          "vfx/action/mgc_freez1/texture/frz_wkk01m.atex": 5541,
+          "vfx/action/mgc_freez1/texture/glow014am.atex": 5568,
+          "vfx/action/mgc_freez1/texture/glow025bm.atex": 11016,
+          "vfx/action/mgc_freez1/texture/ice001bm.atex": 21976,
+          "vfx/action/mgc_freez1/texture/ice003bm.atex": 11016,
+          "vfx/action/mgc_freez1/texture/noiz001bm.atex": 11016,
+          "vfx/action/mgc_freez1/texture/smoke001am.atex": 5568,
+          "vfx/action/mgc_freez1/texture/smoke017am.atex": 11040,
+          "vfx/common/eff/cmbl_shoot1c.avfx": 107904,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist_002f.atex": 11016,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/glow603_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952,
+          "vfx/common/texture/snic602_c.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1906,
+        "path": "chara/action/magic/thm_black/freeze_hit.tmb",
+        "bytes": 178,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8862,
+    "name": "Enochian",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 3999,
+        "path": "chara/action/ability/thm_black/abl014.tmb",
+        "bytes": 1118,
+        "dependencies": {
+          "sound/vfx/ability/SE_VFX_Abi_Blm_AncientPower_c.scd": 124864,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_thm_abl014/eff/ab_thm014c0t.avfx": 39600,
+          "vfx/action/ab_thm_abl014/eff/ab_thm014c1t.avfx": 57556,
+          "vfx/action/ab_thm_abl014/eff/ab_thm014c3t.avfx": 13792,
+          "vfx/action/ab_thm_abl014/texture/aura_001f.atex": 21925,
+          "vfx/action/ab_thm_abl014/texture/aura069bm.atex": 11016,
+          "vfx/action/ab_thm_abl014/texture/bl_line_01.atex": 5560,
+          "vfx/action/ab_thm_abl014/texture/dist_002f.atex": 11016,
+          "vfx/action/ab_thm_abl014/texture/fire_tm.atex": 11016,
+          "vfx/action/ab_thm_abl014/texture/fire007dm.atex": 5568,
+          "vfx/action/ab_thm_abl014/texture/flas001bt.atex": 2824,
+          "vfx/action/ab_thm_abl014/texture/flas001ct.atex": 2824,
+          "vfx/action/ab_thm_abl014/texture/glow001bm.atex": 11016,
+          "vfx/action/ab_thm_abl014/texture/glow001f.atex": 21925,
+          "vfx/action/ab_thm_abl014/texture/mark_in1t.atex": 5541,
+          "vfx/action/ab_thm_abl014/texture/mark_ot0f.atex": 21925,
+          "vfx/action/ab_thm_abl014/texture/mark_x03bh.atex": 5560,
+          "vfx/action/ab_thm_abl014/texture/othr023_c.atex": 22112,
+          "vfx/action/ab_thm_abl014/texture/smoke_s001c_h.atex": 21952,
+          "vfx/action/ab_thm_abl014/texture/tk_aura001u.atex": 11016,
+          "vfx/action/ab_thm_abl014/texture/uv_cryst_01.atex": 11016,
+          "vfx/action/ab_thm_abl014/texture/uv_zmn_fire.atex": 43784,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8865,
+    "name": "Foul",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 5242,
+        "path": "chara/action/magic/thm_black/mgc005.tmb",
+        "bytes": 907,
+        "dependencies": {
+          "chara/action/battle/magic_blk_end.tmb": 259,
+          "sound/vfx/magic/SE_Vfx_Magic_Blm_StRange_c.scd": 103056,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_thm_005/eff/mgc_thm05c0c.avfx": 185228,
+          "vfx/action/mgc_thm_005/texture/2sw_uv_ora01as.atex": 11016,
+          "vfx/action/mgc_thm_005/texture/clud001ct.atex": 21952,
+          "vfx/action/mgc_thm_005/texture/fire605_c.atex": 11016,
+          "vfx/action/mgc_thm_005/texture/glow005cm.atex": 21925,
+          "vfx/action/mgc_thm_005/texture/glow008ac.atex": 21952,
+          "vfx/action/mgc_thm_005/texture/glow601_c.atex": 5541,
+          "vfx/action/mgc_thm_005/texture/ice_u08ah.atex": 11016,
+          "vfx/action/mgc_thm_005/texture/snic001ct.atex": 21952,
+          "vfx/action/mgc_thm_005/texture/sold002_c.atex": 21925,
+          "vfx/action/mgc_thm_005/texture/tm_bl_1s.atex": 11016,
+          "vfx/action/mgc_thm_005/texture/tone005bc.atex": 3168,
+          "vfx/action/mgc_thm_005/texture/uv_cryst_01.atex": 11016,
+          "vfx/action/mgc_thm_005/texture/uv_ora_2c.atex": 21944,
+          "vfx/action/mgc_thm_005/texture/x0_uv_wind_02_f1.atex": 43808,
+          "vfx/camera/eff/syougeki_roll_m.avfx": 6388,
+          "vfx/common/eff/cmbl_shoot1c.avfx": 107904,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist_002f.atex": 11016,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/glow603_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952,
+          "vfx/common/texture/snic602_c.atex": 21952
+        }
+      },
+      {
+        "timelineId": 5243,
+        "path": "chara/action/magic/thm_black/mgc005_hit.tmb",
+        "bytes": 431,
+        "dependencies": {
+          "sound/vfx/magic/SE_Vfx_Magic_Blm_StRange_st.scd": 17520,
+          "vfx/action/mgc_thm_005/eff/mgc_thm05t0c.avfx": 35568,
+          "vfx/action/mgc_thm_005/texture/glow601_c.atex": 5541,
+          "vfx/action/mgc_thm_005/texture/ice_u08ah.atex": 11016,
+          "vfx/action/mgc_thm_005/texture/snic001ct.atex": 21952,
+          "vfx/action/mgc_thm_005/texture/tm_bl_1s.atex": 11016,
+          "vfx/action/mgc_thm_005/texture/tone005bc.atex": 3168
+        }
+      }
+    ]
+  },
+  {
+    "id": 17774,
+    "name": "Xenoglossy",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 7086,
+        "path": "chara/action/magic/thm_black/mgc007.tmb",
+        "bytes": 922,
+        "dependencies": {
+          "chara/action/battle/magic_blk_end.tmb": 259,
+          "sound/vfx/magic/SE_Vfx_Magic_Blm_PolyglotAtk_c.scd": 69872,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_thm_007/eff/mgc_thm07t0i.avfx": 256352,
+          "vfx/action/mgc_thm_007/eff/mgc_thm07t1i.avfx": 5944,
+          "vfx/action/mgc_thm_007/texture/aur04_i.atex": 11016,
+          "vfx/action/mgc_thm_007/texture/bl_line1ai.atex": 5560,
+          "vfx/action/mgc_thm_007/texture/dst_uv02no_i.atex": 11016,
+          "vfx/action/mgc_thm_007/texture/dst_watr01n01_i.atex": 11016,
+          "vfx/action/mgc_thm_007/texture/elc02b_i.atex": 43800,
+          "vfx/action/mgc_thm_007/texture/fire_b_uv_013_i.atex": 5560,
+          "vfx/action/mgc_thm_007/texture/ghi_anm01p_i.atex": 11016,
+          "vfx/action/mgc_thm_007/texture/glow_hi02_128_i.atex": 11016,
+          "vfx/action/mgc_thm_007/texture/glow02_64_a8_i.atex": 5541,
+          "vfx/action/mgc_thm_007/texture/gr_grhi_set01_a8_i.atex": 11003,
+          "vfx/action/mgc_thm_007/texture/htm_gr_a801_i.atex": 21925,
+          "vfx/action/mgc_thm_007/texture/htm_lnz_gr_set01i.atex": 43771,
+          "vfx/action/mgc_thm_007/texture/line01p_i.atex": 1464,
+          "vfx/action/mgc_thm_007/texture/mask_glhi_a8_01_i.atex": 5541,
+          "vfx/action/mgc_thm_007/texture/rd_hahen01a_i.atex": 21952,
+          "vfx/action/mgc_thm_007/texture/ring08_a8_i.atex": 5541,
+          "vfx/action/mgc_thm_007/texture/sonic01_i.atex": 11016,
+          "vfx/action/mgc_thm_007/texture/uv_cryst_01i.atex": 11016,
+          "vfx/action/mgc_thm_007/texture/uv_mask_grd05_i.atex": 856,
+          "vfx/action/mgc_thm_007/texture/uv_rd_elc_a801_i.atex": 87461,
+          "vfx/common/eff/cmbl_shoot1c.avfx": 107904,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist_002f.atex": 11016,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/glow603_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952,
+          "vfx/common/texture/snic602_c.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17775,
+    "name": "Night Wing",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 4,
+    "Cast100ms": 0,
+    "Recast100ms": 450,
+    "timelines": [
+      {
+        "timelineId": 539,
+        "path": "chara/action/ability/thm_black/abl010.tmb",
+        "bytes": 962,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_HaniSleep_c.scd": 55056,
+          "sound/vfx/ability/SE_VFX_Abi_HaniSleep_maint.scd": 56992,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_th010/eff/ab_th010c0s.avfx": 34860,
+          "vfx/pvp/ab_th010/eff/ab_th010t0s.avfx": 62064,
+          "vfx/pvp/ab_th010/texture/dist_002f.atex": 11016,
+          "vfx/pvp/ab_th010/texture/hit_x001a_h.atex": 21925,
+          "vfx/pvp/ab_th010/texture/psm_x001b_h.atex": 21952,
+          "vfx/pvp/ab_th010/texture/tk_aura001u.atex": 11016,
+          "vfx/pvp/ab_th010/texture/uv_uz_wave_01.atex": 21952,
+          "vfx/pvp/ab_th010/texture/x1_uv_cryst_01_f1.atex": 21944
+        }
+      },
+      {
+        "timelineId": 1933,
+        "path": "chara/action/ability/thm_black/abl010_hit.tmb",
+        "bytes": 424,
+        "dependencies": {
+          "sound/vfx/ability/SE_VFX_Abi_HaniSleep_subt.scd": 71984,
+          "vfx/pvp/ab_th010/eff/ab_th010t1s.avfx": 60692,
+          "vfx/pvp/ab_th010/texture/dist_002f.atex": 11016,
+          "vfx/pvp/ab_th010/texture/flas001ct.atex": 2824,
+          "vfx/pvp/ab_th010/texture/glow006cm.atex": 21925,
+          "vfx/pvp/ab_th010/texture/hit_x001a_h.atex": 21925,
+          "vfx/pvp/ab_th010/texture/psm_x001b_h.atex": 21952,
+          "vfx/pvp/ab_th010/texture/smk_u02h.atex": 21952,
+          "vfx/pvp/ab_th010/texture/smoke002_s.atex": 5568,
+          "vfx/pvp/ab_th010/texture/tk_aura001u.atex": 11016,
+          "vfx/pvp/ab_th010/texture/uv_uz_wave_01.atex": 21952,
+          "vfx/pvp/ab_th010/texture/water_s005a_h.atex": 21952,
+          "vfx/pvp/ab_th010/texture/x1_uv_cryst_01_f1.atex": 21944
+        }
+      }
+    ]
+  },
+  {
+    "id": 8869,
+    "name": "Aetherial Manipulation",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 2,
+    "Cast100ms": 0,
+    "Recast100ms": 150,
+    "timelines": [
+      {
+        "timelineId": 431,
+        "path": "chara/action/ability/thm_black/abl008.tmb",
+        "bytes": 1277,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_EtelialStep_c.scd": 78736,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_eterialstep1/eff/ab_eterial1c0m.avfx": 41336,
+          "vfx/action/ab_eterialstep1/eff/ab_eterial1c1m.avfx": 50676,
+          "vfx/action/ab_eterialstep1/eff/ab_eterial1c2m.avfx": 11596,
+          "vfx/action/ab_eterialstep1/texture/aura003af.atex": 5560,
+          "vfx/action/ab_eterialstep1/texture/aura072bm.atex": 11016,
+          "vfx/action/ab_eterialstep1/texture/dist_002f.atex": 11016,
+          "vfx/action/ab_eterialstep1/texture/ele017bm.atex": 43784,
+          "vfx/action/ab_eterialstep1/texture/fire007dm.atex": 5568,
+          "vfx/action/ab_eterialstep1/texture/flas001bt.atex": 2824,
+          "vfx/action/ab_eterialstep1/texture/flas001ct.atex": 2824,
+          "vfx/action/ab_eterialstep1/texture/glow001bm.atex": 11016,
+          "vfx/action/ab_eterialstep1/texture/glow001f.atex": 21925,
+          "vfx/action/ab_eterialstep1/texture/glow110bm.atex": 11016,
+          "vfx/action/ab_eterialstep1/texture/glow601_c.atex": 5541,
+          "vfx/action/ab_eterialstep1/texture/kira_001bm.atex": 2824,
+          "vfx/action/ab_eterialstep1/texture/ligt010_c.atex": 5568,
+          "vfx/action/ab_eterialstep1/texture/line050bm.atex": 5560,
+          "vfx/action/ab_eterialstep1/texture/ring_sd0f.atex": 11016,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8861,
+    "name": "Thunder III",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 484,
+        "path": "chara/action/magic/thm_black/thunderga.tmb",
+        "bytes": 988,
+        "dependencies": {
+          "chara/action/battle/magic_thm_end.tmb": 583,
+          "sound/vfx/magic/SE_VFX_Magic_Thunder_Lv3_c.scd": 39344,
+          "sound/vfx/magic/SE_VFX_Magic_Thunder_Lv3_t.scd": 78784,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_thunderga1/eff/mgc_thng1c0c.avfx": 103576,
+          "vfx/action/mgc_thunderga1/eff/mgc_thng1t0c.avfx": 159064,
+          "vfx/action/mgc_thunderga1/texture/aura001bt.atex": 21952,
+          "vfx/action/mgc_thunderga1/texture/aura026bm.atex": 11016,
+          "vfx/action/mgc_thunderga1/texture/bl_line_01.atex": 5560,
+          "vfx/action/mgc_thunderga1/texture/dist_002f.atex": 11016,
+          "vfx/action/mgc_thunderga1/texture/elct004_c.atex": 21952,
+          "vfx/action/mgc_thunderga1/texture/glow002ac.atex": 5541,
+          "vfx/action/mgc_thunderga1/texture/glow003_c.atex": 5541,
+          "vfx/action/mgc_thunderga1/texture/glow601_c.atex": 5541,
+          "vfx/action/mgc_thunderga1/texture/glow602_c.atex": 5541,
+          "vfx/action/mgc_thunderga1/texture/glow603_c.atex": 5541,
+          "vfx/action/mgc_thunderga1/texture/hit001cm.atex": 5541,
+          "vfx/action/mgc_thunderga1/texture/kira_f02m.atex": 21952,
+          "vfx/action/mgc_thunderga1/texture/snic602_c.atex": 21952,
+          "vfx/action/mgc_thunderga1/texture/x0_ligt023_c_t.atex": 21952,
+          "vfx/common/eff/cmth_shoot1c.avfx": 41460,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18936,
+    "name": "Thunder IV",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 5239,
+        "path": "chara/action/magic/thm_black/mgc004.tmb",
+        "bytes": 858,
+        "dependencies": {
+          "chara/action/battle/magic_blk_end.tmb": 259,
+          "sound/vfx/magic/SE_Vfx_Magic_Blm_ThunderLv4_maint.scd": 85136,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_thm_004/eff/mgc_thm004t0c.avfx": 122740,
+          "vfx/action/mgc_thm_004/eff/mgc_thm004t2c.avfx": 123716,
+          "vfx/action/mgc_thm_004/texture/aura001bt.atex": 21952,
+          "vfx/action/mgc_thm_004/texture/aura026bc.atex": 11016,
+          "vfx/action/mgc_thm_004/texture/dist_002f.atex": 11016,
+          "vfx/action/mgc_thm_004/texture/elct001bt.atex": 11016,
+          "vfx/action/mgc_thm_004/texture/elct012bc.atex": 43800,
+          "vfx/action/mgc_thm_004/texture/elct602_c.atex": 43784,
+          "vfx/action/mgc_thm_004/texture/fire605_c.atex": 11016,
+          "vfx/action/mgc_thm_004/texture/glow_x001b_h.atex": 5541,
+          "vfx/action/mgc_thm_004/texture/glow601_c.atex": 5541,
+          "vfx/action/mgc_thm_004/texture/hit001cm.atex": 5541,
+          "vfx/action/mgc_thm_004/texture/htm001as.atex": 11016,
+          "vfx/action/mgc_thm_004/texture/jewel_u001b_h.atex": 21952,
+          "vfx/action/mgc_thm_004/texture/ligt047bc.atex": 11016,
+          "vfx/action/mgc_thm_004/texture/ligt054_c.atex": 11016,
+          "vfx/action/mgc_thm_004/texture/ring_s001a_h.atex": 21925,
+          "vfx/action/mgc_thm_004/texture/snic001bt.atex": 21925,
+          "vfx/action/mgc_thm_004/texture/tone024_c.atex": 3160,
+          "vfx/common/eff/cmbl_shoot1c.avfx": 107904,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist_002f.atex": 11016,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/glow603_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952,
+          "vfx/common/texture/snic602_c.atex": 21952
+        }
+      },
+      {
+        "timelineId": 5240,
+        "path": "chara/action/magic/thm_black/mgc004_hit.tmb",
+        "bytes": 437,
+        "dependencies": {
+          "sound/vfx/magic/SE_Vfx_Magic_Blm_ThunderLv4_subt.scd": 19136,
+          "vfx/action/mgc_thm_004/eff/mgc_thm004t1c.avfx": 20236,
+          "vfx/action/mgc_thm_004/texture/elct602_c.atex": 43784,
+          "vfx/action/mgc_thm_004/texture/glow601_c.atex": 5541,
+          "vfx/action/mgc_thm_004/texture/jewel_u001b_h.atex": 21952
+        }
+      }
+    ]
+  },
+  {
+    "id": 8863,
+    "name": "Fire IV",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 20,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 3895,
+        "path": "chara/action/magic/thm_black/mgc002.tmb",
+        "bytes": 868,
+        "dependencies": {
+          "chara/action/battle/magic_blk_end.tmb": 259,
+          "sound/vfx/magic/SE_VFX_Magic_Blm_Fija_t.scd": 129520,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_fija1/eff/mgc_fija1t0t.avfx": 125480,
+          "vfx/action/mgc_fija1/eff/mgc_fija1t1t.avfx": 31696,
+          "vfx/action/mgc_fija1/texture/anm_tm_1s.atex": 11016,
+          "vfx/action/mgc_fija1/texture/bl_line_01.atex": 5560,
+          "vfx/action/mgc_fija1/texture/dist_002f.atex": 11016,
+          "vfx/action/mgc_fija1/texture/fire001as.atex": 87480,
+          "vfx/action/mgc_fija1/texture/fire007dm.atex": 5568,
+          "vfx/action/mgc_fija1/texture/fire01t32.atex": 174880,
+          "vfx/action/mgc_fija1/texture/glow001bf.atex": 21925,
+          "vfx/action/mgc_fija1/texture/glow001bm.atex": 11016,
+          "vfx/action/mgc_fija1/texture/mgc_hasira1t.atex": 11016,
+          "vfx/action/mgc_fija1/texture/ring_s001a_h.atex": 21925,
+          "vfx/action/mgc_fija1/texture/smk_u1f.atex": 21952,
+          "vfx/action/mgc_fija1/texture/smok008_o.atex": 87488,
+          "vfx/action/mgc_fija1/texture/snic602_c.atex": 21952,
+          "vfx/action/mgc_fija1/texture/tm_bl_1s.atex": 11016,
+          "vfx/action/mgc_fija1/texture/tm_qt1.atex": 11016,
+          "vfx/action/mgc_fija1/texture/uv_fire_hikkaki.atex": 43784,
+          "vfx/action/mgc_fija1/texture/uv_ora1h.atex": 11016,
+          "vfx/action/mgc_fija1/texture/uv_zmn_fire.atex": 43784,
+          "vfx/action/mgc_fija1/texture/uvrin1.atex": 21944,
+          "vfx/common/eff/cmbl_shoot1c.avfx": 107904,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist_002f.atex": 11016,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/glow603_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952,
+          "vfx/common/texture/snic602_c.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8864,
+    "name": "Blizzard IV",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 20,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 3894,
+        "path": "chara/action/magic/thm_black/mgc001.tmb",
+        "bytes": 854,
+        "dependencies": {
+          "chara/action/battle/magic_blk_end.tmb": 259,
+          "sound/vfx/magic/SE_VFX_Magic_Blm_Blizzaja_t.scd": 153248,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_blizaja1/eff/mgc_blizj1t0t.avfx": 134348,
+          "vfx/action/mgc_blizaja1/eff/mgc_blizj1t1t.avfx": 90584,
+          "vfx/action/mgc_blizaja1/texture/bl_line_01.atex": 5560,
+          "vfx/action/mgc_blizaja1/texture/closs000f.atex": 2824,
+          "vfx/action/mgc_blizaja1/texture/fire007dm.atex": 5568,
+          "vfx/action/mgc_blizaja1/texture/glow001bf.atex": 21925,
+          "vfx/action/mgc_blizaja1/texture/glow004_c.atex": 5568,
+          "vfx/action/mgc_blizaja1/texture/glow014cm.atex": 5541,
+          "vfx/action/mgc_blizaja1/texture/ice_u08ah.atex": 11016,
+          "vfx/action/mgc_blizaja1/texture/ice001bm.atex": 21976,
+          "vfx/action/mgc_blizaja1/texture/ice005am.atex": 21952,
+          "vfx/action/mgc_blizaja1/texture/ice006bm.atex": 2824,
+          "vfx/action/mgc_blizaja1/texture/ice007bm.atex": 11016,
+          "vfx/action/mgc_blizaja1/texture/smk_u1f.atex": 21952,
+          "vfx/action/mgc_blizaja1/texture/smoke001am.atex": 5568,
+          "vfx/action/mgc_blizaja1/texture/smoke017am.atex": 11040,
+          "vfx/action/mgc_blizaja1/texture/smoke019am.atex": 5568,
+          "vfx/action/mgc_blizaja1/texture/snic602_c.atex": 21952,
+          "vfx/action/mgc_blizaja1/texture/sp19_hasira1s.atex": 5560,
+          "vfx/action/mgc_blizaja1/texture/uv_cryst_01.atex": 11016,
+          "vfx/action/mgc_blizaja1/texture/uvrin1.atex": 21944,
+          "vfx/common/eff/cmbl_shoot1c.avfx": 107904,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist_002f.atex": 11016,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/glow603_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952,
+          "vfx/common/texture/snic602_c.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17684,
+    "name": "Phantom Dart",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 31,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 549,
+        "path": "chara/action/ability/thm_black/abl011.tmb",
+        "bytes": 1790,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_PhantomDart_c.scd": 41536,
+          "sound/vfx/ability/SE_VFX_Abi_PhantomDart_t.scd": 35312,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_th011/eff/ab_th011c0f.avfx": 47368,
+          "vfx/pvp/ab_th011/eff/ab_th011c1f.avfx": 35816,
+          "vfx/pvp/ab_th011/eff/ab_th011t0f.avfx": 63800,
+          "vfx/pvp/ab_th011/texture/aura_u00.atex": 43808,
+          "vfx/pvp/ab_th011/texture/dist_002f.atex": 11016,
+          "vfx/pvp/ab_th011/texture/dist_uv_f.atex": 11016,
+          "vfx/pvp/ab_th011/texture/dust001af.atex": 21925,
+          "vfx/pvp/ab_th011/texture/elct601ac.atex": 43784,
+          "vfx/pvp/ab_th011/texture/flash04af.atex": 21925,
+          "vfx/pvp/ab_th011/texture/glow001f.atex": 21925,
+          "vfx/pvp/ab_th011/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_th011/texture/mask_s001a_h.atex": 21925
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18942,
+    "name": "Bolt",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 43,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 368,
+        "path": "chara/action/ability/no_mot_sprint.tmb",
+        "bytes": 490,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/abi_spnt1c0c.avfx": 47356,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18943,
+    "name": "Medical Kit",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 42,
+    "Cast100ms": 0,
+    "Recast100ms": 150,
+    "timelines": [
+      {
+        "timelineId": 85,
+        "path": "chara/action/normal/item_end.tmb",
+        "bytes": 741,
+        "dependencies": {
+          "sound/vfx/item/SE_VFX_Item_use.scd": 37632,
+          "vfx/common/eff/quest_item0f.avfx": 16512,
+          "vfx/common/eff/quest_item1f.avfx": 13424,
+          "vfx/common/texture/dust001af.atex": 21925,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow001f.atex": 21925,
+          "vfx/common/texture/pk_x001a_h.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17683,
+    "name": "Drain",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 26,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 5451,
+        "path": "chara/action/rol_common/rol034.tmb",
+        "bytes": 2135,
+        "dependencies": {
+          "sound/vfx/ability/SE_VFX_Rol_Caster_Drain_c.scd": 55184,
+          "sound/vfx/ability/SE_VFX_Rol_Caster_Drain_t.scd": 40064,
+          "sound/vfx/ability/SE_VFX_Rol_Caster_GeneralPose_c.scd": 59328,
+          "vfx/common/eff/cmrl_shoot0c.avfx": 53896,
+          "vfx/common/texture/bl_line_01.atex": 5560,
+          "vfx/common/texture/hit001cm.atex": 5541,
+          "vfx/common/texture/hit0601ac.atex": 21925,
+          "vfx/common/texture/tk_snic002u.atex": 11016,
+          "vfx/common/texture/tm_bl_1s.atex": 11016,
+          "vfx/common/texture/tone004_c.atex": 2815,
+          "vfx/common/texture/uv_line_red_1s.atex": 2824,
+          "vfx/pc_common/pc_rol034/eff/pc_rol034c0c.avfx": 82340,
+          "vfx/pc_common/pc_rol034/texture/aura001at.atex": 21952,
+          "vfx/pc_common/pc_rol034/texture/aura012bm.atex": 11016,
+          "vfx/pc_common/pc_rol034/texture/aura016cm.atex": 5541,
+          "vfx/pc_common/pc_rol034/texture/aura106_c.atex": 21925,
+          "vfx/pc_common/pc_rol034/texture/aura601_c.atex": 11016,
+          "vfx/pc_common/pc_rol034/texture/aura607_c.atex": 21952,
+          "vfx/pc_common/pc_rol034/texture/glow001bm.atex": 11016,
+          "vfx/pc_common/pc_rol034/texture/glow001s.atex": 1445,
+          "vfx/pc_common/pc_rol034/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol034/texture/hp_t0f.atex": 5568,
+          "vfx/pc_common/pc_rol034/texture/pk_x001a_h.atex": 11016,
+          "vfx/pc_common/pc_rol034/texture/x0_dist_002f.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17686,
+    "name": "Addle",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 29,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 5447,
+        "path": "chara/action/rol_common/rol030.tmb",
+        "bytes": 1564,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Caster_MindVirus_t.scd": 56160,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol030/eff/pc_rol030t0c.avfx": 58176,
+          "vfx/pc_common/pc_rol030/eff/pc_rol030t1c.avfx": 87576,
+          "vfx/pc_common/pc_rol030/texture/dist02.atex": 5560,
+          "vfx/pc_common/pc_rol030/texture/down_ls1s.atex": 5560,
+          "vfx/pc_common/pc_rol030/texture/elc_line_01s.atex": 21944,
+          "vfx/pc_common/pc_rol030/texture/elct001at.atex": 11016,
+          "vfx/pc_common/pc_rol030/texture/fire001bt.atex": 21952,
+          "vfx/pc_common/pc_rol030/texture/flas001ct.atex": 2824,
+          "vfx/pc_common/pc_rol030/texture/glow001bm.atex": 11016,
+          "vfx/pc_common/pc_rol030/texture/glow603_c.atex": 5541,
+          "vfx/pc_common/pc_rol030/texture/ind001_s.atex": 21952,
+          "vfx/pc_common/pc_rol030/texture/tk_aura001u.atex": 11016,
+          "vfx/pc_common/pc_rol030/texture/uv_cryst1s.atex": 11016,
+          "vfx/pc_common/pc_rol030/texture/uv_elc_01.atex": 43784,
+          "vfx/pc_common/pc_rol030/texture/uv_fire_hikkaki.atex": 43784,
+          "vfx/pc_common/pc_rol030/texture/uv_mask_ikari.atex": 5560,
+          "vfx/pc_common/pc_rol030/texture/water_u004a_h.atex": 21952,
+          "vfx/pc_common/pc_rol030/texture/x0_uv_wind_01_f1.atex": 21944
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18956,
+    "name": "Aetheric Burst",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 27,
+    "Cast100ms": 0,
+    "Recast100ms": 450,
+    "timelines": [
+      {
+        "timelineId": 531,
+        "path": "chara/action/ability/pvp_common/abl003.tmb",
+        "bytes": 619,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_HaniSkillSpeedDebuff_c.scd": 51888,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_co003/eff/abi_co003c0h.avfx": 65464,
+          "vfx/pvp/ab_co003/texture/dist_002f.atex": 11016,
+          "vfx/pvp/ab_co003/texture/hinoko_anm.atex": 11016,
+          "vfx/pvp/ab_co003/texture/pat005af.atex": 21952,
+          "vfx/pvp/ab_co003/texture/prsm001bt.atex": 11016,
+          "vfx/pvp/ab_co003/texture/smk_u02h.atex": 21952,
+          "vfx/pvp/ab_co003/texture/uv_ora_1.atex": 21925,
+          "vfx/pvp/ab_co003/texture/uv_zmn_fire2.atex": 43784
+        }
+      },
+      {
+        "timelineId": 1934,
+        "path": "chara/action/ability/pvp_common/abl003_hit.tmb",
+        "bytes": 433,
+        "dependencies": {
+          "sound/vfx/ability/SE_VFX_Abi_HaniSkillSpeedDebuff_t.scd": 58608,
+          "vfx/pvp/ab_co003/eff/abi_co003t0h.avfx": 64348,
+          "vfx/pvp/ab_co003/texture/dist_002f.atex": 11016,
+          "vfx/pvp/ab_co003/texture/glow001bm.atex": 11016,
+          "vfx/pvp/ab_co003/texture/pat005af.atex": 21952,
+          "vfx/pvp/ab_co003/texture/pris_001f.atex": 11016,
+          "vfx/pvp/ab_co003/texture/uv_ora_1.atex": 21925,
+          "vfx/pvp/ab_co003/texture/uv_zmn_fire2.atex": 43784
+        }
+      }
+    ]
+  },
+  {
+    "id": 17685,
+    "name": "Swiftcast",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 28,
+    "Cast100ms": 0,
+    "Recast100ms": 150,
+    "timelines": [
+      {
+        "timelineId": 5448,
+        "path": "chara/action/rol_common/rol031.tmb",
+        "bytes": 3588,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Caster_Quickcast_c.scd": 73664,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol031/eff/pc_rol031c0c.avfx": 62360,
+          "vfx/pc_common/pc_rol031/eff/pc_rol031c1c.avfx": 52420,
+          "vfx/pc_common/pc_rol031/eff/pc_rol031c2c.avfx": 15664,
+          "vfx/pc_common/pc_rol031/eff/pc_rol031c3t.avfx": 15676,
+          "vfx/pc_common/pc_rol031/texture/aura046bm.atex": 11016,
+          "vfx/pc_common/pc_rol031/texture/aura049am.atex": 11016,
+          "vfx/pc_common/pc_rol031/texture/fire007dm.atex": 5568,
+          "vfx/pc_common/pc_rol031/texture/fire014bm.atex": 5592,
+          "vfx/pc_common/pc_rol031/texture/glow002bf.atex": 21925,
+          "vfx/pc_common/pc_rol031/texture/glow025bm.atex": 11016,
+          "vfx/pc_common/pc_rol031/texture/glow604_c.atex": 5568,
+          "vfx/pc_common/pc_rol031/texture/kira_f03m.atex": 21952,
+          "vfx/pc_common/pc_rol031/texture/line027cm.atex": 11003,
+          "vfx/pc_common/pc_rol031/texture/pat005af.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17687,
+    "name": "Manaward",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 30,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 481,
+        "path": "chara/action/ability/thm_black/abl009.tmb",
+        "bytes": 715,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "chara/action/battle/magic_blk_end.tmb": 259,
+          "sound/vfx/magic/SE_VFX_Magic_AntiMagicShell.scd": 64352,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_antimagic1/eff/mgc_anmg1c0h.avfx": 147984,
+          "vfx/action/mgc_antimagic1/texture/aura_u08ah.atex": 5560,
+          "vfx/action/mgc_antimagic1/texture/aura_u09ah.atex": 5560,
+          "vfx/action/mgc_antimagic1/texture/glow_s07ah.atex": 11016,
+          "vfx/action/mgc_antimagic1/texture/glow_s10ah.atex": 11016,
+          "vfx/action/mgc_antimagic1/texture/glow021bm.atex": 2824,
+          "vfx/action/mgc_antimagic1/texture/kira_s003a_h.atex": 5568,
+          "vfx/action/mgc_antimagic1/texture/noiz_u01ah.atex": 5568,
+          "vfx/action/mgc_antimagic1/texture/pris_001f.atex": 11016,
+          "vfx/action/mgc_antimagic1/texture/psm_u04ah.atex": 1632,
+          "vfx/action/mgc_antimagic1/texture/ring_x02ah.atex": 43784,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/eff/cmbl_shoot1c.avfx": 107904,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/dist_002f.atex": 11016,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow_x001a_h.atex": 5541,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/glow603_c.atex": 5541,
+          "vfx/common/texture/hit006cm.atex": 43771,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smoke_s001c_h.atex": 21952,
+          "vfx/common/texture/snic602_c.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 3361,
+    "name": "Cometeor",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 0,
+    "Cast100ms": 20,
+    "Recast100ms": 0,
+    "timelines": [
+      {
+        "timelineId": 2251,
+        "path": "chara/action/limitbreak/lbk_caster_lv1.tmb",
+        "bytes": 1704,
+        "dependencies": {
+          "sound/vfx/lbk/SE_VFX_LBK_Caster_Hatsudo_c.scd": 62624,
+          "sound/vfx/lbk/SE_VFX_LBK_Caster_Lv1_c.scd": 86496,
+          "sound/vfx/lbk/SE_VFX_LBK_Caster_Lv1_t.scd": 183072,
+          "vfx/camera/eff/lbk_cas_lv1.avfx": 6532,
+          "vfx/common/eff/cmcs_shoot1m.avfx": 32780,
+          "vfx/common/texture/aura_001f.atex": 21925,
+          "vfx/common/texture/aura072bm.atex": 11016,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/limitbreak/lbk_caster_lv1/eff/lbk_caster_lv1_0cm.avfx": 100864,
+          "vfx/limitbreak/lbk_caster_lv1/eff/lbk_caster_lv1_0tm.avfx": 130180,
+          "vfx/limitbreak/lbk_caster_lv1/eff/lbk_caster_lv1_1tm.avfx": 38984,
+          "vfx/limitbreak/lbk_caster_lv1/texture/aura063bm.atex": 5560,
+          "vfx/limitbreak/lbk_caster_lv1/texture/aura064bm.atex": 2824,
+          "vfx/limitbreak/lbk_caster_lv1/texture/aura065bm.atex": 2824,
+          "vfx/limitbreak/lbk_caster_lv1/texture/aura066am.atex": 5568,
+          "vfx/limitbreak/lbk_caster_lv1/texture/clud001dt.atex": 21952,
+          "vfx/limitbreak/lbk_caster_lv1/texture/dust001ct.atex": 21952,
+          "vfx/limitbreak/lbk_caster_lv1/texture/ele012bm.atex": 2824,
+          "vfx/limitbreak/lbk_caster_lv1/texture/ele013bm.atex": 2824,
+          "vfx/limitbreak/lbk_caster_lv1/texture/ele014bm.atex": 11016,
+          "vfx/limitbreak/lbk_caster_lv1/texture/ele015bm.atex": 2824,
+          "vfx/limitbreak/lbk_caster_lv1/texture/fire007dm.atex": 5568,
+          "vfx/limitbreak/lbk_caster_lv1/texture/fire035bm.atex": 2824,
+          "vfx/limitbreak/lbk_caster_lv1/texture/fire037am.atex": 5568,
+          "vfx/limitbreak/lbk_caster_lv1/texture/fire038am.atex": 21952,
+          "vfx/limitbreak/lbk_caster_lv1/texture/fire039am.atex": 11016,
+          "vfx/limitbreak/lbk_caster_lv1/texture/glow001at.atex": 5541,
+          "vfx/limitbreak/lbk_caster_lv1/texture/glow003_y.atex": 5541,
+          "vfx/limitbreak/lbk_caster_lv1/texture/glow017bm.atex": 5568,
+          "vfx/limitbreak/lbk_caster_lv1/texture/glow108cm.atex": 5541,
+          "vfx/limitbreak/lbk_caster_lv1/texture/hinoko_anm.atex": 11016,
+          "vfx/limitbreak/lbk_caster_lv1/texture/hit028bm.atex": 5560,
+          "vfx/limitbreak/lbk_caster_lv1/texture/kira_002bm.atex": 2824,
+          "vfx/limitbreak/lbk_caster_lv1/texture/m_dis01m01.atex": 5568,
+          "vfx/limitbreak/lbk_caster_lv1/texture/smoke047am.atex": 5568,
+          "vfx/limitbreak/lbk_caster_lv1/texture/smoke049am.atex": 5568,
+          "vfx/limitbreak/lbk_caster_lv1/texture/ston011am.atex": 2824,
+          "vfx/limitbreak/lbk_caster_lv1/texture/tone004am.atex": 1632,
+          "vfx/limitbreak/lbk_caster_lv1/texture/tone008am.atex": 1624,
+          "vfx/limitbreak/lbk_caster_lv1/texture/wand002bm.atex": 5560,
+          "vfx/limitbreak/lbk_caster_lv1/texture/wand003bm.atex": 1464
+        }
+      },
+      {
+        "timelineId": 1883,
+        "path": "chara/action/limitbreak/lbk_caster_lv1_hit.tmb",
+        "bytes": 178,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8824,
+    "name": "Yukikaze",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 5109,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s04.tmb",
+        "bytes": 1310,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_WS2-3_c.scd": 65744,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_WS2-3_t.scd": 47264,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/2kt_ws_s04/eff/2kt_ws04c0t.avfx": 48916,
+          "vfx/ws/2kt_ws_s04/eff/2kt_ws04c1t.avfx": 33576,
+          "vfx/ws/2kt_ws_s04/eff/2kt_ws04t0t.avfx": 65460,
+          "vfx/ws/2kt_ws_s04/texture/aura059am.atex": 11040,
+          "vfx/ws/2kt_ws_s04/texture/clud001ct.atex": 21952,
+          "vfx/ws/2kt_ws_s04/texture/frz_kir02m.atex": 5560,
+          "vfx/ws/2kt_ws_s04/texture/glow001at.atex": 5541,
+          "vfx/ws/2kt_ws_s04/texture/glow001bf.atex": 21925,
+          "vfx/ws/2kt_ws_s04/texture/glow001f.atex": 21925,
+          "vfx/ws/2kt_ws_s04/texture/glss001at.atex": 21952,
+          "vfx/ws/2kt_ws_s04/texture/ice_a002a_f.atex": 21952,
+          "vfx/ws/2kt_ws_s04/texture/ice001af.atex": 11016,
+          "vfx/ws/2kt_ws_s04/texture/ice001bm.atex": 21976,
+          "vfx/ws/2kt_ws_s04/texture/kira_001bf.atex": 2824,
+          "vfx/ws/2kt_ws_s04/texture/line_kiseki2t.atex": 5560,
+          "vfx/ws/2kt_ws_s04/texture/line_snic1at.atex": 21927,
+          "vfx/ws/2kt_ws_s04/texture/ring_s001a_h.atex": 21925,
+          "vfx/ws/2kt_ws_s04/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/ws/2kt_ws_s04/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/ws/2kt_ws_s04/texture/smoke001am.atex": 5568,
+          "vfx/ws/2kt_ws_s04/texture/snic602_c.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8825,
+    "name": "Gekko",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 5110,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s05.tmb",
+        "bytes": 1119,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_WS3-1_c.scd": 81920,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_WS3-1_t.scd": 54480,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/2kt_ws_s05/eff/2kt_ws05c0t.avfx": 68876,
+          "vfx/ws/2kt_ws_s05/eff/2kt_ws05t0t.avfx": 130820,
+          "vfx/ws/2kt_ws_s05/texture/2kt_grd002at.atex": 1496,
+          "vfx/ws/2kt_ws_s05/texture/aura001am.atex": 5568,
+          "vfx/ws/2kt_ws_s05/texture/aura001ct.atex": 21952,
+          "vfx/ws/2kt_ws_s05/texture/aura059am.atex": 11040,
+          "vfx/ws/2kt_ws_s05/texture/clud001ct.atex": 21952,
+          "vfx/ws/2kt_ws_s05/texture/fire007dm.atex": 5568,
+          "vfx/ws/2kt_ws_s05/texture/glow001at.atex": 5541,
+          "vfx/ws/2kt_ws_s05/texture/glow001bf.atex": 21925,
+          "vfx/ws/2kt_ws_s05/texture/hit_line_grd1s.atex": 856,
+          "vfx/ws/2kt_ws_s05/texture/hit_line.atex": 11032,
+          "vfx/ws/2kt_ws_s05/texture/htm001bs.atex": 21944,
+          "vfx/ws/2kt_ws_s05/texture/line_kiseki2t.atex": 5560,
+          "vfx/ws/2kt_ws_s05/texture/line_kiseki4t.atex": 5560,
+          "vfx/ws/2kt_ws_s05/texture/line_snic1at.atex": 21927,
+          "vfx/ws/2kt_ws_s05/texture/moon_obj01at.atex": 87488,
+          "vfx/ws/2kt_ws_s05/texture/ranbu_keseki_grd2.atex": 856,
+          "vfx/ws/2kt_ws_s05/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/ws/2kt_ws_s05/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/ws/2kt_ws_s05/texture/snic602_c.atex": 21952,
+          "vfx/ws/2kt_ws_s05/texture/uv_line_y1t.atex": 2824,
+          "vfx/ws/2kt_ws_s05/texture/x0_zmn_tm3t_t.atex": 11016,
+          "vfx/ws/2kt_ws_s05/texture/zmn_tm4t.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8826,
+    "name": "Kasha",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 5111,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s06.tmb",
+        "bytes": 1119,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_WS3-2_c.scd": 92352,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_WS3-2_t.scd": 63376,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/2kt_ws_s06/eff/2kt_ws06c0t.avfx": 74908,
+          "vfx/ws/2kt_ws_s06/eff/2kt_ws06t0t.avfx": 102292,
+          "vfx/ws/2kt_ws_s06/texture/aura059am.atex": 11040,
+          "vfx/ws/2kt_ws_s06/texture/awr_001f.atex": 21925,
+          "vfx/ws/2kt_ws_s06/texture/clud001ct.atex": 21952,
+          "vfx/ws/2kt_ws_s06/texture/flas001at.atex": 21944,
+          "vfx/ws/2kt_ws_s06/texture/glow001at.atex": 5541,
+          "vfx/ws/2kt_ws_s06/texture/glow001bf.atex": 21925,
+          "vfx/ws/2kt_ws_s06/texture/hd_sak2t.atex": 21952,
+          "vfx/ws/2kt_ws_s06/texture/hit_line_grd1s.atex": 856,
+          "vfx/ws/2kt_ws_s06/texture/hit_line.atex": 11032,
+          "vfx/ws/2kt_ws_s06/texture/line_kiseki2t.atex": 5560,
+          "vfx/ws/2kt_ws_s06/texture/line_snic1at.atex": 21927,
+          "vfx/ws/2kt_ws_s06/texture/ranbu_keseki_grd2.atex": 856,
+          "vfx/ws/2kt_ws_s06/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/ws/2kt_ws_s06/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/ws/2kt_ws_s06/texture/snic602_c.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18926,
+    "name": "Mangetsu",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 5113,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s08.tmb",
+        "bytes": 794,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_AreaWS2-1_c.scd": 55872,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/2kt_ws_s08/eff/2kt_ws08c0t.avfx": 115944,
+          "vfx/ws/2kt_ws_s08/texture/2kt_grd002at.atex": 1496,
+          "vfx/ws/2kt_ws_s08/texture/anm_tm_1s.atex": 11016,
+          "vfx/ws/2kt_ws_s08/texture/aura059am.atex": 11040,
+          "vfx/ws/2kt_ws_s08/texture/dist001bf.atex": 11016,
+          "vfx/ws/2kt_ws_s08/texture/grd_01.atex": 1496,
+          "vfx/ws/2kt_ws_s08/texture/line_kiseki2t.atex": 5560,
+          "vfx/ws/2kt_ws_s08/texture/line_kiseki4t.atex": 5560,
+          "vfx/ws/2kt_ws_s08/texture/moon_obj01at.atex": 87488,
+          "vfx/ws/2kt_ws_s08/texture/moon010f.atex": 87488,
+          "vfx/ws/2kt_ws_s08/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/ws/2kt_ws_s08/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/ws/2kt_ws_s08/texture/uv_kemf.atex": 11016,
+          "vfx/ws/2kt_ws_s08/texture/uv_line_y1t.atex": 2824,
+          "vfx/ws/2kt_ws_s08/texture/zmn_tm4t.atex": 11016
+        }
+      },
+      {
+        "timelineId": 5272,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s08_hit.tmb",
+        "bytes": 429,
+        "dependencies": {
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_AreaWS2-1_t.scd": 19760,
+          "vfx/ws/2kt_ws_s08/eff/2kt_ws08t0t.avfx": 78268,
+          "vfx/ws/2kt_ws_s08/texture/anm_tm_1s.atex": 11016,
+          "vfx/ws/2kt_ws_s08/texture/clud001ct.atex": 21952,
+          "vfx/ws/2kt_ws_s08/texture/glow001at.atex": 5541,
+          "vfx/ws/2kt_ws_s08/texture/glow001bf.atex": 21925,
+          "vfx/ws/2kt_ws_s08/texture/hit_line_grd1s.atex": 856,
+          "vfx/ws/2kt_ws_s08/texture/hit_line.atex": 11032,
+          "vfx/ws/2kt_ws_s08/texture/htm001bs.atex": 21944,
+          "vfx/ws/2kt_ws_s08/texture/line_snic1at.atex": 21927,
+          "vfx/ws/2kt_ws_s08/texture/snic602_c.atex": 21952
+        }
+      }
+    ]
+  },
+  {
+    "id": 18927,
+    "name": "Oka",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 5114,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s09.tmb",
+        "bytes": 794,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_AreaWS2-2_c.scd": 56864,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/2kt_ws_s09/eff/2kt_ws09c0t.avfx": 84704,
+          "vfx/ws/2kt_ws_s09/texture/aura005at.atex": 11040,
+          "vfx/ws/2kt_ws_s09/texture/aura059am.atex": 11040,
+          "vfx/ws/2kt_ws_s09/texture/awr_001f.atex": 21925,
+          "vfx/ws/2kt_ws_s09/texture/dist001bf.atex": 11016,
+          "vfx/ws/2kt_ws_s09/texture/hd_sak2t.atex": 21952,
+          "vfx/ws/2kt_ws_s09/texture/line_kiseki2t.atex": 5560,
+          "vfx/ws/2kt_ws_s09/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/ws/2kt_ws_s09/texture/slash_kiseki_2t.atex": 2840
+        }
+      },
+      {
+        "timelineId": 5273,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s09_hit.tmb",
+        "bytes": 429,
+        "dependencies": {
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_AreaWS2-2_t.scd": 20032,
+          "vfx/ws/2kt_ws_s09/eff/2kt_ws09t0t.avfx": 78168,
+          "vfx/ws/2kt_ws_s09/texture/clud001ct.atex": 21952,
+          "vfx/ws/2kt_ws_s09/texture/glow001at.atex": 5541,
+          "vfx/ws/2kt_ws_s09/texture/glow001bf.atex": 21925,
+          "vfx/ws/2kt_ws_s09/texture/hd_sak2t.atex": 21952,
+          "vfx/ws/2kt_ws_s09/texture/hit_line_grd1s.atex": 856,
+          "vfx/ws/2kt_ws_s09/texture/hit_line.atex": 11032,
+          "vfx/ws/2kt_ws_s09/texture/htm001bs.atex": 21944,
+          "vfx/ws/2kt_ws_s09/texture/line_snic1at.atex": 21927,
+          "vfx/ws/2kt_ws_s09/texture/snic602_c.atex": 21952
+        }
+      }
+    ]
+  },
+  {
+    "id": 8827,
+    "name": "Enpi",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 5115,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s10.tmb",
+        "bytes": 1314,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_RangeWS_c.scd": 41040,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_RangeWS_t.scd": 36352,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/2kt_ws_s10/eff/2kt_ws10c0t.avfx": 35256,
+          "vfx/ws/2kt_ws_s10/eff/2kt_ws10c1t.avfx": 38236,
+          "vfx/ws/2kt_ws_s10/eff/2kt_ws10t0t.avfx": 29268,
+          "vfx/ws/2kt_ws_s10/texture/clud001ct.atex": 21952,
+          "vfx/ws/2kt_ws_s10/texture/cut_grd1bt.atex": 856,
+          "vfx/ws/2kt_ws_s10/texture/fire_s001c_h.atex": 21952,
+          "vfx/ws/2kt_ws_s10/texture/fire606_c.atex": 21952,
+          "vfx/ws/2kt_ws_s10/texture/hit_x001a_h.atex": 21925,
+          "vfx/ws/2kt_ws_s10/texture/htm_tuki01h.atex": 43784,
+          "vfx/ws/2kt_ws_s10/texture/sp19_hasira1s.atex": 5560,
+          "vfx/ws/2kt_ws_s10/texture/tm_bl_1s.atex": 11016,
+          "vfx/ws/2kt_ws_s10/texture/uv_fire_hk_bl1s.atex": 43784,
+          "vfx/ws/2kt_ws_s10/texture/zmn_b_0t.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8831,
+    "name": "Midare Setsugekka",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 7,
+    "Cast100ms": 13,
+    "Recast100ms": 150,
+    "timelines": [
+      {
+        "timelineId": 5118,
+        "path": "chara/action/magic/2kt_samrai/mgc001.tmb",
+        "bytes": 1378,
+        "dependencies": {
+          "chara/action/battle/magic_sam_end.tmb": 259,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_Flowerfall_c.scd": 85696,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_Flowerfall_t.scd": 42432,
+          "vfx/action/mgc_2kt_001/eff/mgc_2kt001c0t.avfx": 62932,
+          "vfx/action/mgc_2kt_001/eff/mgc_2kt001c2t.avfx": 125788,
+          "vfx/action/mgc_2kt_001/eff/mgc_2kt001t0t.avfx": 109068,
+          "vfx/action/mgc_2kt_001/texture/aura059am.atex": 11040,
+          "vfx/action/mgc_2kt_001/texture/clud001ct.atex": 21952,
+          "vfx/action/mgc_2kt_001/texture/glow001at.atex": 5541,
+          "vfx/action/mgc_2kt_001/texture/glow001bf.atex": 21925,
+          "vfx/action/mgc_2kt_001/texture/hd_sak2t.atex": 21952,
+          "vfx/action/mgc_2kt_001/texture/hit_line_grd1s.atex": 856,
+          "vfx/action/mgc_2kt_001/texture/hit_line.atex": 11032,
+          "vfx/action/mgc_2kt_001/texture/htm001bs.atex": 21944,
+          "vfx/action/mgc_2kt_001/texture/line_kiseki2t.atex": 5560,
+          "vfx/action/mgc_2kt_001/texture/line_snic1at.atex": 21927,
+          "vfx/action/mgc_2kt_001/texture/moon_obj01at.atex": 87488,
+          "vfx/action/mgc_2kt_001/texture/ranbu_keseki_grd.atex": 856,
+          "vfx/action/mgc_2kt_001/texture/ranbu_keseki_grd2.atex": 856,
+          "vfx/action/mgc_2kt_001/texture/ranbu_kiseki_1.atex": 5560,
+          "vfx/action/mgc_2kt_001/texture/ranbu_kiseki_2.atex": 2840,
+          "vfx/action/mgc_2kt_001/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/action/mgc_2kt_001/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/action/mgc_2kt_001/texture/snic602_c.atex": 21952,
+          "vfx/action/mgc_2kt_001/texture/tk_aura001u.atex": 11016,
+          "vfx/action/mgc_2kt_001/texture/uv_fire_hikkaki.atex": 43784,
+          "vfx/action/mgc_2kt_001/texture/uv_obi02as.atex": 21944,
+          "vfx/action/mgc_2kt_001/texture/uv_ora01as.atex": 11016,
+          "vfx/action/mgc_2kt_001/texture/uvdist01s.atex": 11016,
+          "vfx/common/eff/cmsa_shoot0t.avfx": 35028,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit007cm.atex": 11003,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/common/texture/uv_line_01t.atex": 5543
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8830,
+    "name": "Tenka Goken",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 7,
+    "Cast100ms": 13,
+    "Recast100ms": 150,
+    "timelines": [
+      {
+        "timelineId": 5119,
+        "path": "chara/action/magic/2kt_samrai/mgc002.tmb",
+        "bytes": 1036,
+        "dependencies": {
+          "chara/action/battle/magic_sam_end.tmb": 259,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_IaiRange_c.scd": 46432,
+          "vfx/action/mgc_2kt_002/eff/mgc_2kt002c0t.avfx": 41836,
+          "vfx/action/mgc_2kt_002/eff/mgc_2kt002c1t.avfx": 69648,
+          "vfx/action/mgc_2kt_002/texture/aura059am.atex": 11040,
+          "vfx/action/mgc_2kt_002/texture/fire606_c.atex": 21952,
+          "vfx/action/mgc_2kt_002/texture/line_kiseki2t.atex": 5560,
+          "vfx/action/mgc_2kt_002/texture/line045bm.atex": 5560,
+          "vfx/action/mgc_2kt_002/texture/mask_m02at.atex": 11003,
+          "vfx/action/mgc_2kt_002/texture/mask018ac.atex": 11016,
+          "vfx/action/mgc_2kt_002/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/action/mgc_2kt_002/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/action/mgc_2kt_002/texture/sp19_hasira1s.atex": 5560,
+          "vfx/action/mgc_2kt_002/texture/tm_bl_1s.atex": 11016,
+          "vfx/action/mgc_2kt_002/texture/uv_fire_hk_bl1s.atex": 43784,
+          "vfx/action/mgc_2kt_002/texture/zmn_b_t.atex": 11016,
+          "vfx/common/eff/cmsa_shoot0t.avfx": 35028,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit007cm.atex": 11003,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/common/texture/uv_line_01t.atex": 5543
+        }
+      },
+      {
+        "timelineId": 5274,
+        "path": "chara/action/magic/2kt_samrai/mgc002_hit.tmb",
+        "bytes": 435,
+        "dependencies": {
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_IaiRange_t.scd": 27952,
+          "vfx/action/mgc_2kt_002/eff/mgc_2kt002t0t.avfx": 40496,
+          "vfx/action/mgc_2kt_002/texture/hit_line_grd.atex": 856,
+          "vfx/action/mgc_2kt_002/texture/hit_line.atex": 11032,
+          "vfx/action/mgc_2kt_002/texture/hit_x001a_h.atex": 21925
+        }
+      }
+    ]
+  },
+  {
+    "id": 17740,
+    "name": "Tsubame-gaeshi",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 3,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 0,
+        "path": "chara/action/.tmb",
+        "bytes": null,
+        "dependencies": {}
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8832,
+    "name": "Hissatsu: Shinten",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 4,
+    "Cast100ms": 0,
+    "Recast100ms": 10,
+    "timelines": [
+      {
+        "timelineId": 5121,
+        "path": "chara/action/ability/2kt_samrai/abl001.tmb",
+        "bytes": 948,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Sam_ExTantai_c.scd": 55040,
+          "sound/vfx/ability/SE_VFX_Abi_Sam_ExTantai_t.scd": 43424,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_2kt001/eff/ab_2kt001c0t.avfx": 75660,
+          "vfx/action/ab_2kt001/eff/ab_2kt001t0t.avfx": 91652,
+          "vfx/action/ab_2kt001/texture/flas001bt.atex": 2824,
+          "vfx/action/ab_2kt001/texture/glow001at.atex": 5541,
+          "vfx/action/ab_2kt001/texture/glow001bf.atex": 21925,
+          "vfx/action/ab_2kt001/texture/gr01ah.atex": 11016,
+          "vfx/action/ab_2kt001/texture/hit_line_grd.atex": 856,
+          "vfx/action/ab_2kt001/texture/hit_line.atex": 11032,
+          "vfx/action/ab_2kt001/texture/hit_x001a_h.atex": 21925,
+          "vfx/action/ab_2kt001/texture/hit021am.atex": 87488,
+          "vfx/action/ab_2kt001/texture/snic001ct.atex": 21952,
+          "vfx/action/ab_2kt001/texture/snic602_c.atex": 21952,
+          "vfx/action/ab_2kt001/texture/tone004_c.atex": 2815,
+          "vfx/action/ab_2kt001/texture/uv_cryst_128h.atex": 11016,
+          "vfx/action/ab_2kt001/texture/uv_ora01ah.atex": 11016,
+          "vfx/action/ab_2kt001/texture/uv_sonic_01ah.atex": 11016,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18988,
+    "name": "Hissatsu: Kyuten",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 5,
+    "Cast100ms": 0,
+    "Recast100ms": 10,
+    "timelines": [
+      {
+        "timelineId": 5122,
+        "path": "chara/action/ability/2kt_samrai/abl002.tmb",
+        "bytes": 613,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Sam_ExArea_c.scd": 70160,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_2kt002/eff/ab_2kt002c0t.avfx": 97756,
+          "vfx/action/ab_2kt002/texture/aura059am.atex": 11040,
+          "vfx/action/ab_2kt002/texture/line_kiseki2t.atex": 5560,
+          "vfx/action/ab_2kt002/texture/ranbu_kiseki_1_c.atex": 5560,
+          "vfx/action/ab_2kt002/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/action/ab_2kt002/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/action/ab_2kt002/texture/uv_fire_hikkaki002t.atex": 43784,
+          "vfx/action/ab_2kt002/texture/uv_obi02ac.atex": 21944,
+          "vfx/action/ab_2kt002/texture/uv_wind_01.atex": 43808,
+          "vfx/action/ab_2kt002/texture/uvdist01c.atex": 11016,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 5275,
+        "path": "chara/action/ability/2kt_samrai/abl002_hit.tmb",
+        "bytes": 427,
+        "dependencies": {
+          "sound/vfx/ability/SE_VFX_Abi_Sam_ExArea_t.scd": 19136,
+          "vfx/action/ab_2kt002/eff/ab_2kt002t0t.avfx": 43956,
+          "vfx/action/ab_2kt002/texture/hit_x001a_h.atex": 21925,
+          "vfx/action/ab_2kt002/texture/line062bf.atex": 2904,
+          "vfx/action/ab_2kt002/texture/smoke014af.atex": 21952,
+          "vfx/action/ab_2kt002/texture/snic602_c.atex": 21952
+        }
+      }
+    ]
+  },
+  {
+    "id": 7857,
+    "name": "Hissatsu: Soten",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 2,
+    "Cast100ms": 0,
+    "Recast100ms": 150,
+    "timelines": [
+      {
+        "timelineId": 5135,
+        "path": "chara/action/ability/2kt_samrai/abl016.tmb",
+        "bytes": 1032,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Sam_PvPIssen_c.scd": 32784,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_2kt016/eff/ab_2kt016c0t.avfx": 43916,
+          "vfx/action/ab_2kt016/eff/ab_2kt016c1t.avfx": 65420,
+          "vfx/action/ab_2kt016/texture/aura059am.atex": 11040,
+          "vfx/action/ab_2kt016/texture/line_kiseki2t.atex": 5560,
+          "vfx/action/ab_2kt016/texture/mask018ac.atex": 11016,
+          "vfx/action/ab_2kt016/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/action/ab_2kt016/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/action/ab_2kt016/texture/snic001ct.atex": 21952,
+          "vfx/action/ab_2kt016/texture/snic007_c.atex": 11040,
+          "vfx/action/ab_2kt016/texture/sonic_u002a_h.atex": 21925,
+          "vfx/action/ab_2kt016/texture/uv_cryst_01.atex": 11016,
+          "vfx/action/ab_2kt016/texture/uv_fire_hikkaki002t.atex": 43784,
+          "vfx/action/ab_2kt016/texture/uv_ora1.atex": 43784,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 5136,
+        "path": "chara/action/ability/2kt_samrai/abl016_hit.tmb",
+        "bytes": 429,
+        "dependencies": {
+          "sound/vfx/ability/SE_VFX_Abi_Sam_PvPIssen_t.scd": 25216,
+          "vfx/action/ab_2kt016/eff/ab_2kt016t0t.avfx": 68412,
+          "vfx/action/ab_2kt016/texture/aura059am.atex": 11040,
+          "vfx/action/ab_2kt016/texture/hit_line_grd.atex": 856,
+          "vfx/action/ab_2kt016/texture/hit_line.atex": 11032,
+          "vfx/action/ab_2kt016/texture/hit_x001a_h.atex": 21925,
+          "vfx/action/ab_2kt016/texture/line_kiseki2t.atex": 5560,
+          "vfx/action/ab_2kt016/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/action/ab_2kt016/texture/tk_snic002u.atex": 11016
+        }
+      }
+    ]
+  },
+  {
+    "id": 7855,
+    "name": "Hissatsu: Chiten",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 1,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 5134,
+        "path": "chara/action/ability/2kt_samrai/abl014.tmb",
+        "bytes": 616,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Sam_PvPKonoha_c.scd": 68976,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_2kt014/eff/ab_2kt014c0t.avfx": 50604,
+          "vfx/action/ab_2kt014/texture/ele017bm.atex": 43784,
+          "vfx/action/ab_2kt014/texture/glow001bm.atex": 11016,
+          "vfx/action/ab_2kt014/texture/kikkou0f.atex": 21944,
+          "vfx/action/ab_2kt014/texture/ring_s001b_h.atex": 21925,
+          "vfx/action/ab_2kt014/texture/ring_sd0f.atex": 11016,
+          "vfx/action/ab_2kt014/texture/tone005am.atex": 1632,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18929,
+    "name": "Shoha",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 6,
+    "Cast100ms": 0,
+    "Recast100ms": 10,
+    "timelines": [
+      {
+        "timelineId": 7063,
+        "path": "chara/action/ability/2kt_samrai/abl019.tmb",
+        "bytes": 1344,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Sam_AfterMokuso_c.scd": 75904,
+          "sound/vfx/ability/SE_VFX_Abi_Sam_AfterMokuso_t.scd": 57072,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_2kt019/eff/ab_2kt019c0t.avfx": 42576,
+          "vfx/action/ab_2kt019/eff/ab_2kt019c1t.avfx": 113252,
+          "vfx/action/ab_2kt019/eff/ab_2kt019c2t.avfx": 29448,
+          "vfx/action/ab_2kt019/eff/ab_2kt019t0t.avfx": 127216,
+          "vfx/action/ab_2kt019/texture/aura059am.atex": 11040,
+          "vfx/action/ab_2kt019/texture/clud001ct.atex": 21952,
+          "vfx/action/ab_2kt019/texture/dist02.atex": 5560,
+          "vfx/action/ab_2kt019/texture/glow001at.atex": 5541,
+          "vfx/action/ab_2kt019/texture/glow001bf.atex": 21925,
+          "vfx/action/ab_2kt019/texture/hit_line_grd1s.atex": 856,
+          "vfx/action/ab_2kt019/texture/hit_line.atex": 11032,
+          "vfx/action/ab_2kt019/texture/htm001bs.atex": 21944,
+          "vfx/action/ab_2kt019/texture/line_kiseki2t.atex": 5560,
+          "vfx/action/ab_2kt019/texture/line_snic1at.atex": 21927,
+          "vfx/action/ab_2kt019/texture/ora1pt01as.atex": 11016,
+          "vfx/action/ab_2kt019/texture/ranbu_keseki_grd.atex": 856,
+          "vfx/action/ab_2kt019/texture/ranbu_kiseki_1.atex": 5560,
+          "vfx/action/ab_2kt019/texture/ranbu_kiseki_2.atex": 2840,
+          "vfx/action/ab_2kt019/texture/ref_f.atex": 11016,
+          "vfx/action/ab_2kt019/texture/ring_s001a_h.atex": 21925,
+          "vfx/action/ab_2kt019/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/action/ab_2kt019/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/action/ab_2kt019/texture/snic602_c.atex": 21952,
+          "vfx/action/ab_2kt019/texture/tk_aura001u.atex": 11016,
+          "vfx/action/ab_2kt019/texture/uv_cryst_128s.atex": 11016,
+          "vfx/action/ab_2kt019/texture/uv_dis_1s.atex": 11016,
+          "vfx/action/ab_2kt019/texture/uv_fire_hikkaki002t.atex": 43784,
+          "vfx/action/ab_2kt019/texture/uv_obi02as.atex": 21944,
+          "vfx/action/ab_2kt019/texture/uv_ora01as.atex": 11016,
+          "vfx/action/ab_2kt019/texture/uvdist01s.atex": 11016,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17743,
+    "name": "Kaeshi: Setsugekka",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 3,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 7059,
+        "path": "chara/action/magic/2kt_samrai/mgc006.tmb",
+        "bytes": 1576,
+        "dependencies": {
+          "chara/action/battle/magic_sam_end.tmb": 259,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_Flowerfall_c.scd": 85696,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_Flowerfall_t.scd": 42432,
+          "vfx/action/mgc_2kt_001/eff/mgc_2kt001c0t.avfx": 62932,
+          "vfx/action/mgc_2kt_001/eff/mgc_2kt001c2t.avfx": 125788,
+          "vfx/action/mgc_2kt_001/eff/mgc_2kt001t0t.avfx": 109068,
+          "vfx/action/mgc_2kt_001/eff/mgc_2kt006c1t.avfx": 39608,
+          "vfx/action/mgc_2kt_001/texture/aura059am.atex": 11040,
+          "vfx/action/mgc_2kt_001/texture/clud001ct.atex": 21952,
+          "vfx/action/mgc_2kt_001/texture/dist001bf.atex": 11016,
+          "vfx/action/mgc_2kt_001/texture/glow001at.atex": 5541,
+          "vfx/action/mgc_2kt_001/texture/glow001bf.atex": 21925,
+          "vfx/action/mgc_2kt_001/texture/grd_01t.atex": 1496,
+          "vfx/action/mgc_2kt_001/texture/hd_sak2t.atex": 21952,
+          "vfx/action/mgc_2kt_001/texture/hit_line_grd1s.atex": 856,
+          "vfx/action/mgc_2kt_001/texture/hit_line.atex": 11032,
+          "vfx/action/mgc_2kt_001/texture/htm001bs.atex": 21944,
+          "vfx/action/mgc_2kt_001/texture/ice001bm.atex": 21976,
+          "vfx/action/mgc_2kt_001/texture/line_kiseki2t.atex": 5560,
+          "vfx/action/mgc_2kt_001/texture/line_snic1at.atex": 21927,
+          "vfx/action/mgc_2kt_001/texture/moon_obj01at.atex": 87488,
+          "vfx/action/mgc_2kt_001/texture/moon_obj02at.atex": 87488,
+          "vfx/action/mgc_2kt_001/texture/ranbu_keseki_grd.atex": 856,
+          "vfx/action/mgc_2kt_001/texture/ranbu_keseki_grd2.atex": 856,
+          "vfx/action/mgc_2kt_001/texture/ranbu_kiseki_1.atex": 5560,
+          "vfx/action/mgc_2kt_001/texture/ranbu_kiseki_2.atex": 2840,
+          "vfx/action/mgc_2kt_001/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/action/mgc_2kt_001/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/action/mgc_2kt_001/texture/smoke001am.atex": 5568,
+          "vfx/action/mgc_2kt_001/texture/snic602_c.atex": 21952,
+          "vfx/action/mgc_2kt_001/texture/tk_aura001u.atex": 11016,
+          "vfx/action/mgc_2kt_001/texture/uv_fire_hikkaki.atex": 43784,
+          "vfx/action/mgc_2kt_001/texture/uv_kemf.atex": 11016,
+          "vfx/action/mgc_2kt_001/texture/uv_obi02as.atex": 21944,
+          "vfx/action/mgc_2kt_001/texture/uv_ora01as.atex": 11016,
+          "vfx/action/mgc_2kt_001/texture/uvdist01s.atex": 11016,
+          "vfx/action/mgc_2kt_001/texture/zmn_tm4t.atex": 11016,
+          "vfx/common/eff/cmsa_shoot0t.avfx": 35028,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit007cm.atex": 11003,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/common/texture/uv_line_01t.atex": 5543
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17742,
+    "name": "Kaeshi: Goken",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 3,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 5119,
+        "path": "chara/action/magic/2kt_samrai/mgc002.tmb",
+        "bytes": 1036,
+        "dependencies": {
+          "chara/action/battle/magic_sam_end.tmb": 259,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_IaiRange_c.scd": 46432,
+          "vfx/action/mgc_2kt_002/eff/mgc_2kt002c0t.avfx": 41836,
+          "vfx/action/mgc_2kt_002/eff/mgc_2kt002c1t.avfx": 69648,
+          "vfx/action/mgc_2kt_002/texture/aura059am.atex": 11040,
+          "vfx/action/mgc_2kt_002/texture/fire606_c.atex": 21952,
+          "vfx/action/mgc_2kt_002/texture/line_kiseki2t.atex": 5560,
+          "vfx/action/mgc_2kt_002/texture/line045bm.atex": 5560,
+          "vfx/action/mgc_2kt_002/texture/mask_m02at.atex": 11003,
+          "vfx/action/mgc_2kt_002/texture/mask018ac.atex": 11016,
+          "vfx/action/mgc_2kt_002/texture/slash_kiseki_0t.atex": 5560,
+          "vfx/action/mgc_2kt_002/texture/slash_kiseki_2t.atex": 2840,
+          "vfx/action/mgc_2kt_002/texture/sp19_hasira1s.atex": 5560,
+          "vfx/action/mgc_2kt_002/texture/tm_bl_1s.atex": 11016,
+          "vfx/action/mgc_2kt_002/texture/uv_fire_hk_bl1s.atex": 43784,
+          "vfx/action/mgc_2kt_002/texture/zmn_b_t.atex": 11016,
+          "vfx/common/eff/cmsa_shoot0t.avfx": 35028,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit007cm.atex": 11003,
+          "vfx/common/texture/ring004af.atex": 21925,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/common/texture/uv_line_01t.atex": 5543
+        }
+      },
+      {
+        "timelineId": 5274,
+        "path": "chara/action/magic/2kt_samrai/mgc002_hit.tmb",
+        "bytes": 435,
+        "dependencies": {
+          "sound/vfx/weponskill/SE_VFX_Wep_Sam_IaiRange_t.scd": 27952,
+          "vfx/action/mgc_2kt_002/eff/mgc_2kt002t0t.avfx": 40496,
+          "vfx/action/mgc_2kt_002/texture/hit_line_grd.atex": 856,
+          "vfx/action/mgc_2kt_002/texture/hit_line.atex": 11032,
+          "vfx/action/mgc_2kt_002/texture/hit_x001a_h.atex": 21925
+        }
+      }
+    ]
+  },
+  {
+    "id": 18992,
+    "name": "Smite",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 31,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 6681,
+        "path": "chara/action/eureka/erk037.tmb",
+        "bytes": 761,
+        "dependencies": {
+          "sound/vfx/etc/SE_Vfx_Etc_Logos_Smite_mt.scd": 53360,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/eureka/erk037/eff/ws_erk037t0t.avfx": 71748,
+          "vfx/eureka/erk037/texture/aura_u00bf.atex": 21952,
+          "vfx/eureka/erk037/texture/dist001bf.atex": 11016,
+          "vfx/eureka/erk037/texture/elc_pp01_128s.atex": 21944,
+          "vfx/eureka/erk037/texture/htm_tuki01.atex": 43784,
+          "vfx/eureka/erk037/texture/htm001as.atex": 11016,
+          "vfx/eureka/erk037/texture/line007_s.atex": 11040,
+          "vfx/eureka/erk037/texture/tm_blnk1as.atex": 11016,
+          "vfx/eureka/erk037/texture/uv_fire_hikkaki.atex": 43784,
+          "vfx/eureka/erk037/texture/uv_obi02as.atex": 21944,
+          "vfx/eureka/erk037/texture/uv_zmn_fire2s.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18954,
+    "name": "Feint",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 26,
+    "Cast100ms": 0,
+    "Recast100ms": 450,
+    "timelines": [
+      {
+        "timelineId": 5433,
+        "path": "chara/action/rol_common/rol019.tmb",
+        "bytes": 1691,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Melee_StrDexDebuff_c.scd": 41808,
+          "sound/vfx/ability/SE_VFX_Rol_Melee_StrDexDebuff_mt.scd": 80800,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol019/eff/pc_rol019c0c.avfx": 22196,
+          "vfx/pc_common/pc_rol019/eff/pc_rol019t0c.avfx": 84340,
+          "vfx/pc_common/pc_rol019/texture/bl_line_01.atex": 5560,
+          "vfx/pc_common/pc_rol019/texture/dist001bf.atex": 11016,
+          "vfx/pc_common/pc_rol019/texture/glow018bm.atex": 11016,
+          "vfx/pc_common/pc_rol019/texture/hp_tm1s.atex": 5568,
+          "vfx/pc_common/pc_rol019/texture/htm002as.atex": 21944,
+          "vfx/pc_common/pc_rol019/texture/line_bf.atex": 2848,
+          "vfx/pc_common/pc_rol019/texture/ln_elc_bl1as.atex": 21944,
+          "vfx/pc_common/pc_rol019/texture/tk_snic002u.atex": 11016,
+          "vfx/pc_common/pc_rol019/texture/tmred01as.atex": 11016,
+          "vfx/pc_common/pc_rol019/texture/uv_mask_01.atex": 11040,
+          "vfx/pc_common/pc_rol019/texture/uv_sibuki_01.atex": 21944,
+          "vfx/pc_common/pc_rol019/texture/x0_anm_tm_1bf.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17676,
+    "name": "Bloodbath",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 29,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 5426,
+        "path": "chara/action/rol_common/rol012.tmb",
+        "bytes": 595,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Melee_BBass_c.scd": 45728,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol012/eff/pc_rol012c0c.avfx": 50560,
+          "vfx/pc_common/pc_rol012/texture/aura016cm.atex": 5541,
+          "vfx/pc_common/pc_rol012/texture/bl_line_01.atex": 5560,
+          "vfx/pc_common/pc_rol012/texture/fire_s001a_h.atex": 21952,
+          "vfx/pc_common/pc_rol012/texture/glow001bm.atex": 11016,
+          "vfx/pc_common/pc_rol012/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol012/texture/hit0601ac.atex": 21925,
+          "vfx/pc_common/pc_rol012/texture/tk_snic002u.atex": 11016,
+          "vfx/pc_common/pc_rol012/texture/water_s003a_h.atex": 5541,
+          "vfx/pc_common/pc_rol012/texture/x0_dist_002f.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17681,
+    "name": "Arm's Length",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 28,
+    "Cast100ms": 0,
+    "Recast100ms": 450,
+    "timelines": [
+      {
+        "timelineId": 5432,
+        "path": "chara/action/rol_common/rol018.tmb",
+        "bytes": 601,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Melee_CounterSlow_c.scd": 72400,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol018/eff/pc_rol018c0c.avfx": 80832,
+          "vfx/pc_common/pc_rol018/texture/aura_uv_067_128_d1_m.atex": 11016,
+          "vfx/pc_common/pc_rol018/texture/ele017bm.atex": 43784,
+          "vfx/pc_common/pc_rol018/texture/glow001bm.atex": 11016,
+          "vfx/pc_common/pc_rol018/texture/glow023bmc.atex": 43784,
+          "vfx/pc_common/pc_rol018/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol018/texture/pat005af.atex": 21952,
+          "vfx/pc_common/pc_rol018/texture/ring007_c.atex": 11016,
+          "vfx/pc_common/pc_rol018/texture/tone032_c.atex": 11032,
+          "vfx/pc_common/pc_rol018/texture/tone605ac.atex": 21984
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17677,
+    "name": "Fetter Ward",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 30,
+    "Cast100ms": 0,
+    "Recast100ms": 600,
+    "timelines": [
+      {
+        "timelineId": 554,
+        "path": "chara/action/ability/pvp_common/abl009.tmb",
+        "bytes": 879,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_FetterWard.scd": 36416,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_co009/eff/ab_co009c0s.avfx": 72504,
+          "vfx/pvp/ab_co009/texture/msk001as.atex": 21944,
+          "vfx/pvp/ab_co009/texture/uv_cryst_01.atex": 11016,
+          "vfx/pvp/ab_co009/texture/uv_sonic1s.atex": 11016,
+          "vfx/pvp/ab_co009/texture/x0_uv_hex_1s_p.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17674,
+    "name": "Backstep",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 27,
+    "Cast100ms": 0,
+    "Recast100ms": 150,
+    "timelines": [
+      {
+        "timelineId": 6662,
+        "path": "chara/action/eureka/erk019.tmb",
+        "bytes": 779,
+        "dependencies": {
+          "sound/vfx/etc/SE_Vfx_Etc_Logos_Backstep_c.scd": 14944,
+          "vfx/eureka/erk019/eff/abi_erk019c0h.avfx": 13576,
+          "vfx/eureka/erk019/texture/kmr12_i.atex": 21952,
+          "vfx/eureka/erk019/texture/rock01t0i.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 3360,
+    "name": "Raw Destruction",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 0,
+    "Cast100ms": 20,
+    "Recast100ms": 0,
+    "timelines": [
+      {
+        "timelineId": 2243,
+        "path": "chara/action/limitbreak/lbk_melee_lv1.tmb",
+        "bytes": 2984,
+        "dependencies": {
+          "sound/vfx/lbk/SE_VFX_LBK_Melee_Hatsudo.scd": 53952,
+          "sound/vfx/lbk/SE_VFX_LBK_Melee_Lv1_c.scd": 213024,
+          "sound/vfx/lbk/SE_VFX_LBK_Melee_Lv1_hit1_t.scd": 34432,
+          "sound/vfx/lbk/SE_VFX_LBK_Melee_Lv1_hit2_t.scd": 34432,
+          "sound/vfx/lbk/SE_VFX_LBK_Melee_Lv1_hit3_t.scd": 38336,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/camera/eff/lbk_mel_lv1a.avfx": 6068,
+          "vfx/camera/eff/lbk_mel_lv1b.avfx": 6644,
+          "vfx/common/eff/cmml_shoot1s.avfx": 57416,
+          "vfx/common/texture/aura_001f.atex": 21925,
+          "vfx/common/texture/aura001bt.atex": 21952,
+          "vfx/common/texture/elc_line_01s.atex": 21944,
+          "vfx/common/texture/fire_u007a_h.atex": 21952,
+          "vfx/common/texture/fire001bt.atex": 21952,
+          "vfx/common/texture/glow001bm.atex": 11016,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/pris_001f.atex": 11016,
+          "vfx/common/texture/sonic_u002a_h.atex": 21925,
+          "vfx/common/texture/water_u004a_h.atex": 21952,
+          "vfx/limitbreak/lbk_melee_lv1/eff/lbk_melee_lv1c0s.avfx": 98812,
+          "vfx/limitbreak/lbk_melee_lv1/eff/lbk_melee_lv1c1s.avfx": 63308,
+          "vfx/limitbreak/lbk_melee_lv1/eff/lbk_melee_lv1c2s.avfx": 118328,
+          "vfx/limitbreak/lbk_melee_lv1/eff/lbk_melee_lv1c3s.avfx": 78692,
+          "vfx/limitbreak/lbk_melee_lv1/eff/lbk_melee_lv1t0s.avfx": 38252,
+          "vfx/limitbreak/lbk_melee_lv1/eff/lbk_melee_lv1t1s.avfx": 38444,
+          "vfx/limitbreak/lbk_melee_lv1/eff/lbk_melee_lv1t2s.avfx": 65512,
+          "vfx/limitbreak/lbk_melee_lv1/texture/app_grd_1s.atex": 5560,
+          "vfx/limitbreak/lbk_melee_lv1/texture/aura016cm.atex": 5541,
+          "vfx/limitbreak/lbk_melee_lv1/texture/dist_002f.atex": 11016,
+          "vfx/limitbreak/lbk_melee_lv1/texture/dist02.atex": 5560,
+          "vfx/limitbreak/lbk_melee_lv1/texture/dust_1s.atex": 11016,
+          "vfx/limitbreak/lbk_melee_lv1/texture/dust002_s.atex": 5568,
+          "vfx/limitbreak/lbk_melee_lv1/texture/fire_u007a_h.atex": 21952,
+          "vfx/limitbreak/lbk_melee_lv1/texture/fire001bt.atex": 21952,
+          "vfx/limitbreak/lbk_melee_lv1/texture/flas001ct.atex": 2824,
+          "vfx/limitbreak/lbk_melee_lv1/texture/hasira1s.atex": 5560,
+          "vfx/limitbreak/lbk_melee_lv1/texture/hit_kiseki1s.atex": 5560,
+          "vfx/limitbreak/lbk_melee_lv1/texture/htm_tuki01.atex": 43784,
+          "vfx/limitbreak/lbk_melee_lv1/texture/ind001_s.atex": 21952,
+          "vfx/limitbreak/lbk_melee_lv1/texture/kira1s.atex": 11016,
+          "vfx/limitbreak/lbk_melee_lv1/texture/ranbu_keseki_grd2.atex": 856,
+          "vfx/limitbreak/lbk_melee_lv1/texture/ranbu_kiseki_1.atex": 5560,
+          "vfx/limitbreak/lbk_melee_lv1/texture/ranbu_kiseki_3.atex": 2840,
+          "vfx/limitbreak/lbk_melee_lv1/texture/ring_s001b_h.atex": 21925,
+          "vfx/limitbreak/lbk_melee_lv1/texture/ring001at.atex": 11040,
+          "vfx/limitbreak/lbk_melee_lv1/texture/smk_u02h.atex": 21952,
+          "vfx/limitbreak/lbk_melee_lv1/texture/snic001bt.atex": 21925,
+          "vfx/limitbreak/lbk_melee_lv1/texture/sp3_zmn_htm.atex": 11016,
+          "vfx/limitbreak/lbk_melee_lv1/texture/tk_aura001u.atex": 11016,
+          "vfx/limitbreak/lbk_melee_lv1/texture/tk_snic002u.atex": 11016,
+          "vfx/limitbreak/lbk_melee_lv1/texture/uv_ora_1s.atex": 21944,
+          "vfx/limitbreak/lbk_melee_lv1/texture/uv_sibuki1s.atex": 21944,
+          "vfx/limitbreak/lbk_melee_lv1/texture/uv_wind_02.atex": 43808,
+          "vfx/limitbreak/lbk_melee_lv1/texture/water_u004a_h.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8746,
+    "name": "Fast Blade",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 310,
+        "path": "chara/action/ws/bt_swd_sld/wsh001.tmb",
+        "bytes": 1186,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_FastBlade_c.scd": 57024,
+          "sound/vfx/weponskill/SE_VFX_Wep_FastBlade_t.scd": 49744,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/wsw_fastblade/eff/wsw_fast1t0m.avfx": 28188,
+          "vfx/ws/wsw_fastblade/texture/glow008bm.atex": 11016,
+          "vfx/ws/wsw_fastblade/texture/glow027cm.atex": 11003,
+          "vfx/ws/wsw_fastblade/texture/hit021am.atex": 87488
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8749,
+    "name": "Riot Blade",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 317,
+        "path": "chara/action/ws/bt_swd_sld/ws_s07.tmb",
+        "bytes": 1105,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_RiotSword_c.scd": 58640,
+          "sound/vfx/weponskill/SE_VFX_Wep_RiotSword_t.scd": 54576,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/wsw_raiotsword/eff/wsw_raiot1c0m.avfx": 14948,
+          "vfx/ws/wsw_raiotsword/eff/wsw_raiot1t2m.avfx": 60192,
+          "vfx/ws/wsw_raiotsword/texture/aura001am.atex": 5568,
+          "vfx/ws/wsw_raiotsword/texture/fire007dm.atex": 5568,
+          "vfx/ws/wsw_raiotsword/texture/glow028cm.atex": 21925,
+          "vfx/ws/wsw_raiotsword/texture/hit021bm.atex": 43784,
+          "vfx/ws/wsw_raiotsword/texture/hit026bm.atex": 21944,
+          "vfx/ws/wsw_raiotsword/texture/kira_f03m.atex": 21952,
+          "vfx/ws/wsw_raiotsword/texture/kira_f12m.atex": 5568,
+          "vfx/ws/wsw_raiotsword/texture/line037bm.atex": 2904,
+          "vfx/ws/wsw_raiotsword/texture/tone002am.atex": 6240
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8750,
+    "name": "Royal Authority",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 3951,
+        "path": "chara/action/ws/bt_swd_sld/ws_s10.tmb",
+        "bytes": 2114,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Pld_v300WS2_c.scd": 66464,
+          "sound/vfx/weponskill/SE_VFX_Wep_Pld_v300WS2_t.scd": 97808,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/wsw_ws_s10/eff/wsw_ws_s10c0m.avfx": 31248,
+          "vfx/ws/wsw_ws_s10/eff/wsw_ws_s10c1m.avfx": 76992,
+          "vfx/ws/wsw_ws_s10/eff/wsw_ws_s10t0m.avfx": 52280,
+          "vfx/ws/wsw_ws_s10/eff/wsw_ws_s10t1m.avfx": 15400,
+          "vfx/ws/wsw_ws_s10/eff/wsw_ws_s10t2m.avfx": 48372,
+          "vfx/ws/wsw_ws_s10/eff/wsw_ws_s10t3m.avfx": 21780,
+          "vfx/ws/wsw_ws_s10/eff/wsw_ws_s10t4m.avfx": 27888,
+          "vfx/ws/wsw_ws_s10/texture/anm_line1.atex": 11016,
+          "vfx/ws/wsw_ws_s10/texture/aura_uv_007_128_d1_m.atex": 11016,
+          "vfx/ws/wsw_ws_s10/texture/aura_uv_083_128_d5_m.atex": 21952,
+          "vfx/ws/wsw_ws_s10/texture/aura072am.atex": 21952,
+          "vfx/ws/wsw_ws_s10/texture/awr_001f.atex": 21925,
+          "vfx/ws/wsw_ws_s10/texture/cyb_uv_002_128_d5_m.atex": 21952,
+          "vfx/ws/wsw_ws_s10/texture/cyb_uv_007_256_d5_m.atex": 43808,
+          "vfx/ws/wsw_ws_s10/texture/dis_uv_014_128_d1_m.atex": 11016,
+          "vfx/ws/wsw_ws_s10/texture/dis_uv_020_064_d1_m.atex": 2824,
+          "vfx/ws/wsw_ws_s10/texture/dist_002f.atex": 11016,
+          "vfx/ws/wsw_ws_s10/texture/dist001bf.atex": 11016,
+          "vfx/ws/wsw_ws_s10/texture/elc_1f_001_256_d5_m.atex": 21984,
+          "vfx/ws/wsw_ws_s10/texture/elc_uv_005b_128_d1_m.atex": 2840,
+          "vfx/ws/wsw_ws_s10/texture/elc_uv_019c_128_d1_m.atex": 11016,
+          "vfx/ws/wsw_ws_s10/texture/flas001ct.atex": 2824,
+          "vfx/ws/wsw_ws_s10/texture/glow_002f.atex": 21925,
+          "vfx/ws/wsw_ws_s10/texture/glow_x001b_h.atex": 5541,
+          "vfx/ws/wsw_ws_s10/texture/glow601_c.atex": 5541,
+          "vfx/ws/wsw_ws_s10/texture/line070bm.atex": 5560,
+          "vfx/ws/wsw_ws_s10/texture/snic001bt.atex": 21925,
+          "vfx/ws/wsw_ws_s10/texture/sonic_uv_015_128_d5_m.atex": 21952,
+          "vfx/ws/wsw_ws_s10/texture/tm_anm1s.atex": 11016,
+          "vfx/ws/wsw_ws_s10/texture/tone_uv_005_d1_m.atex": 1624,
+          "vfx/ws/wsw_ws_s10/texture/tone013am.atex": 1632,
+          "vfx/ws/wsw_ws_s10/texture/uv_ora1.atex": 43784,
+          "vfx/ws/wsw_ws_s10/texture/uv_sibuki1s.atex": 21944
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18900,
+    "name": "Total Eclipse",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 5182,
+        "path": "chara/action/ws/bt_swd_sld/ws_s11.tmb",
+        "bytes": 1154,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Pld_Eclipse_c.scd": 74224,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/wsw_ws_s11/eff/wsw_ws_s11c0t.avfx": 14632,
+          "vfx/ws/wsw_ws_s11/eff/wsw_ws_s11c1t.avfx": 80284,
+          "vfx/ws/wsw_ws_s11/eff/wsw_ws_s11c2t.avfx": 39552,
+          "vfx/ws/wsw_ws_s11/texture/aura016cm.atex": 5541,
+          "vfx/ws/wsw_ws_s11/texture/bl_line_01.atex": 5560,
+          "vfx/ws/wsw_ws_s11/texture/dist02.atex": 5560,
+          "vfx/ws/wsw_ws_s11/texture/flas001ct.atex": 2824,
+          "vfx/ws/wsw_ws_s11/texture/glow030bf.atex": 43784,
+          "vfx/ws/wsw_ws_s11/texture/gr01as.atex": 11016,
+          "vfx/ws/wsw_ws_s11/texture/line_kiseki1t.atex": 11040,
+          "vfx/ws/wsw_ws_s11/texture/ranbu_keseki_grd.atex": 856,
+          "vfx/ws/wsw_ws_s11/texture/ranbu_kiseki_1.atex": 5560,
+          "vfx/ws/wsw_ws_s11/texture/ranbu_kiseki_2.atex": 2840,
+          "vfx/ws/wsw_ws_s11/texture/sonic_u002a_h.atex": 21925,
+          "vfx/ws/wsw_ws_s11/texture/tk_aura001u.atex": 11016,
+          "vfx/ws/wsw_ws_s11/texture/uv_fire_hk_bl1s.atex": 43784,
+          "vfx/ws/wsw_ws_s11/texture/uv_wind_02.atex": 43808,
+          "vfx/ws/wsw_ws_s11/texture/uvdist01s.atex": 11016,
+          "vfx/ws/wsw_ws_s11/texture/uvwind1as.atex": 21944,
+          "vfx/ws/wsw_ws_s11/texture/water_u004a_h.atex": 21952
+        }
+      },
+      {
+        "timelineId": 5183,
+        "path": "chara/action/ws/bt_swd_sld/ws_s11_hit.tmb",
+        "bytes": 430,
+        "dependencies": {
+          "sound/vfx/weponskill/SE_VFX_Wep_Pld_Eclipse_st.scd": 27104,
+          "vfx/ws/wsw_ws_s11/eff/wsw_ws_s11t0t.avfx": 39536,
+          "vfx/ws/wsw_ws_s11/texture/bl_line_01.atex": 5560,
+          "vfx/ws/wsw_ws_s11/texture/flas001at.atex": 21944,
+          "vfx/ws/wsw_ws_s11/texture/glow001at.atex": 5541,
+          "vfx/ws/wsw_ws_s11/texture/glow001bf.atex": 21925,
+          "vfx/ws/wsw_ws_s11/texture/snic602_c.atex": 21952
+        }
+      }
+    ]
+  },
+  {
+    "id": 18901,
+    "name": "Prominence",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 7015,
+        "path": "chara/action/ws/bt_swd_sld/ws_s12.tmb",
+        "bytes": 962,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Pld_Eclipse2_c.scd": 69248,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/wsw_ws_s12/eff/wsw_ws_s12c0t.avfx": 8320,
+          "vfx/ws/wsw_ws_s12/eff/wsw_ws_s12c2t.avfx": 128760,
+          "vfx/ws/wsw_ws_s12/texture/aura016cm.atex": 5541,
+          "vfx/ws/wsw_ws_s12/texture/bl_line_01.atex": 5560,
+          "vfx/ws/wsw_ws_s12/texture/dist02.atex": 5560,
+          "vfx/ws/wsw_ws_s12/texture/flas001at.atex": 21944,
+          "vfx/ws/wsw_ws_s12/texture/glow001at.atex": 5541,
+          "vfx/ws/wsw_ws_s12/texture/glow001bf.atex": 21925,
+          "vfx/ws/wsw_ws_s12/texture/line_kiseki1t.atex": 11040,
+          "vfx/ws/wsw_ws_s12/texture/ranbu_keseki_grd.atex": 856,
+          "vfx/ws/wsw_ws_s12/texture/ranbu_kiseki_1.atex": 5560,
+          "vfx/ws/wsw_ws_s12/texture/ranbu_kiseki_2.atex": 2840,
+          "vfx/ws/wsw_ws_s12/texture/snic602_c.atex": 21952,
+          "vfx/ws/wsw_ws_s12/texture/sonic_u002a_h.atex": 21925,
+          "vfx/ws/wsw_ws_s12/texture/tk_aura001u.atex": 11016,
+          "vfx/ws/wsw_ws_s12/texture/uv_wind_02.atex": 43808,
+          "vfx/ws/wsw_ws_s12/texture/water_u004a_h.atex": 21952,
+          "vfx/ws/wsw_ws_s12/texture/x0_aura059am_t.atex": 11040
+        }
+      },
+      {
+        "timelineId": 7016,
+        "path": "chara/action/ws/bt_swd_sld/ws_s12_hit.tmb",
+        "bytes": 431,
+        "dependencies": {
+          "sound/vfx/weponskill/SE_VFX_Wep_Pld_Eclipse2_st.scd": 27104,
+          "vfx/ws/wsw_ws_s12/eff/wsw_ws_s12t0t.avfx": 35208,
+          "vfx/ws/wsw_ws_s12/texture/flas001at.atex": 21944,
+          "vfx/ws/wsw_ws_s12/texture/glow001at.atex": 5541,
+          "vfx/ws/wsw_ws_s12/texture/glow001bf.atex": 21925,
+          "vfx/ws/wsw_ws_s12/texture/snic602_c.atex": 21952
+        }
+      }
+    ]
+  },
+  {
+    "id": 18902,
+    "name": "Shield Lob",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 316,
+        "path": "chara/action/ws/bt_swd_sld/ws_s06.tmb",
+        "bytes": 1296,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_ShieldLob_c.scd": 49760,
+          "sound/vfx/weponskill/SE_VFX_Wep_ShieldLob_t.scd": 34512,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/wsw_shieldslo/eff/wsw_swlo1c0m.avfx": 119640,
+          "vfx/ws/wsw_shieldslo/eff/wsw_swlo1t0m.avfx": 49896,
+          "vfx/ws/wsw_shieldslo/eff/wsw_swlo1t1m.avfx": 23916,
+          "vfx/ws/wsw_shieldslo/texture/aura002am.atex": 11040,
+          "vfx/ws/wsw_shieldslo/texture/aura035bm.atex": 5560,
+          "vfx/ws/wsw_shieldslo/texture/glow001bm.atex": 11016,
+          "vfx/ws/wsw_shieldslo/texture/glow003bm.atex": 11016,
+          "vfx/ws/wsw_shieldslo/texture/hit001am.atex": 5568,
+          "vfx/ws/wsw_shieldslo/texture/hit022am.atex": 21952,
+          "vfx/ws/wsw_shieldslo/texture/line012bm.atex": 21944,
+          "vfx/ws/wsw_shieldslo/texture/line015am.atex": 5568,
+          "vfx/ws/wsw_shieldslo/texture/line018bm.atex": 5560,
+          "vfx/ws/wsw_shieldslo/texture/line026bm.atex": 1496,
+          "vfx/ws/wsw_shieldslo/texture/snic001ct.atex": 21952,
+          "vfx/ws/wsw_shieldslo/texture/soli012bm.atex": 43784,
+          "vfx/ws/wsw_shieldslo/texture/soli013bm.atex": 11016,
+          "vfx/ws/wsw_shieldslo/texture/tor_smk02m.atex": 21952
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8752,
+    "name": "Holy Spirit",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 15,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 5186,
+        "path": "chara/action/magic/swd_knight/mgc002.tmb",
+        "bytes": 1003,
+        "dependencies": {
+          "chara/action/battle/magic_pld_end.tmb": 259,
+          "sound/vfx/magic/SE_Vfx_Magic_Pld_TantaiHoly_c.scd": 55312,
+          "sound/vfx/magic/SE_Vfx_Magic_Pld_TantaiHoly_t.scd": 81184,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_swd_mgc002/eff/mgc_swd_mgc002c0t.avfx": 23540,
+          "vfx/action/mgc_swd_mgc002/eff/mgc_swd_mgc002t0t.avfx": 77148,
+          "vfx/action/mgc_swd_mgc002/texture/aura001af.atex": 21952,
+          "vfx/action/mgc_swd_mgc002/texture/aura607_f.atex": 21952,
+          "vfx/action/mgc_swd_mgc002/texture/closs03bf.atex": 11016,
+          "vfx/action/mgc_swd_mgc002/texture/cybar_uv001af.atex": 87488,
+          "vfx/action/mgc_swd_mgc002/texture/flas001at.atex": 21944,
+          "vfx/action/mgc_swd_mgc002/texture/flash011f.atex": 43784,
+          "vfx/action/mgc_swd_mgc002/texture/glow_x001a_f.atex": 5541,
+          "vfx/action/mgc_swd_mgc002/texture/glow002bf.atex": 21925,
+          "vfx/action/mgc_swd_mgc002/texture/line007_s.atex": 11040,
+          "vfx/action/mgc_swd_mgc002/texture/prsm001bt.atex": 11016,
+          "vfx/action/mgc_swd_mgc002/texture/ring_s001b_h.atex": 21925,
+          "vfx/action/mgc_swd_mgc002/texture/sibuki_001af.atex": 43808,
+          "vfx/action/mgc_swd_mgc002/texture/smoke001ar.atex": 5568,
+          "vfx/action/mgc_swd_mgc002/texture/smoke010ar.atex": 5568,
+          "vfx/action/mgc_swd_mgc002/texture/swd_moyou01t.atex": 43808,
+          "vfx/action/mgc_swd_mgc002/texture/uv_kemf.atex": 21952,
+          "vfx/action/mgc_swd_mgc002/texture/x0_swd_moyou02t_t.atex": 21925,
+          "vfx/common/eff/cmpl_shoot1c.avfx": 50808,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit007cm.atex": 11003,
+          "vfx/common/texture/prsm001at.atex": 11040,
+          "vfx/common/texture/ring_s001b_h.atex": 21925
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17693,
+    "name": "Holy Circle",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 15,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 7011,
+        "path": "chara/action/magic/swd_knight/mgc003.tmb",
+        "bytes": 627,
+        "dependencies": {
+          "chara/action/battle/magic_pld_end.tmb": 259,
+          "sound/vfx/magic/SE_Vfx_Magic_Pld_PBAE_c.scd": 119648,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/mgc_swd_mgc003/eff/mgc_swd_mgc003c0t.avfx": 98920,
+          "vfx/action/mgc_swd_mgc003/texture/aur01prism_i.atex": 43784,
+          "vfx/action/mgc_swd_mgc003/texture/aura001at.atex": 21952,
+          "vfx/action/mgc_swd_mgc003/texture/ball_1f_004_128_d5_m.atex": 21952,
+          "vfx/action/mgc_swd_mgc003/texture/bh_mask_grd01i.atex": 11032,
+          "vfx/action/mgc_swd_mgc003/texture/bh_mask_grd03i.atex": 11032,
+          "vfx/action/mgc_swd_mgc003/texture/bl_line_01.atex": 5560,
+          "vfx/action/mgc_swd_mgc003/texture/crom_001at.atex": 11040,
+          "vfx/action/mgc_swd_mgc003/texture/glow_x001a_h.atex": 5541,
+          "vfx/action/mgc_swd_mgc003/texture/glow001bm.atex": 11016,
+          "vfx/action/mgc_swd_mgc003/texture/hit_x001a_h.atex": 21925,
+          "vfx/action/mgc_swd_mgc003/texture/line070bm.atex": 5560,
+          "vfx/action/mgc_swd_mgc003/texture/mark_swd_mg003at.atex": 43808,
+          "vfx/action/mgc_swd_mgc003/texture/mask_rock02at.atex": 43784,
+          "vfx/action/mgc_swd_mgc003/texture/sibuki_001at.atex": 43808,
+          "vfx/action/mgc_swd_mgc003/texture/snic023_c.atex": 21952,
+          "vfx/action/mgc_swd_mgc003/texture/tm_bl_1s.atex": 11016,
+          "vfx/action/mgc_swd_mgc003/texture/tm_cros_swd_mg003at.atex": 11016,
+          "vfx/common/eff/cmpl_shoot1c.avfx": 50808,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit007cm.atex": 11003,
+          "vfx/common/texture/prsm001at.atex": 11040,
+          "vfx/common/texture/ring_s001b_h.atex": 21925
+        }
+      },
+      {
+        "timelineId": 7012,
+        "path": "chara/action/magic/swd_knight/mgc003_hit.tmb",
+        "bytes": 436,
+        "dependencies": {
+          "sound/vfx/magic/SE_Vfx_Magic_Pld_PBAE_st.scd": 25296,
+          "vfx/action/mgc_swd_mgc003/eff/mgc_swd_mgc003t0t.avfx": 56796,
+          "vfx/action/mgc_swd_mgc003/texture/dist_uv_f.atex": 11016,
+          "vfx/action/mgc_swd_mgc003/texture/dist001bf.atex": 11016,
+          "vfx/action/mgc_swd_mgc003/texture/flas001cf.atex": 2824,
+          "vfx/action/mgc_swd_mgc003/texture/glow001f.atex": 21925,
+          "vfx/action/mgc_swd_mgc003/texture/pris_001f.atex": 11016,
+          "vfx/action/mgc_swd_mgc003/texture/uvrin1f.atex": 21944,
+          "vfx/action/mgc_swd_mgc003/texture/water_u004a_h.atex": 21952,
+          "vfx/action/mgc_swd_mgc003/texture/x1_nj_flash0f_p.atex": 11016
+        }
+      }
+    ]
+  },
+  {
+    "id": 17692,
+    "name": "Confiteor",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 7013,
+        "path": "chara/action/ability/swd_knight/abl022.tmb",
+        "bytes": 1150,
+        "dependencies": {
+          "chara/action/battle/magic_pld_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Pld_NoCastMagic_c.scd": 83312,
+          "sound/vfx/ability/SE_VFX_Abi_Pld_NoCastMagic_mt.scd": 80336,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_swd_abl022/eff/abi_swd022c0t.avfx": 25660,
+          "vfx/action/ab_swd_abl022/eff/abi_swd022t0t.avfx": 167068,
+          "vfx/action/ab_swd_abl022/texture/2sw_dd_msk01as.atex": 5560,
+          "vfx/action/ab_swd_abl022/texture/aura_uv_067_128_d1_m.atex": 11016,
+          "vfx/action/ab_swd_abl022/texture/aura016cm.atex": 5541,
+          "vfx/action/ab_swd_abl022/texture/bh_mask_grd02s.atex": 11032,
+          "vfx/action/ab_swd_abl022/texture/bis_mask_grd01c.atex": 11032,
+          "vfx/action/ab_swd_abl022/texture/dist_002f.atex": 11016,
+          "vfx/action/ab_swd_abl022/texture/dust001af.atex": 21925,
+          "vfx/action/ab_swd_abl022/texture/fire001bt.atex": 21952,
+          "vfx/action/ab_swd_abl022/texture/glow001at.atex": 5541,
+          "vfx/action/ab_swd_abl022/texture/gr_hibi_l2t.atex": 174843,
+          "vfx/action/ab_swd_abl022/texture/ic_chip0f.atex": 11016,
+          "vfx/action/ab_swd_abl022/texture/jewel_u002a_h.atex": 11016,
+          "vfx/action/ab_swd_abl022/texture/mark_swd_mg003at.atex": 43808,
+          "vfx/action/ab_swd_abl022/texture/mask_rock02at.atex": 43784,
+          "vfx/action/ab_swd_abl022/texture/prsm001bt.atex": 11016,
+          "vfx/action/ab_swd_abl022/texture/shadow_mask02_t.atex": 11040,
+          "vfx/action/ab_swd_abl022/texture/smk_u02f.atex": 21952,
+          "vfx/action/ab_swd_abl022/texture/sonic01_i.atex": 11016,
+          "vfx/action/ab_swd_abl022/texture/tk_aura001u.atex": 11016,
+          "vfx/action/ab_swd_abl022/texture/uv_msk_grd01x.atex": 11032,
+          "vfx/action/ab_swd_abl022/texture/uv_ora2s.atex": 21944,
+          "vfx/action/ab_swd_abl022/texture/x0_snic001bf_v.atex": 21925,
+          "vfx/action/ab_swd_abl022/texture/ygr_y02_i.atex": 5560,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/eff/cmpl_shoot1c.avfx": 50808,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow_s002a_h.atex": 1445,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/hit007cm.atex": 11003,
+          "vfx/common/texture/prsm001at.atex": 11040,
+          "vfx/common/texture/ring_s001b_h.atex": 21925
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17694,
+    "name": "Intervene",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 5,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 7017,
+        "path": "chara/action/ws/bt_swd_sld/ws_s13.tmb",
+        "bytes": 1677,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Pld_Charge_c.scd": 22064,
+          "sound/vfx/weponskill/SE_VFX_Wep_Pld_Charge_mt.scd": 18080,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/wsw_ws_s13/eff/wsw_ws_s13c0t.avfx": 65936,
+          "vfx/ws/wsw_ws_s13/eff/wsw_ws_s13t0t.avfx": 40472,
+          "vfx/ws/wsw_ws_s13/eff/wsw_ws_s13t1t.avfx": 5912,
+          "vfx/ws/wsw_ws_s13/texture/dist001bf.atex": 11016,
+          "vfx/ws/wsw_ws_s13/texture/flas001at.atex": 21944,
+          "vfx/ws/wsw_ws_s13/texture/glow001at.atex": 5541,
+          "vfx/ws/wsw_ws_s13/texture/glow001bf.atex": 21925,
+          "vfx/ws/wsw_ws_s13/texture/snic602_c.atex": 21952,
+          "vfx/ws/wsw_ws_s13/texture/tk_aura001u.atex": 11016,
+          "vfx/ws/wsw_ws_s13/texture/uv_fan_sonic01_i.atex": 43784,
+          "vfx/ws/wsw_ws_s13/texture/uv_grd_line01_i.atex": 1624,
+          "vfx/ws/wsw_ws_s13/texture/x0_aura059am_t.atex": 11040
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8754,
+    "name": "Requiescat",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 2,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 5185,
+        "path": "chara/action/ability/swd_knight/abl019.tmb",
+        "bytes": 959,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Pld_Judgement_c.scd": 67856,
+          "sound/vfx/ability/SE_VFX_Abi_Pld_Judgement_mt.scd": 57904,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_swd_abl019/eff/ab_swd019c0t.avfx": 96808,
+          "vfx/action/ab_swd_abl019/eff/ab_swd019t0t.avfx": 87976,
+          "vfx/action/ab_swd_abl019/texture/bl_line1as.atex": 5560,
+          "vfx/action/ab_swd_abl019/texture/dist_002f.atex": 11016,
+          "vfx/action/ab_swd_abl019/texture/dust001af.atex": 21925,
+          "vfx/action/ab_swd_abl019/texture/elc_pp01s.atex": 21944,
+          "vfx/action/ab_swd_abl019/texture/elc_pp02s.atex": 21944,
+          "vfx/action/ab_swd_abl019/texture/elct_u05bh.atex": 43784,
+          "vfx/action/ab_swd_abl019/texture/glow003_c.atex": 5541,
+          "vfx/action/ab_swd_abl019/texture/glow601_c.atex": 5541,
+          "vfx/action/ab_swd_abl019/texture/hit001cm.atex": 5541,
+          "vfx/action/ab_swd_abl019/texture/htm001as.atex": 11016,
+          "vfx/action/ab_swd_abl019/texture/ranbu_keseki_grd.atex": 856,
+          "vfx/action/ab_swd_abl019/texture/ranbu_kiseki_1.atex": 5560,
+          "vfx/action/ab_swd_abl019/texture/snic602_c.atex": 21952,
+          "vfx/action/ab_swd_abl019/texture/spkanm01as.atex": 43784,
+          "vfx/action/ab_swd_abl019/texture/tk_snic002u.atex": 11016,
+          "vfx/action/ab_swd_abl019/texture/uv_obi02as.atex": 21944,
+          "vfx/action/ab_swd_abl019/texture/uv_wind_02.atex": 43808,
+          "vfx/action/ab_swd_abl019/texture/uvdis01s.atex": 11016,
+          "vfx/action/ab_swd_abl019/texture/x1_tm_qt01as.atex": 11016,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 8755,
+    "name": "Hallowed Ground",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 3,
+    "Cast100ms": 0,
+    "Recast100ms": 600,
+    "timelines": [
+      {
+        "timelineId": 378,
+        "path": "chara/action/ability/swd_knight/abl010.tmb",
+        "bytes": 847,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Invisible_t.scd": 76368,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_invin1/eff/abi_invin1c0m.avfx": 382192,
+          "vfx/action/ab_invin1/texture/aura044bm.atex": 11016,
+          "vfx/action/ab_invin1/texture/frz_kir01m.atex": 5568,
+          "vfx/action/ab_invin1/texture/glow017bm.atex": 5568,
+          "vfx/action/ab_invin1/texture/glow021bm.atex": 2824,
+          "vfx/action/ab_invin1/texture/glow023bm.atex": 43784,
+          "vfx/action/ab_invin1/texture/kira_001bm.atex": 2824,
+          "vfx/action/ab_invin1/texture/line024bm.atex": 1632,
+          "vfx/action/ab_invin1/texture/line026bm.atex": 1496,
+          "vfx/action/ab_invin1/texture/noiz004am.atex": 5568,
+          "vfx/action/ab_invin1/texture/soli018bm.atex": 11016,
+          "vfx/camera/eff/syougeki_roll_s.avfx": 6356,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 19085,
+    "name": "Intervention",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 4,
+    "Cast100ms": 0,
+    "Recast100ms": 150,
+    "timelines": [
+      {
+        "timelineId": 5184,
+        "path": "chara/action/ability/swd_knight/abl018.tmb",
+        "bytes": 965,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Pld_Intervention_c.scd": 77936,
+          "sound/vfx/ability/SE_VFX_Abi_Pld_Intervention_mt.scd": 79056,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_swd_abl018/eff/ab_swd018c0t.avfx": 66828,
+          "vfx/action/ab_swd_abl018/eff/ab_swd018t0t.avfx": 424084,
+          "vfx/action/ab_swd_abl018/texture/2sw_dd_msk01as.atex": 5560,
+          "vfx/action/ab_swd_abl018/texture/clud001ct.atex": 21952,
+          "vfx/action/ab_swd_abl018/texture/cyb_lmb01t.atex": 2840,
+          "vfx/action/ab_swd_abl018/texture/glow001bf.atex": 21925,
+          "vfx/action/ab_swd_abl018/texture/glow021bm.atex": 2824,
+          "vfx/action/ab_swd_abl018/texture/glow023bm.atex": 43784,
+          "vfx/action/ab_swd_abl018/texture/htm001bs.atex": 21944,
+          "vfx/action/ab_swd_abl018/texture/line_snic1at.atex": 21927,
+          "vfx/action/ab_swd_abl018/texture/line024bm.atex": 1632,
+          "vfx/action/ab_swd_abl018/texture/line062bf.atex": 2904,
+          "vfx/action/ab_swd_abl018/texture/maholine1s.atex": 2840,
+          "vfx/action/ab_swd_abl018/texture/mark_x03ct.atex": 5560,
+          "vfx/action/ab_swd_abl018/texture/smoke014af.atex": 21952,
+          "vfx/action/ab_swd_abl018/texture/snic602_c.atex": 21952,
+          "vfx/action/ab_swd_abl018/texture/swd_moyou01t.atex": 43808,
+          "vfx/action/ab_swd_abl018/texture/swd_moyou03t.atex": 11016,
+          "vfx/action/ab_swd_abl018/texture/tm_bl_1s.atex": 11016,
+          "vfx/action/ab_swd_abl018/texture/tm_qt01as.atex": 11016,
+          "vfx/action/ab_swd_abl018/texture/uv_hex01as.atex": 11016,
+          "vfx/action/ab_swd_abl018/texture/uv_mask2as.atex": 5560,
+          "vfx/action/ab_swd_abl018/texture/uvcryst1s.atex": 11016,
+          "vfx/action/ab_swd_abl018/texture/uvdist01s.atex": 11016,
+          "vfx/action/ab_swd_abl018/texture/uvrin1.atex": 21944,
+          "vfx/action/ab_swd_abl018/texture/uvwind1as.atex": 21944,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 19086,
+    "name": "Testudo",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 1,
+    "Cast100ms": 0,
+    "Recast100ms": 450,
+    "timelines": [
+      {
+        "timelineId": 535,
+        "path": "chara/action/ability/swd_knight/abl014.tmb",
+        "bytes": 1774,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_Testudo_c.scd": 62592,
+          "sound/vfx/ability/SE_VFX_Abi_Testudo_t.scd": 54272,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/action/ab_Testudo1/eff/abi_Testudo1c0m.avfx": 27932,
+          "vfx/action/ab_Testudo1/eff/abi_Testudo1c1m.avfx": 32768,
+          "vfx/action/ab_Testudo1/eff/abi_Testudo1c2m.avfx": 14508,
+          "vfx/action/ab_Testudo1/eff/abi_Testudo1t0m.avfx": 132020,
+          "vfx/action/ab_Testudo1/eff/abi_Testudo1t1m.avfx": 99060,
+          "vfx/action/ab_Testudo1/eff/abi_Testudo1t2m.avfx": 50316,
+          "vfx/action/ab_Testudo1/texture/aura_uv_096_128_d1_m.atex": 11016,
+          "vfx/action/ab_Testudo1/texture/aura006bm.atex": 5560,
+          "vfx/action/ab_Testudo1/texture/ele006bm.atex": 11016,
+          "vfx/action/ab_Testudo1/texture/ele019bm.atex": 2824,
+          "vfx/action/ab_Testudo1/texture/fire004ac.atex": 11016,
+          "vfx/action/ab_Testudo1/texture/flas001bt.atex": 2824,
+          "vfx/action/ab_Testudo1/texture/flas001ct.atex": 2824,
+          "vfx/action/ab_Testudo1/texture/flash_010f.atex": 21925,
+          "vfx/action/ab_Testudo1/texture/glow_mk0f.atex": 21925,
+          "vfx/action/ab_Testudo1/texture/glow002bf.atex": 21925,
+          "vfx/action/ab_Testudo1/texture/kikkou0f.atex": 21944,
+          "vfx/action/ab_Testudo1/texture/line024bm.atex": 1632,
+          "vfx/action/ab_Testudo1/texture/ring_s001b_h.atex": 21925,
+          "vfx/action/ab_Testudo1/texture/soli018bm.atex": 11016,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17691,
+    "name": "Atonement",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 7014,
+        "path": "chara/action/ws/bt_swd_sld/ws_s14.tmb",
+        "bytes": 1349,
+        "dependencies": {
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "sound/vfx/weponskill/SE_VFX_Wep_Pld_TantaiDD_c.scd": 55248,
+          "sound/vfx/weponskill/SE_VFX_Wep_Pld_TantaiDD_mt.scd": 58752,
+          "vfx/common/eff/cmws_shoot1c.avfx": 55472,
+          "vfx/common/texture/aura604_c.atex": 5560,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/smok01c01.atex": 87461,
+          "vfx/common/texture/snic004_c.atex": 11040,
+          "vfx/ws/wsw_ws_s14/eff/wsw_ws_s14c0t.avfx": 132160,
+          "vfx/ws/wsw_ws_s14/eff/wsw_ws_s14t0t.avfx": 62740,
+          "vfx/ws/wsw_ws_s14/eff/wsw_ws_s14t1t.avfx": 122644,
+          "vfx/ws/wsw_ws_s14/texture/abl016_uv_ora_1s.atex": 43784,
+          "vfx/ws/wsw_ws_s14/texture/aura016cm.atex": 5541,
+          "vfx/ws/wsw_ws_s14/texture/dist_001f.atex": 11016,
+          "vfx/ws/wsw_ws_s14/texture/fire_wsw14at.atex": 21952,
+          "vfx/ws/wsw_ws_s14/texture/glow001at.atex": 5541,
+          "vfx/ws/wsw_ws_s14/texture/glow001f.atex": 21925,
+          "vfx/ws/wsw_ws_s14/texture/gr01as.atex": 11016,
+          "vfx/ws/wsw_ws_s14/texture/hit_line_grd.atex": 856,
+          "vfx/ws/wsw_ws_s14/texture/hit_line.atex": 11032,
+          "vfx/ws/wsw_ws_s14/texture/htm_01_03_i.atex": 11016,
+          "vfx/ws/wsw_ws_s14/texture/htm001as.atex": 11016,
+          "vfx/ws/wsw_ws_s14/texture/ligt010_c.atex": 5568,
+          "vfx/ws/wsw_ws_s14/texture/ligt037cc.atex": 21944,
+          "vfx/ws/wsw_ws_s14/texture/line033bm.atex": 2904,
+          "vfx/ws/wsw_ws_s14/texture/mask018ac.atex": 11016,
+          "vfx/ws/wsw_ws_s14/texture/mask019_c.atex": 21984,
+          "vfx/ws/wsw_ws_s14/texture/pl1hitf.atex": 21952,
+          "vfx/ws/wsw_ws_s14/texture/ranbu_keseki_grd2.atex": 856,
+          "vfx/ws/wsw_ws_s14/texture/ranbu_kiseki_1.atex": 5560,
+          "vfx/ws/wsw_ws_s14/texture/ranbu_kiseki_2.atex": 2840,
+          "vfx/ws/wsw_ws_s14/texture/smoke_01at.atex": 21952,
+          "vfx/ws/wsw_ws_s14/texture/snic_u10.atex": 11040,
+          "vfx/ws/wsw_ws_s14/texture/snic001c_c.atex": 21952,
+          "vfx/ws/wsw_ws_s14/texture/sonic_u002a_h.atex": 21925,
+          "vfx/ws/wsw_ws_s14/texture/sp19_hasira1s.atex": 5560,
+          "vfx/ws/wsw_ws_s14/texture/spkanm01as.atex": 43784,
+          "vfx/ws/wsw_ws_s14/texture/uv_fire_hk_bl1s.atex": 43784,
+          "vfx/ws/wsw_ws_s14/texture/uv_obi02as.atex": 21944,
+          "vfx/ws/wsw_ws_s14/texture/uv_ora01as.atex": 11016,
+          "vfx/ws/wsw_ws_s14/texture/uv_sibuki_1s.atex": 21944,
+          "vfx/ws/wsw_ws_s14/texture/uvdist01s.atex": 11016,
+          "vfx/ws/wsw_ws_s14/texture/uvwind1as.atex": 21944,
+          "vfx/ws/wsw_ws_s14/texture/water_u004a_h.atex": 21952,
+          "vfx/ws/wsw_ws_s14/texture/zmn_b_t.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18899,
+    "name": "Glory Slash",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 58,
+    "Cast100ms": 0,
+    "Recast100ms": 24,
+    "timelines": [
+      {
+        "timelineId": 536,
+        "path": "chara/action/ability/swd_knight/abl015.tmb",
+        "bytes": 988,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_GlorySlash_c.scd": 60496,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_sw015/eff/ab_sw015c0c.avfx": 12524,
+          "vfx/pvp/ab_sw015/eff/ab_sw015c1c.avfx": 44708,
+          "vfx/pvp/ab_sw015/eff/ab_sw015c2c.avfx": 28568,
+          "vfx/pvp/ab_sw015/texture/clud001ct.atex": 21952,
+          "vfx/pvp/ab_sw015/texture/ele017bm.atex": 43784,
+          "vfx/pvp/ab_sw015/texture/fire605_c.atex": 11016,
+          "vfx/pvp/ab_sw015/texture/kira_f12m.atex": 5568,
+          "vfx/pvp/ab_sw015/texture/mask_s001a_h.atex": 21925,
+          "vfx/pvp/ab_sw015/texture/smoke_s001c_h.atex": 21952,
+          "vfx/pvp/ab_sw015/texture/snic605_c.atex": 11040,
+          "vfx/pvp/ab_sw015/texture/sold002_c.atex": 21925,
+          "vfx/pvp/ab_sw015/texture/tk_snic002u.atex": 11016,
+          "vfx/pvp/ab_sw015/texture/uv_fire_hk_bl1s.atex": 43784
+        }
+      },
+      {
+        "timelineId": 1929,
+        "path": "chara/action/ability/swd_knight/abl015_hit.tmb",
+        "bytes": 422,
+        "dependencies": {
+          "sound/vfx/ability/SE_VFX_Abi_GlorySlash_t.scd": 39792,
+          "vfx/pvp/ab_sw015/eff/ab_sw015t0c.avfx": 47544,
+          "vfx/pvp/ab_sw015/texture/aura012bm.atex": 11016,
+          "vfx/pvp/ab_sw015/texture/bl_line_01.atex": 5560,
+          "vfx/pvp/ab_sw015/texture/fire605_c.atex": 11016,
+          "vfx/pvp/ab_sw015/texture/glow001at.atex": 5541,
+          "vfx/pvp/ab_sw015/texture/snic605_c.atex": 11040,
+          "vfx/pvp/ab_sw015/texture/sold002_c.atex": 21925,
+          "vfx/pvp/ab_sw015/texture/tk_snic002u.atex": 11016
+        }
+      }
+    ]
+  },
+  {
+    "id": 17669,
+    "name": "Low Blow",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 31,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 5424,
+        "path": "chara/action/rol_common/rol010.tmb",
+        "bytes": 1849,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Tank_Stan_c.scd": 43280,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol010/eff/pc_rol010c0c.avfx": 65564,
+          "vfx/pc_common/pc_rol010/texture/dist001bf.atex": 11016,
+          "vfx/pc_common/pc_rol010/texture/glow001bm.atex": 11016,
+          "vfx/pc_common/pc_rol010/texture/rock01t04.atex": 21952,
+          "vfx/pc_common/pc_rol010/texture/smk006af.atex": 21952,
+          "vfx/pc_common/pc_rol010/texture/smkuv05f.atex": 11016,
+          "vfx/pc_common/pc_rol010/texture/snic001ct.atex": 21952,
+          "vfx/pc_common/pc_rol010/texture/tk_snic002u.atex": 11016,
+          "vfx/pc_common/pc_rol010/texture/tone015_c.atex": 2904
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17671,
+    "name": "Full Swing",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 28,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 548,
+        "path": "chara/action/ability/pvp_common/abl008.tmb",
+        "bytes": 1238,
+        "dependencies": {
+          "chara/action/ability/no_mot_ability.tmb": 122,
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_FullSwing_c.scd": 43072,
+          "sound/vfx/ability/SE_VFX_Abi_FullSwing_t.scd": 40848,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_co008/eff/ab_co008c0c.avfx": 68024,
+          "vfx/pvp/ab_co008/eff/ab_co008t0c.avfx": 23204,
+          "vfx/pvp/ab_co008/eff/ab_co008t1c.avfx": 61964,
+          "vfx/pvp/ab_co008/texture/fire006as.atex": 21952,
+          "vfx/pvp/ab_co008/texture/glow002bf.atex": 21925,
+          "vfx/pvp/ab_co008/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_co008/texture/glow603_c.atex": 5541,
+          "vfx/pvp/ab_co008/texture/glss001at.atex": 21952,
+          "vfx/pvp/ab_co008/texture/ligt010_c.atex": 5568,
+          "vfx/pvp/ab_co008/texture/ligt023_c.atex": 11016,
+          "vfx/pvp/ab_co008/texture/ligt607_c.atex": 43784,
+          "vfx/pvp/ab_co008/texture/ring_s001a_h.atex": 21925,
+          "vfx/pvp/ab_co008/texture/snic001bt.atex": 21925,
+          "vfx/pvp/ab_co008/texture/tone602_c.atex": 2912,
+          "vfx/pvp/ab_co008/texture/x0_othr025_c_t.atex": 5541
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18952,
+    "name": "Weapon Throw",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 26,
+    "Cast100ms": 0,
+    "Recast100ms": 300,
+    "timelines": [
+      {
+        "timelineId": 529,
+        "path": "chara/action/ability/pvp_common/abl001.tmb",
+        "bytes": 1126,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Abi_WeaponThrow_c.scd": 44016,
+          "sound/vfx/ability/SE_VFX_Abi_WeaponThrow_t.scd": 36848,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_co001/eff/ab_co001c0c.avfx": 97548,
+          "vfx/pvp/ab_co001/eff/ab_co001t0c.avfx": 27004,
+          "vfx/pvp/ab_co001/eff/ab_co001t1c.avfx": 26440,
+          "vfx/pvp/ab_co001/texture/bl_line_01.atex": 5560,
+          "vfx/pvp/ab_co001/texture/dist_002f.atex": 11016,
+          "vfx/pvp/ab_co001/texture/fire002_c.atex": 43808,
+          "vfx/pvp/ab_co001/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_co001/texture/hit_x001a_h.atex": 21925,
+          "vfx/pvp/ab_co001/texture/hit001cm.atex": 5541,
+          "vfx/pvp/ab_co001/texture/snic001bt.atex": 21925,
+          "vfx/pvp/ab_co001/texture/snic605_c.atex": 11040,
+          "vfx/pvp/ab_co001/texture/snic607_c.atex": 11016,
+          "vfx/pvp/ab_co001/texture/tm_bl_1s.atex": 11016,
+          "vfx/pvp/ab_co001/texture/tm_qt1s.atex": 11016,
+          "vfx/pvp/ab_co001/texture/uv_elc_01s.atex": 43784,
+          "vfx/pvp/ab_co001/texture/uv_wind_03s.atex": 21944
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17866,
+    "name": "Reprisal",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 30,
+    "Cast100ms": 0,
+    "Recast100ms": 450,
+    "timelines": [
+      {
+        "timelineId": 7197,
+        "path": "chara/action/rol_common/rol044.tmb",
+        "bytes": 2052,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Tank_DamageDebuff_Re_c.scd": 97808,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol044/eff/pc_rol044c0c.avfx": 20980,
+          "vfx/pc_common/pc_rol044/eff/pc_rol044t0c.avfx": 60500,
+          "vfx/pc_common/pc_rol044/eff/pc_rol044t1c.avfx": 51144,
+          "vfx/pc_common/pc_rol044/eff/pc_rol044t2c.avfx": 43368,
+          "vfx/pc_common/pc_rol044/eff/pc_rol044t3c.avfx": 19276,
+          "vfx/pc_common/pc_rol044/texture/bl_line_01_c.atex": 5560,
+          "vfx/pc_common/pc_rol044/texture/bom_smk_msk.atex": 21952,
+          "vfx/pc_common/pc_rol044/texture/dist_002f.atex": 11016,
+          "vfx/pc_common/pc_rol044/texture/fire_u007a_b_c.atex": 21952,
+          "vfx/pc_common/pc_rol044/texture/glow_x001b_h.atex": 5541,
+          "vfx/pc_common/pc_rol044/texture/hibana1s.atex": 11016,
+          "vfx/pc_common/pc_rol044/texture/htm001as.atex": 11016,
+          "vfx/pc_common/pc_rol044/texture/line.atex": 2848,
+          "vfx/pc_common/pc_rol044/texture/snic001ct.atex": 21952,
+          "vfx/pc_common/pc_rol044/texture/uv_ora01as.atex": 11016,
+          "vfx/pc_common/pc_rol044/texture/uv_sonic_01as.atex": 11016,
+          "vfx/pc_common/pc_rol044/texture/uvfire01as.atex": 43784,
+          "vfx/pc_common/pc_rol044/texture/x0_uv_wind_02_f1.atex": 43808
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 17672,
+    "name": "Rampart",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 29,
+    "Cast100ms": 0,
+    "Recast100ms": 450,
+    "timelines": [
+      {
+        "timelineId": 5414,
+        "path": "chara/action/rol_common/rol001.tmb",
+        "bytes": 618,
+        "dependencies": {
+          "chara/action/battle/ability_end.tmb": 259,
+          "sound/vfx/ability/SE_VFX_Rol_Tank_Runbart_c.scd": 50416,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pc_common/pc_rol001/eff/pc_rol001c0c.avfx": 65964,
+          "vfx/pc_common/pc_rol001/texture/aura042bm.atex": 5560,
+          "vfx/pc_common/pc_rol001/texture/frz_kir01m.atex": 5568,
+          "vfx/pc_common/pc_rol001/texture/glow003bm.atex": 11016,
+          "vfx/pc_common/pc_rol001/texture/glow021bm.atex": 2824,
+          "vfx/pc_common/pc_rol001/texture/line024bm.atex": 1632,
+          "vfx/pc_common/pc_rol001/texture/line025am.atex": 1632,
+          "vfx/pc_common/pc_rol001/texture/line026bm.atex": 1496,
+          "vfx/pc_common/pc_rol001/texture/soli011bm.atex": 11016
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 18990,
+    "name": "Retaliation",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 27,
+    "Cast100ms": 0,
+    "Recast100ms": 450,
+    "timelines": [
+      {
+        "timelineId": 3994,
+        "path": "chara/action/ability/pvp_common/abl013.tmb",
+        "bytes": 719,
+        "dependencies": {
+          "sound/vfx/ability/SE_VFX_Abi_Tank_PVP_RefKnockBack_c.scd": 58624,
+          "sound/vfx/SE_VFX_common.scd": 4180544,
+          "vfx/common/eff/cmab_shoot1c.avfx": 33424,
+          "vfx/common/texture/aura001at.atex": 21952,
+          "vfx/common/texture/aura607_c.atex": 21952,
+          "vfx/common/texture/flas001ct.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/pvp/ab_co013/eff/ab_co013c0t.avfx": 568844,
+          "vfx/pvp/ab_co013/texture/glow017bm.atex": 5568,
+          "vfx/pvp/ab_co013/texture/glow018bm.atex": 11016,
+          "vfx/pvp/ab_co013/texture/glow021bm.atex": 2824,
+          "vfx/pvp/ab_co013/texture/kira_001bm.atex": 2824,
+          "vfx/pvp/ab_co013/texture/line024bm.atex": 1632,
+          "vfx/pvp/ab_co013/texture/snic001ct.atex": 21952,
+          "vfx/pvp/ab_co013/texture/soli018bm.atex": 11016,
+          "vfx/pvp/ab_co013/texture/uv_ora_2.atex": 21944
+        }
+      },
+      {
+        "timelineId": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": {}
+      }
+    ]
+  },
+  {
+    "id": 3359,
+    "name": "Aegis Boon",
+    "Icon": 784,
+    "IsPvP": false,
+    "CooldownGroup": 0,
+    "Cast100ms": 0,
+    "Recast100ms": 0,
+    "timelines": [
+      {
+        "timelineId": 2240,
+        "path": "chara/action/limitbreak/lbk_tank_lv1.tmb",
+        "bytes": 1211,
+        "dependencies": {
+          "sound/vfx/lbk/SE_VFX_LBK_Tank_Hatsudo.scd": 60944,
+          "sound/vfx/lbk/SE_VFX_LBK_Tank_Lv1_c.scd": 69904,
+          "vfx/camera/eff/lbk_tnk_lv1.avfx": 5988,
+          "vfx/common/eff/cmtk_shoot1t.avfx": 65248,
+          "vfx/common/texture/bl_line_01.atex": 5560,
+          "vfx/common/texture/dist_002f.atex": 11016,
+          "vfx/common/texture/dust001af.atex": 21925,
+          "vfx/common/texture/flas001bt.atex": 2824,
+          "vfx/common/texture/glow601_c.atex": 5541,
+          "vfx/common/texture/prsm001bt.atex": 11016,
+          "vfx/common/texture/ring_s001b_h.atex": 21925,
+          "vfx/common/texture/ring001bt.atex": 21925,
+          "vfx/common/texture/tk_aura001u.atex": 11016,
+          "vfx/limitbreak/lbk_tank_lv1/eff/lbk_tank_lv1t0t.avfx": 18912,
+          "vfx/limitbreak/lbk_tank_lv1/texture/fire601_c.atex": 11040
+        }
+      },
+      {
+        "timelineId": 1877,
+        "path": "chara/action/limitbreak/lbk_tank_lv1_hit.tmb",
+        "bytes": 431,
+        "dependencies": {
+          "sound/vfx/lbk/SE_VFX_LBK_Tank_Lv1_t.scd": 69904,
+          "vfx/limitbreak/lbk_tank_lv1/eff/lbk_tank_lv1t2t.avfx": 234252,
+          "vfx/limitbreak/lbk_tank_lv1/texture/cyb_lmb01t.atex": 2840,
+          "vfx/limitbreak/lbk_tank_lv1/texture/fire_u007a_h.atex": 21952,
+          "vfx/limitbreak/lbk_tank_lv1/texture/glow001at.atex": 5541,
+          "vfx/limitbreak/lbk_tank_lv1/texture/ice_s001a_h.atex": 5568,
+          "vfx/limitbreak/lbk_tank_lv1/texture/line001ct.atex": 11040,
+          "vfx/limitbreak/lbk_tank_lv1/texture/prsm001bt.atex": 11016,
+          "vfx/limitbreak/lbk_tank_lv1/texture/shield_lv1_1t.atex": 87480,
+          "vfx/limitbreak/lbk_tank_lv1/texture/smoke_s001c_h.atex": 21952,
+          "vfx/limitbreak/lbk_tank_lv1/texture/smoke014am.atex": 21952
+        }
+      }
+    ]
+  }
+]

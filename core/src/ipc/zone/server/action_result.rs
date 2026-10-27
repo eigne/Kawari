@@ -273,8 +273,61 @@ pub struct ActionResult {
     pub target_id_again: ObjectTypeId,
 }
 
+#[binrw]
+#[brw(little)]
+#[derive(Debug, Clone, Default)]
+pub struct AoeActionResult {
+    pub animation_target_id: ObjectTypeId,
+    /// Index into the Action Excel sheet.
+    pub action_id: u32,
+    pub global_sequence: u32,
+    /// Controls how long the next action should be delayed, in seconds.
+    pub animation_lock: f32,
+    /// Only used when ActionCategory is 11.
+    pub ballista_entity_id: ObjectId,
+    /// The same as `sequence` from this action's `ActionRequest`.
+    pub source_sequence: u16,
+    #[br(map = read_quantized_rotation)]
+    #[bw(map = write_quantized_rotation)]
+    pub rotation: f32,
+    /// Usually the same as `action_id`.
+    pub spell_id: u16,
+    pub animation_variation: u8,
+    /// The kind of action.
+    pub action_type: ActionType,
+    pub flags: ActionResultFlag,
+    pub effect_count: u8,
+    pub unk4: u16,
+    pub unk5: [u8; 6], // might be not read by the client?
+    pub effects: [[ActionEffect; 8]; 8],
+    #[brw(pad_before = 6)]
+    pub target_ids: [ObjectTypeId; 8],
+    // The wire payload is 636 bytes: packed XYZ at 624, then six reserved bytes.
+    #[brw(pad_after = 6)]
+    #[br(map = crate::common::read_packed_position)]
+    #[bw(map = crate::common::write_packed_position)]
+    pub position: crate::common::Position,
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn aoe_layout_preserves_common_header_and_all_target_blocks() {
+        use binrw::BinWrite;
+        let result = super::AoeActionResult { action_id: 9620, spell_id: 9620, effect_count: 2,
+            target_ids: [crate::common::ObjectTypeId { object_id: crate::common::ObjectId(123), ..Default::default() };8],
+            ..Default::default() };
+        let mut bytes = std::io::Cursor::new(Vec::new());
+        result.write_le(&mut bytes).unwrap();
+        let bytes=bytes.into_inner();
+        assert_eq!(bytes.len(),636);
+        assert_eq!(&bytes[630..636], &[0; 6]);
+        assert_eq!(bytes[33],2);
+        assert_eq!(&bytes[560..564],&123u32.to_le_bytes());
+        assert_eq!(&bytes[616..620],&123u32.to_le_bytes());
+        let parsed=super::AoeActionResult::read_le(&mut std::io::Cursor::new(bytes)).unwrap();
+        assert_eq!(parsed.target_ids[7].object_id,crate::common::ObjectId(123));
+    }
     use std::{fs::read, io::Cursor, path::PathBuf};
 
     use binrw::BinRead;

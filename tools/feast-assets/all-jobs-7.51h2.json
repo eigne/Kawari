@@ -1,0 +1,7868 @@
+[
+  {
+    "id": 8858,
+    "name": "Fire",
+    "historicalIcon": 9234,
+    "iconPath": "ui/icon/009000/009234.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 473,
+        "path": "chara/action/magic/thm_black/fire.tmb",
+        "bytes": 1359,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1903,
+        "path": "chara/action/magic/thm_black/fire_hit.tmb",
+        "bytes": 425,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8859,
+    "name": "Blizzard",
+    "historicalIcon": 9235,
+    "iconPath": "ui/icon/009000/009235.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 474,
+        "path": "chara/action/magic/thm_black/blizzard.tmb",
+        "bytes": 780,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8860,
+    "name": "Thunder",
+    "historicalIcon": 9236,
+    "iconPath": "ui/icon/009000/009236.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 475,
+        "path": "chara/action/magic/thm_black/thunder.tmb",
+        "bytes": 984,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18935,
+    "name": "Thunder II",
+    "historicalIcon": 9507,
+    "iconPath": "ui/icon/009000/009507.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 480,
+        "path": "chara/action/magic/thm_black/thunderla.tmb",
+        "bytes": 990,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8866,
+    "name": "Flare",
+    "historicalIcon": 9242,
+    "iconPath": "ui/icon/009000/009242.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 487,
+        "path": "chara/action/magic/thm_black/flare.tmb",
+        "bytes": 903,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8867,
+    "name": "Freeze",
+    "historicalIcon": 9243,
+    "iconPath": "ui/icon/009000/009243.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 482,
+        "path": "chara/action/magic/thm_black/freeze.tmb",
+        "bytes": 672,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1906,
+        "path": "chara/action/magic/thm_black/freeze_hit.tmb",
+        "bytes": 178,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8862,
+    "name": "Enochian",
+    "historicalIcon": 9238,
+    "iconPath": "ui/icon/009000/009238.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3999,
+        "path": "chara/action/ability/thm_black/abl014.tmb",
+        "bytes": 1118,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8865,
+    "name": "Foul",
+    "historicalIcon": 9241,
+    "iconPath": "ui/icon/009000/009241.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5242,
+        "path": "chara/action/magic/thm_black/mgc005.tmb",
+        "bytes": 907,
+        "dependencies": 30,
+        "missingDependencies": []
+      },
+      {
+        "id": 5243,
+        "path": "chara/action/magic/thm_black/mgc005_hit.tmb",
+        "bytes": 431,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17774,
+    "name": "Xenoglossy",
+    "historicalIcon": 9404,
+    "iconPath": "ui/icon/009000/009404.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7086,
+        "path": "chara/action/magic/thm_black/mgc007.tmb",
+        "bytes": 922,
+        "dependencies": 36,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17775,
+    "name": "Night Wing",
+    "historicalIcon": 9332,
+    "iconPath": "ui/icon/009000/009332.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 539,
+        "path": "chara/action/ability/thm_black/abl010.tmb",
+        "bytes": 962,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1933,
+        "path": "chara/action/ability/thm_black/abl010_hit.tmb",
+        "bytes": 424,
+        "dependencies": 13,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8869,
+    "name": "Aetherial Manipulation",
+    "historicalIcon": 9245,
+    "iconPath": "ui/icon/009000/009245.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 431,
+        "path": "chara/action/ability/thm_black/abl008.tmb",
+        "bytes": 1277,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8861,
+    "name": "Thunder III",
+    "historicalIcon": 9237,
+    "iconPath": "ui/icon/009000/009237.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 484,
+        "path": "chara/action/magic/thm_black/thunderga.tmb",
+        "bytes": 988,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18936,
+    "name": "Thunder IV",
+    "historicalIcon": 9508,
+    "iconPath": "ui/icon/009000/009508.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5239,
+        "path": "chara/action/magic/thm_black/mgc004.tmb",
+        "bytes": 858,
+        "dependencies": 33,
+        "missingDependencies": []
+      },
+      {
+        "id": 5240,
+        "path": "chara/action/magic/thm_black/mgc004_hit.tmb",
+        "bytes": 437,
+        "dependencies": 5,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8863,
+    "name": "Fire IV",
+    "historicalIcon": 9239,
+    "iconPath": "ui/icon/009000/009239.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3895,
+        "path": "chara/action/magic/thm_black/mgc002.tmb",
+        "bytes": 868,
+        "dependencies": 35,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8864,
+    "name": "Blizzard IV",
+    "historicalIcon": 9240,
+    "iconPath": "ui/icon/009000/009240.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3894,
+        "path": "chara/action/magic/thm_black/mgc001.tmb",
+        "bytes": 854,
+        "dependencies": 35,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17684,
+    "name": "Phantom Dart",
+    "historicalIcon": 9337,
+    "iconPath": "ui/icon/009000/009337.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 549,
+        "path": "chara/action/ability/thm_black/abl011.tmb",
+        "bytes": 1790,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18942,
+    "name": "Bolt",
+    "historicalIcon": 9304,
+    "iconPath": "ui/icon/009000/009304.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 368,
+        "path": "chara/action/ability/no_mot_sprint.tmb",
+        "bytes": 490,
+        "dependencies": 7,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18943,
+    "name": "Medical Kit",
+    "historicalIcon": 9528,
+    "iconPath": "ui/icon/009000/009528.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 85,
+        "path": "chara/action/normal/item_end.tmb",
+        "bytes": 741,
+        "dependencies": 7,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17683,
+    "name": "Drain",
+    "historicalIcon": 9336,
+    "iconPath": "ui/icon/009000/009336.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5451,
+        "path": "chara/action/rol_common/rol034.tmb",
+        "bytes": 2135,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17686,
+    "name": "Addle",
+    "historicalIcon": 9335,
+    "iconPath": "ui/icon/009000/009335.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5447,
+        "path": "chara/action/rol_common/rol030.tmb",
+        "bytes": 1564,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18956,
+    "name": "Aetheric Burst",
+    "historicalIcon": 9535,
+    "iconPath": "ui/icon/009000/009535.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 531,
+        "path": "chara/action/ability/pvp_common/abl003.tmb",
+        "bytes": 619,
+        "dependencies": 16,
+        "missingDependencies": []
+      },
+      {
+        "id": 1934,
+        "path": "chara/action/ability/pvp_common/abl003_hit.tmb",
+        "bytes": 433,
+        "dependencies": 8,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17685,
+    "name": "Swiftcast",
+    "historicalIcon": 9246,
+    "iconPath": "ui/icon/009000/009246.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5448,
+        "path": "chara/action/rol_common/rol031.tmb",
+        "bytes": 3588,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17687,
+    "name": "Manaward",
+    "historicalIcon": 9338,
+    "iconPath": "ui/icon/009000/009338.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 481,
+        "path": "chara/action/ability/thm_black/abl009.tmb",
+        "bytes": 715,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 3361,
+    "name": "Cometeor",
+    "historicalIcon": 9117,
+    "iconPath": "ui/icon/009000/009117.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 2251,
+        "path": "chara/action/limitbreak/lbk_caster_lv1.tmb",
+        "bytes": 1704,
+        "dependencies": 41,
+        "missingDependencies": []
+      },
+      {
+        "id": 1883,
+        "path": "chara/action/limitbreak/lbk_caster_lv1_hit.tmb",
+        "bytes": 178,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8824,
+    "name": "Yukikaze",
+    "historicalIcon": 9197,
+    "iconPath": "ui/icon/009000/009197.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5109,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s04.tmb",
+        "bytes": 1310,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8825,
+    "name": "Gekko",
+    "historicalIcon": 9198,
+    "iconPath": "ui/icon/009000/009198.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5110,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s05.tmb",
+        "bytes": 1119,
+        "dependencies": 32,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8826,
+    "name": "Kasha",
+    "historicalIcon": 9199,
+    "iconPath": "ui/icon/009000/009199.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5111,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s06.tmb",
+        "bytes": 1119,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18926,
+    "name": "Mangetsu",
+    "historicalIcon": 9494,
+    "iconPath": "ui/icon/009000/009494.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5113,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s08.tmb",
+        "bytes": 794,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 5272,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s08_hit.tmb",
+        "bytes": 429,
+        "dependencies": 11,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18927,
+    "name": "Oka",
+    "historicalIcon": 9495,
+    "iconPath": "ui/icon/009000/009495.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5114,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s09.tmb",
+        "bytes": 794,
+        "dependencies": 16,
+        "missingDependencies": []
+      },
+      {
+        "id": 5273,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s09_hit.tmb",
+        "bytes": 429,
+        "dependencies": 11,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8827,
+    "name": "Enpi",
+    "historicalIcon": 9200,
+    "iconPath": "ui/icon/009000/009200.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5115,
+        "path": "chara/action/ws/bt_2kt_emp/ws_s10.tmb",
+        "bytes": 1314,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8831,
+    "name": "Midare Setsugekka",
+    "historicalIcon": 9204,
+    "iconPath": "ui/icon/009000/009204.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5118,
+        "path": "chara/action/magic/2kt_samrai/mgc001.tmb",
+        "bytes": 1378,
+        "dependencies": 39,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8830,
+    "name": "Tenka Goken",
+    "historicalIcon": 9203,
+    "iconPath": "ui/icon/009000/009203.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5119,
+        "path": "chara/action/magic/2kt_samrai/mgc002.tmb",
+        "bytes": 1036,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 5274,
+        "path": "chara/action/magic/2kt_samrai/mgc002_hit.tmb",
+        "bytes": 435,
+        "dependencies": 5,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17740,
+    "name": "Tsubame-gaeshi",
+    "historicalIcon": 9405,
+    "iconPath": "ui/icon/009000/009405.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 0,
+        "path": "chara/action/.tmb",
+        "bytes": null,
+        "dependencies": 0,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8832,
+    "name": "Hissatsu: Shinten",
+    "historicalIcon": 9205,
+    "iconPath": "ui/icon/009000/009205.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5121,
+        "path": "chara/action/ability/2kt_samrai/abl001.tmb",
+        "bytes": 948,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18988,
+    "name": "Hissatsu: Kyuten",
+    "historicalIcon": 9497,
+    "iconPath": "ui/icon/009000/009497.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5122,
+        "path": "chara/action/ability/2kt_samrai/abl002.tmb",
+        "bytes": 613,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 5275,
+        "path": "chara/action/ability/2kt_samrai/abl002_hit.tmb",
+        "bytes": 427,
+        "dependencies": 6,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 7857,
+    "name": "Hissatsu: Soten",
+    "historicalIcon": 9209,
+    "iconPath": "ui/icon/009000/009209.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5135,
+        "path": "chara/action/ability/2kt_samrai/abl016.tmb",
+        "bytes": 1032,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 5136,
+        "path": "chara/action/ability/2kt_samrai/abl016_hit.tmb",
+        "bytes": 429,
+        "dependencies": 9,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 7855,
+    "name": "Hissatsu: Chiten",
+    "historicalIcon": 9207,
+    "iconPath": "ui/icon/009000/009207.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5134,
+        "path": "chara/action/ability/2kt_samrai/abl014.tmb",
+        "bytes": 616,
+        "dependencies": 15,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18929,
+    "name": "Shoha",
+    "historicalIcon": 9496,
+    "iconPath": "ui/icon/009000/009496.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7063,
+        "path": "chara/action/ability/2kt_samrai/abl019.tmb",
+        "bytes": 1344,
+        "dependencies": 39,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17743,
+    "name": "Kaeshi: Setsugekka",
+    "historicalIcon": 9408,
+    "iconPath": "ui/icon/009000/009408.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7059,
+        "path": "chara/action/magic/2kt_samrai/mgc006.tmb",
+        "bytes": 1576,
+        "dependencies": 47,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17742,
+    "name": "Kaeshi: Goken",
+    "historicalIcon": 9406,
+    "iconPath": "ui/icon/009000/009406.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5119,
+        "path": "chara/action/magic/2kt_samrai/mgc002.tmb",
+        "bytes": 1036,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 5274,
+        "path": "chara/action/magic/2kt_samrai/mgc002_hit.tmb",
+        "bytes": 435,
+        "dependencies": 5,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18992,
+    "name": "Smite",
+    "historicalIcon": 9525,
+    "iconPath": "ui/icon/009000/009525.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6681,
+        "path": "chara/action/eureka/erk037.tmb",
+        "bytes": 761,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18954,
+    "name": "Feint",
+    "historicalIcon": 9524,
+    "iconPath": "ui/icon/009000/009524.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5433,
+        "path": "chara/action/rol_common/rol019.tmb",
+        "bytes": 1691,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17676,
+    "name": "Bloodbath",
+    "historicalIcon": 9342,
+    "iconPath": "ui/icon/009000/009342.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5426,
+        "path": "chara/action/rol_common/rol012.tmb",
+        "bytes": 595,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17681,
+    "name": "Arm's Length",
+    "historicalIcon": 9344,
+    "iconPath": "ui/icon/009000/009344.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5432,
+        "path": "chara/action/rol_common/rol018.tmb",
+        "bytes": 601,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17677,
+    "name": "Fetter Ward",
+    "historicalIcon": 9341,
+    "iconPath": "ui/icon/009000/009341.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 554,
+        "path": "chara/action/ability/pvp_common/abl009.tmb",
+        "bytes": 879,
+        "dependencies": 13,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17674,
+    "name": "Backstep",
+    "historicalIcon": 9340,
+    "iconPath": "ui/icon/009000/009340.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6662,
+        "path": "chara/action/eureka/erk019.tmb",
+        "bytes": 779,
+        "dependencies": 4,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 3360,
+    "name": "Raw Destruction",
+    "historicalIcon": 9115,
+    "iconPath": "ui/icon/009000/009115.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 2243,
+        "path": "chara/action/limitbreak/lbk_melee_lv1.tmb",
+        "bytes": 2984,
+        "dependencies": 54,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8746,
+    "name": "Fast Blade",
+    "historicalIcon": 9119,
+    "iconPath": "ui/icon/009000/009119.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 310,
+        "path": "chara/action/ws/bt_swd_sld/wsh001.tmb",
+        "bytes": 1186,
+        "dependencies": 12,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8749,
+    "name": "Riot Blade",
+    "historicalIcon": 9122,
+    "iconPath": "ui/icon/009000/009122.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 317,
+        "path": "chara/action/ws/bt_swd_sld/ws_s07.tmb",
+        "bytes": 1105,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8750,
+    "name": "Royal Authority",
+    "historicalIcon": 9123,
+    "iconPath": "ui/icon/009000/009123.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3951,
+        "path": "chara/action/ws/bt_swd_sld/ws_s10.tmb",
+        "bytes": 2114,
+        "dependencies": 41,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18900,
+    "name": "Total Eclipse",
+    "historicalIcon": 9473,
+    "iconPath": "ui/icon/009000/009473.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5182,
+        "path": "chara/action/ws/bt_swd_sld/ws_s11.tmb",
+        "bytes": 1154,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 5183,
+        "path": "chara/action/ws/bt_swd_sld/ws_s11_hit.tmb",
+        "bytes": 430,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18901,
+    "name": "Prominence",
+    "historicalIcon": 9474,
+    "iconPath": "ui/icon/009000/009474.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7015,
+        "path": "chara/action/ws/bt_swd_sld/ws_s12.tmb",
+        "bytes": 962,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 7016,
+        "path": "chara/action/ws/bt_swd_sld/ws_s12_hit.tmb",
+        "bytes": 431,
+        "dependencies": 6,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18902,
+    "name": "Shield Lob",
+    "historicalIcon": 9475,
+    "iconPath": "ui/icon/009000/009475.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 316,
+        "path": "chara/action/ws/bt_swd_sld/ws_s06.tmb",
+        "bytes": 1296,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8752,
+    "name": "Holy Spirit",
+    "historicalIcon": 9125,
+    "iconPath": "ui/icon/009000/009125.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5186,
+        "path": "chara/action/magic/swd_knight/mgc002.tmb",
+        "bytes": 1003,
+        "dependencies": 30,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17693,
+    "name": "Holy Circle",
+    "historicalIcon": 9368,
+    "iconPath": "ui/icon/009000/009368.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7011,
+        "path": "chara/action/magic/swd_knight/mgc003.tmb",
+        "bytes": 627,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 7012,
+        "path": "chara/action/magic/swd_knight/mgc003_hit.tmb",
+        "bytes": 436,
+        "dependencies": 10,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17692,
+    "name": "Confiteor",
+    "historicalIcon": 9371,
+    "iconPath": "ui/icon/009000/009371.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7013,
+        "path": "chara/action/ability/swd_knight/abl022.tmb",
+        "bytes": 1150,
+        "dependencies": 39,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17694,
+    "name": "Intervene",
+    "historicalIcon": 9369,
+    "iconPath": "ui/icon/009000/009369.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7017,
+        "path": "chara/action/ws/bt_swd_sld/ws_s13.tmb",
+        "bytes": 1677,
+        "dependencies": 20,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8754,
+    "name": "Requiescat",
+    "historicalIcon": 9127,
+    "iconPath": "ui/icon/009000/009127.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5185,
+        "path": "chara/action/ability/swd_knight/abl019.tmb",
+        "bytes": 959,
+        "dependencies": 30,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8755,
+    "name": "Hallowed Ground",
+    "historicalIcon": 9128,
+    "iconPath": "ui/icon/009000/009128.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 378,
+        "path": "chara/action/ability/swd_knight/abl010.tmb",
+        "bytes": 847,
+        "dependencies": 20,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 19085,
+    "name": "Intervention",
+    "historicalIcon": 9537,
+    "iconPath": "ui/icon/009000/009537.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5184,
+        "path": "chara/action/ability/swd_knight/abl018.tmb",
+        "bytes": 965,
+        "dependencies": 35,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 19086,
+    "name": "Testudo",
+    "historicalIcon": 9538,
+    "iconPath": "ui/icon/009000/009538.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 535,
+        "path": "chara/action/ability/swd_knight/abl014.tmb",
+        "bytes": 1774,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17691,
+    "name": "Atonement",
+    "historicalIcon": 9370,
+    "iconPath": "ui/icon/009000/009370.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7014,
+        "path": "chara/action/ws/bt_swd_sld/ws_s14.tmb",
+        "bytes": 1349,
+        "dependencies": 45,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18899,
+    "name": "Glory Slash",
+    "historicalIcon": 9529,
+    "iconPath": "ui/icon/009000/009529.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 536,
+        "path": "chara/action/ability/swd_knight/abl015.tmb",
+        "bytes": 988,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 1929,
+        "path": "chara/action/ability/swd_knight/abl015_hit.tmb",
+        "bytes": 422,
+        "dependencies": 9,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17669,
+    "name": "Low Blow",
+    "historicalIcon": 9147,
+    "iconPath": "ui/icon/009000/009147.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5424,
+        "path": "chara/action/rol_common/rol010.tmb",
+        "bytes": 1849,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17671,
+    "name": "Full Swing",
+    "historicalIcon": 9350,
+    "iconPath": "ui/icon/009000/009350.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 548,
+        "path": "chara/action/ability/pvp_common/abl008.tmb",
+        "bytes": 1238,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18952,
+    "name": "Weapon Throw",
+    "historicalIcon": 9533,
+    "iconPath": "ui/icon/009000/009533.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 529,
+        "path": "chara/action/ability/pvp_common/abl001.tmb",
+        "bytes": 1126,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17866,
+    "name": "Reprisal",
+    "historicalIcon": 9469,
+    "iconPath": "ui/icon/009000/009469.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7197,
+        "path": "chara/action/rol_common/rol044.tmb",
+        "bytes": 2052,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17672,
+    "name": "Rampart",
+    "historicalIcon": 9351,
+    "iconPath": "ui/icon/009000/009351.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5414,
+        "path": "chara/action/rol_common/rol001.tmb",
+        "bytes": 618,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18990,
+    "name": "Retaliation",
+    "historicalIcon": 9534,
+    "iconPath": "ui/icon/009000/009534.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3994,
+        "path": "chara/action/ability/pvp_common/abl013.tmb",
+        "bytes": 719,
+        "dependencies": 16,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 3359,
+    "name": "Aegis Boon",
+    "historicalIcon": 9114,
+    "iconPath": "ui/icon/009000/009114.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 2240,
+        "path": "chara/action/limitbreak/lbk_tank_lv1.tmb",
+        "bytes": 1211,
+        "dependencies": 15,
+        "missingDependencies": []
+      },
+      {
+        "id": 1877,
+        "path": "chara/action/limitbreak/lbk_tank_lv1_hit.tmb",
+        "bytes": 431,
+        "dependencies": 11,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8895,
+    "name": "Cure",
+    "historicalIcon": 9273,
+    "iconPath": "ui/icon/009000/009273.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 449,
+        "path": "chara/action/magic/cnj_white/carel.tmb",
+        "bytes": 675,
+        "dependencies": 13,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8896,
+    "name": "Cure II",
+    "historicalIcon": 9274,
+    "iconPath": "ui/icon/009000/009274.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 458,
+        "path": "chara/action/magic/cnj_white/carel2.tmb",
+        "bytes": 672,
+        "dependencies": 16,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18945,
+    "name": "Medica",
+    "historicalIcon": 9516,
+    "iconPath": "ui/icon/009000/009516.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 452,
+        "path": "chara/action/magic/cnj_white/carelga.tmb",
+        "bytes": 645,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 1909,
+        "path": "chara/action/magic/cnj_white/carelga_hit.tmb",
+        "bytes": 178,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17789,
+    "name": "Glare",
+    "historicalIcon": 9439,
+    "iconPath": "ui/icon/009000/009439.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7122,
+        "path": "chara/action/magic/cnj_white/mgc004.tmb",
+        "bytes": 1017,
+        "dependencies": 31,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17790,
+    "name": "Dia",
+    "historicalIcon": 9440,
+    "iconPath": "ui/icon/009000/009440.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7124,
+        "path": "chara/action/magic/cnj_white/mgc005.tmb",
+        "bytes": 684,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17791,
+    "name": "Afflatus Solace",
+    "historicalIcon": 9437,
+    "iconPath": "ui/icon/009000/009437.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7129,
+        "path": "chara/action/ability/cnj_white/abl018.tmb",
+        "bytes": 651,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18946,
+    "name": "Afflatus Rapture",
+    "historicalIcon": 9517,
+    "iconPath": "ui/icon/009000/009517.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7125,
+        "path": "chara/action/ability/cnj_white/abl015.tmb",
+        "bytes": 623,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 7126,
+        "path": "chara/action/ability/cnj_white/abl015_hit.tmb",
+        "bytes": 432,
+        "dependencies": 8,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17793,
+    "name": "Afflatus Misery",
+    "historicalIcon": 9436,
+    "iconPath": "ui/icon/009000/009436.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7127,
+        "path": "chara/action/ability/cnj_white/abl016.tmb",
+        "bytes": 1050,
+        "dependencies": 35,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 13975,
+    "name": "Tetragrammaton",
+    "historicalIcon": 9334,
+    "iconPath": "ui/icon/009000/009334.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3965,
+        "path": "chara/action/ability/cnj_white/abl009.tmb",
+        "bytes": 1143,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 9620,
+    "name": "Assize",
+    "historicalIcon": 9275,
+    "iconPath": "ui/icon/009000/009275.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3985,
+        "path": "chara/action/ability/cnj_white/abl010.tmb",
+        "bytes": 812,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 4029,
+        "path": "chara/action/ability/cnj_white/abl010_hit.tmb",
+        "bytes": 431,
+        "dependencies": 8,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17794,
+    "name": "Temperance",
+    "historicalIcon": 9441,
+    "iconPath": "ui/icon/009000/009441.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7128,
+        "path": "chara/action/ability/cnj_white/abl017.tmb",
+        "bytes": 813,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 1584,
+    "name": "Purify",
+    "historicalIcon": 9112,
+    "iconPath": "ui/icon/009000/009112.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 534,
+        "path": "chara/action/ability/pvp_common/abl006.tmb",
+        "bytes": 730,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17690,
+    "name": "Repose",
+    "historicalIcon": 9339,
+    "iconPath": "ui/icon/009000/009339.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5463,
+        "path": "chara/action/rol_common/rol043.tmb",
+        "bytes": 2345,
+        "dependencies": 16,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17832,
+    "name": "Protect",
+    "historicalIcon": 9208,
+    "iconPath": "ui/icon/009000/009208.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 451,
+        "path": "chara/action/magic/cnj_white/protect.tmb",
+        "bytes": 1338,
+        "dependencies": 10,
+        "missingDependencies": []
+      },
+      {
+        "id": 1886,
+        "path": "chara/action/magic/cnj_white/protect_hit.tmb",
+        "bytes": 429,
+        "dependencies": 3,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17688,
+    "name": "Rescue",
+    "historicalIcon": 9294,
+    "iconPath": "ui/icon/009000/009294.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5458,
+        "path": "chara/action/rol_common/rol041.tmb",
+        "bytes": 1804,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18957,
+    "name": "Largesse",
+    "historicalIcon": 9526,
+    "iconPath": "ui/icon/009000/009526.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5457,
+        "path": "chara/action/rol_common/rol040.tmb",
+        "bytes": 1303,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17689,
+    "name": "Attunement",
+    "historicalIcon": 9113,
+    "iconPath": "ui/icon/009000/009113.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 555,
+        "path": "chara/action/ability/pvp_common/abl007.tmb",
+        "bytes": 736,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 3362,
+    "name": "Empyrean Rain",
+    "historicalIcon": 9118,
+    "iconPath": "ui/icon/009000/009118.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 2248,
+        "path": "chara/action/limitbreak/lbk_healer_lv1.tmb",
+        "bytes": 1094,
+        "dependencies": 20,
+        "missingDependencies": []
+      },
+      {
+        "id": 1880,
+        "path": "chara/action/limitbreak/lbk_healer_lv1_hit.tmb",
+        "bytes": 435,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18916,
+    "name": "Raiden Thrust",
+    "historicalIcon": 9461,
+    "iconPath": "ui/icon/009000/009461.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7049,
+        "path": "chara/action/ws/bt_2sp_emp/ws_s13.tmb",
+        "bytes": 1302,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8793,
+    "name": "Full Thrust",
+    "historicalIcon": 9166,
+    "iconPath": "ui/icon/009000/009166.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 354,
+        "path": "chara/action/ws/bt_2sp_emp/ws_s08.tmb",
+        "bytes": 1314,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8794,
+    "name": "Fang and Claw",
+    "historicalIcon": 9167,
+    "iconPath": "ui/icon/009000/009167.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3969,
+        "path": "chara/action/ws/bt_2sp_emp/ws_s10.tmb",
+        "bytes": 2455,
+        "dependencies": 47,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8798,
+    "name": "Wheeling Thrust",
+    "historicalIcon": 9171,
+    "iconPath": "ui/icon/009000/009171.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3977,
+        "path": "chara/action/ws/bt_2sp_emp/ws_s11.tmb",
+        "bytes": 2265,
+        "dependencies": 46,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18917,
+    "name": "Doom Spike",
+    "historicalIcon": 9488,
+    "iconPath": "ui/icon/009000/009488.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 349,
+        "path": "chara/action/ws/bt_2sp_emp/ws_s01.tmb",
+        "bytes": 1576,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1896,
+        "path": "chara/action/ws/bt_2sp_emp/ws_s01_hit.tmb",
+        "bytes": 429,
+        "dependencies": 9,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18918,
+    "name": "Sonic Thrust",
+    "historicalIcon": 9489,
+    "iconPath": "ui/icon/009000/009489.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5203,
+        "path": "chara/action/ability/2sp_dragoon/abl015.tmb",
+        "bytes": 1246,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 5204,
+        "path": "chara/action/ability/2sp_dragoon/abl015_hit.tmb",
+        "bytes": 432,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18919,
+    "name": "Coerthan Torment",
+    "historicalIcon": 9490,
+    "iconPath": "ui/icon/009000/009490.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7046,
+        "path": "chara/action/ws/bt_2sp_emp/ws_s14.tmb",
+        "bytes": 1200,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 7047,
+        "path": "chara/action/ws/bt_2sp_emp/ws_s14_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8799,
+    "name": "Piercing Talon",
+    "historicalIcon": 9172,
+    "iconPath": "ui/icon/009000/009172.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 352,
+        "path": "chara/action/ws/bt_2sp_emp/ws_s06.tmb",
+        "bytes": 907,
+        "dependencies": 16,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17728,
+    "name": "High Jump",
+    "historicalIcon": 9462,
+    "iconPath": "ui/icon/009000/009462.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7048,
+        "path": "chara/action/ability/2sp_dragoon/abl019.tmb",
+        "bytes": 1496,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8802,
+    "name": "Spineshatter Dive",
+    "historicalIcon": 9175,
+    "iconPath": "ui/icon/009000/009175.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 407,
+        "path": "chara/action/ability/2sp_dragoon/abl009.tmb",
+        "bytes": 1846,
+        "dependencies": 30,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17729,
+    "name": "Stardiver",
+    "historicalIcon": 9472,
+    "iconPath": "ui/icon/009000/009472.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7050,
+        "path": "chara/action/ability/2sp_dragoon/abl020.tmb",
+        "bytes": 1856,
+        "dependencies": 49,
+        "missingDependencies": []
+      },
+      {
+        "id": 7051,
+        "path": "chara/action/ability/2sp_dragoon/abl020_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8803,
+    "name": "Elusive Jump",
+    "historicalIcon": 9176,
+    "iconPath": "ui/icon/009000/009176.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 406,
+        "path": "chara/action/ability/2sp_dragoon/abl008.tmb",
+        "bytes": 1366,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17730,
+    "name": "Mirage Dive",
+    "historicalIcon": 9460,
+    "iconPath": "ui/icon/009000/009460.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5206,
+        "path": "chara/action/ability/2sp_dragoon/abl017.tmb",
+        "bytes": 952,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8805,
+    "name": "Geirskogul",
+    "historicalIcon": 9178,
+    "iconPath": "ui/icon/009000/009178.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3976,
+        "path": "chara/action/ability/2sp_dragoon/abl013.tmb",
+        "bytes": 1033,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 4032,
+        "path": "chara/action/ability/2sp_dragoon/abl013_hit.tmb",
+        "bytes": 152,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18920,
+    "name": "Life Surge",
+    "historicalIcon": 9491,
+    "iconPath": "ui/icon/009000/009491.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 402,
+        "path": "chara/action/ability/2sp_dragoon/abl001.tmb",
+        "bytes": 916,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 10032,
+    "name": "Dragon Sight",
+    "historicalIcon": 9323,
+    "iconPath": "ui/icon/009000/009323.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5205,
+        "path": "chara/action/ability/2sp_dragoon/abl016.tmb",
+        "bytes": 955,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8806,
+    "name": "Nastrond",
+    "historicalIcon": 9179,
+    "iconPath": "ui/icon/009000/009179.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5207,
+        "path": "chara/action/ability/2sp_dragoon/abl018.tmb",
+        "bytes": 1009,
+        "dependencies": 30,
+        "missingDependencies": []
+      },
+      {
+        "id": 5208,
+        "path": "chara/action/ability/2sp_dragoon/abl018_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8758,
+    "name": "Heavy Swing",
+    "historicalIcon": 9131,
+    "iconPath": "ui/icon/009000/009131.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 319,
+        "path": "chara/action/ws/bt_2ax_emp/wsh001.tmb",
+        "bytes": 1304,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8761,
+    "name": "Maim",
+    "historicalIcon": 9134,
+    "iconPath": "ui/icon/009000/009134.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 322,
+        "path": "chara/action/ws/bt_2ax_emp/wsh004.tmb",
+        "bytes": 1417,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8762,
+    "name": "Storm's Path",
+    "historicalIcon": 9135,
+    "iconPath": "ui/icon/009000/009135.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 323,
+        "path": "chara/action/ws/bt_2ax_emp/wsh005.tmb",
+        "bytes": 2334,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18904,
+    "name": "Mythril Tempest",
+    "historicalIcon": 9477,
+    "iconPath": "ui/icon/009000/009477.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7023,
+        "path": "chara/action/ability/2ax_warrior/abl024.tmb",
+        "bytes": 719,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 7024,
+        "path": "chara/action/ability/2ax_warrior/abl024_hit.tmb",
+        "bytes": 436,
+        "dependencies": 5,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18905,
+    "name": "Steel Cyclone",
+    "historicalIcon": 9478,
+    "iconPath": "ui/icon/009000/009478.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 327,
+        "path": "chara/action/ws/bt_2ax_emp/ws_s04.tmb",
+        "bytes": 1721,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1916,
+        "path": "chara/action/ws/bt_2ax_emp/ws_s04_hit.tmb",
+        "bytes": 433,
+        "dependencies": 5,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8764,
+    "name": "Tomahawk",
+    "historicalIcon": 9137,
+    "iconPath": "ui/icon/009000/009137.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 328,
+        "path": "chara/action/ws/bt_2ax_emp/ws_s05.tmb",
+        "bytes": 1281,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8763,
+    "name": "Fell Cleave",
+    "historicalIcon": 9136,
+    "iconPath": "ui/icon/009000/009136.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3956,
+        "path": "chara/action/ws/bt_2ax_emp/ws_s09.tmb",
+        "bytes": 1543,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17695,
+    "name": "Decimate",
+    "historicalIcon": 9428,
+    "iconPath": "ui/icon/009000/009428.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3957,
+        "path": "chara/action/ws/bt_2ax_emp/ws_s10.tmb",
+        "bytes": 1399,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 4003,
+        "path": "chara/action/ws/bt_2ax_emp/ws_s10_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8765,
+    "name": "Onslaught",
+    "historicalIcon": 9138,
+    "iconPath": "ui/icon/009000/009138.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5189,
+        "path": "chara/action/ability/2ax_warrior/abl019.tmb",
+        "bytes": 1401,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8767,
+    "name": "Holmgang",
+    "historicalIcon": 9140,
+    "iconPath": "ui/icon/009000/009140.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 385,
+        "path": "chara/action/ability/2ax_warrior/abl007.tmb",
+        "bytes": 731,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17698,
+    "name": "Infuriate",
+    "historicalIcon": 9426,
+    "iconPath": "ui/icon/009000/009426.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 387,
+        "path": "chara/action/ability/2ax_warrior/abl009.tmb",
+        "bytes": 1100,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8768,
+    "name": "Inner Release",
+    "historicalIcon": 9141,
+    "iconPath": "ui/icon/009000/009141.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5192,
+        "path": "chara/action/ability/2ax_warrior/abl022.tmb",
+        "bytes": 616,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17889,
+    "name": "Nascent Flash",
+    "historicalIcon": 9463,
+    "iconPath": "ui/icon/009000/009463.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7022,
+        "path": "chara/action/ability/2ax_warrior/abl023.tmb",
+        "bytes": 1151,
+        "dependencies": 33,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17699,
+    "name": "Shake It Off",
+    "historicalIcon": 9427,
+    "iconPath": "ui/icon/009000/009427.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5191,
+        "path": "chara/action/ability/2ax_warrior/abl021.tmb",
+        "bytes": 617,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 5270,
+        "path": "chara/action/ability/2ax_warrior/abl021_hit.tmb",
+        "bytes": 433,
+        "dependencies": 16,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17696,
+    "name": "Inner Chaos",
+    "historicalIcon": 9429,
+    "iconPath": "ui/icon/009000/009429.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7186,
+        "path": "chara/action/ws/bt_2ax_emp/ws_s12.tmb",
+        "bytes": 1302,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17697,
+    "name": "Chaotic Cyclone",
+    "historicalIcon": 9430,
+    "iconPath": "ui/icon/009000/009430.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7184,
+        "path": "chara/action/ws/bt_2ax_emp/ws_s11.tmb",
+        "bytes": 776,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 7185,
+        "path": "chara/action/ws/bt_2ax_emp/ws_s11_hit.tmb",
+        "bytes": 438,
+        "dependencies": 5,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8780,
+    "name": "Bootshine",
+    "historicalIcon": 9153,
+    "iconPath": "ui/icon/009000/009153.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 333,
+        "path": "chara/action/ws/bt_clw_clw/ws_s02.tmb",
+        "bytes": 1359,
+        "dependencies": 14,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8781,
+    "name": "True Strike",
+    "historicalIcon": 9154,
+    "iconPath": "ui/icon/009000/009154.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 334,
+        "path": "chara/action/ws/bt_clw_clw/ws_s03.tmb",
+        "bytes": 1089,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8782,
+    "name": "Snap Punch",
+    "historicalIcon": 9155,
+    "iconPath": "ui/icon/009000/009155.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 336,
+        "path": "chara/action/ws/bt_clw_clw/ws_s05.tmb",
+        "bytes": 1093,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18914,
+    "name": "Four-point Fury",
+    "historicalIcon": 9485,
+    "iconPath": "ui/icon/009000/009485.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7039,
+        "path": "chara/action/ws/bt_clw_clw/ws_s12.tmb",
+        "bytes": 768,
+        "dependencies": 20,
+        "missingDependencies": []
+      },
+      {
+        "id": 7040,
+        "path": "chara/action/ws/bt_clw_clw/ws_s12_hit.tmb",
+        "bytes": 430,
+        "dependencies": 6,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18913,
+    "name": "Rockbreaker",
+    "historicalIcon": 9486,
+    "iconPath": "ui/icon/009000/009486.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7038,
+        "path": "chara/action/ws/bt_clw_clw/ws_s14.tmb",
+        "bytes": 1380,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17719,
+    "name": "Six-sided Star",
+    "historicalIcon": 9377,
+    "iconPath": "ui/icon/009000/009377.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7045,
+        "path": "chara/action/ws/bt_clw_clw/ws_s13.tmb",
+        "bytes": 1291,
+        "dependencies": 37,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8790,
+    "name": "The Forbidden Chakra",
+    "historicalIcon": 9163,
+    "iconPath": "ui/icon/009000/009163.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3974,
+        "path": "chara/action/ability/clw_monk/abl018.tmb",
+        "bytes": 1726,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17720,
+    "name": "Enlightenment",
+    "historicalIcon": 9378,
+    "iconPath": "ui/icon/009000/009378.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7041,
+        "path": "chara/action/ability/clw_monk/abl024.tmb",
+        "bytes": 1063,
+        "dependencies": 35,
+        "missingDependencies": []
+      },
+      {
+        "id": 7042,
+        "path": "chara/action/ability/clw_monk/abl024_hit.tmb",
+        "bytes": 436,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8789,
+    "name": "Tornado Kick",
+    "historicalIcon": 9162,
+    "iconPath": "ui/icon/009000/009162.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3960,
+        "path": "chara/action/ability/clw_monk/abl014.tmb",
+        "bytes": 2291,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8787,
+    "name": "Shoulder Tackle",
+    "historicalIcon": 9160,
+    "iconPath": "ui/icon/009000/009160.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 394,
+        "path": "chara/action/ability/clw_monk/abl006.tmb",
+        "bytes": 1165,
+        "dependencies": 16,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17670,
+    "name": "Axe Kick",
+    "historicalIcon": 9101,
+    "iconPath": "ui/icon/009000/009101.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 550,
+        "path": "chara/action/ability/clw_monk/abl012.tmb",
+        "bytes": 1082,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1938,
+        "path": "chara/action/ability/clw_monk/abl012_hit.tmb",
+        "bytes": 638,
+        "dependencies": 8,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 9639,
+    "name": "Riddle of Fire",
+    "historicalIcon": 9298,
+    "iconPath": "ui/icon/009000/009298.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5200,
+        "path": "chara/action/ability/clw_monk/abl022.tmb",
+        "bytes": 620,
+        "dependencies": 15,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8788,
+    "name": "Riddle of Earth",
+    "historicalIcon": 9161,
+    "iconPath": "ui/icon/009000/009161.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5198,
+        "path": "chara/action/ability/clw_monk/abl020.tmb",
+        "bytes": 620,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18915,
+    "name": "Brotherhood",
+    "historicalIcon": 9487,
+    "iconPath": "ui/icon/009000/009487.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5201,
+        "path": "chara/action/ability/clw_monk/abl023.tmb",
+        "bytes": 620,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 5202,
+        "path": "chara/action/ability/clw_monk/abl023_hit.tmb",
+        "bytes": 432,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8807,
+    "name": "Spinning Edge",
+    "historicalIcon": 9180,
+    "iconPath": "ui/icon/009000/009180.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 220,
+        "path": "chara/action/ws/bt_dgr_dgr/ws_s01.tmb",
+        "bytes": 1328,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8808,
+    "name": "Gust Slash",
+    "historicalIcon": 9181,
+    "iconPath": "ui/icon/009000/009181.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 221,
+        "path": "chara/action/ws/bt_dgr_dgr/ws_s02.tmb",
+        "bytes": 1471,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8809,
+    "name": "Aeolian Edge",
+    "historicalIcon": 9182,
+    "iconPath": "ui/icon/009000/009182.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 224,
+        "path": "chara/action/ws/bt_dgr_dgr/ws_s05.tmb",
+        "bytes": 1284,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18921,
+    "name": "Death Blossom",
+    "historicalIcon": 9492,
+    "iconPath": "ui/icon/009000/009492.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 229,
+        "path": "chara/action/ability/dgr_ninja/abl018.tmb",
+        "bytes": 849,
+        "dependencies": 13,
+        "missingDependencies": []
+      },
+      {
+        "id": 1944,
+        "path": "chara/action/ability/dgr_ninja/abl018_hit.tmb",
+        "bytes": 428,
+        "dependencies": 6,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18922,
+    "name": "Hakke Mujinsatsu",
+    "historicalIcon": 9493,
+    "iconPath": "ui/icon/009000/009493.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7052,
+        "path": "chara/action/ws/bt_dgr_dgr/ws_s11.tmb",
+        "bytes": 765,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 7053,
+        "path": "chara/action/ws/bt_dgr_dgr/ws_s11_hit.tmb",
+        "bytes": 427,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8811,
+    "name": "Throwing Dagger",
+    "historicalIcon": 9184,
+    "iconPath": "ui/icon/009000/009184.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 228,
+        "path": "chara/action/ws/bt_dgr_dgr/ws_s09.tmb",
+        "bytes": 1271,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8815,
+    "name": "Bhavacakra",
+    "historicalIcon": 9188,
+    "iconPath": "ui/icon/009000/009188.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5211,
+        "path": "chara/action/ability/dgr_ninja/abl024.tmb",
+        "bytes": 951,
+        "dependencies": 34,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17731,
+    "name": "Hellfrog Medium",
+    "historicalIcon": 9433,
+    "iconPath": "ui/icon/009000/009433.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5209,
+        "path": "chara/action/ability/dgr_ninja/abl023.tmb",
+        "bytes": 1448,
+        "dependencies": 44,
+        "missingDependencies": []
+      },
+      {
+        "id": 5210,
+        "path": "chara/action/ability/dgr_ninja/abl023_hit.tmb",
+        "bytes": 178,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8814,
+    "name": "Assassinate",
+    "historicalIcon": 9187,
+    "iconPath": "ui/icon/009000/009187.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 305,
+        "path": "chara/action/ability/dgr_ninja/abl004.tmb",
+        "bytes": 2185,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18987,
+    "name": "Ill Wind",
+    "historicalIcon": 9531,
+    "iconPath": "ui/icon/009000/009531.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 583,
+        "path": "chara/action/ability/dgr_ninja/abl017.tmb",
+        "bytes": 707,
+        "dependencies": 14,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8816,
+    "name": "Three Mudra",
+    "historicalIcon": 9189,
+    "iconPath": "ui/icon/009000/009189.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 232,
+        "path": "chara/action/ability/dgr_ninja/abl010.tmb",
+        "bytes": 616,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17734,
+    "name": "Bunshin",
+    "historicalIcon": 9432,
+    "iconPath": "ui/icon/009000/009432.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7058,
+        "path": "chara/action/ability/dgr_ninja/abl029.tmb",
+        "bytes": 614,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8812,
+    "name": "Shukuchi",
+    "historicalIcon": 9185,
+    "iconPath": "ui/icon/009000/009185.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 231,
+        "path": "chara/action/ability/dgr_ninja/abl009.tmb",
+        "bytes": 917,
+        "dependencies": 12,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8820,
+    "name": "Kakuremi",
+    "historicalIcon": 9193,
+    "iconPath": "ui/icon/009000/009193.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3980,
+        "path": "chara/action/ability/dgr_ninja/abl020.tmb",
+        "bytes": 1247,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17733,
+    "name": "Hyosho Ranryu",
+    "historicalIcon": 9435,
+    "iconPath": "ui/icon/009000/009435.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7057,
+        "path": "chara/action/ability/dgr_ninja/abl028.tmb",
+        "bytes": 1478,
+        "dependencies": 32,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17732,
+    "name": "Goka Mekkyaku",
+    "historicalIcon": 9434,
+    "iconPath": "ui/icon/009000/009434.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7055,
+        "path": "chara/action/ability/dgr_ninja/abl027.tmb",
+        "bytes": 1235,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 7056,
+        "path": "chara/action/ability/dgr_ninja/abl027_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17735,
+    "name": "Trick Attack",
+    "historicalIcon": 9431,
+    "iconPath": "ui/icon/009000/009431.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 227,
+        "path": "chara/action/ws/bt_dgr_dgr/ws_s06.tmb",
+        "bytes": 1823,
+        "dependencies": 35,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17745,
+    "name": "Burst Shot",
+    "historicalIcon": 9400,
+    "iconPath": "ui/icon/009000/009400.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7066,
+        "path": "chara/action/ws/bt_2bw_emp/ws_s15.tmb",
+        "bytes": 1085,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18930,
+    "name": "Quick Nock",
+    "historicalIcon": 9498,
+    "iconPath": "ui/icon/009000/009498.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 360,
+        "path": "chara/action/ws/bt_2bw_emp/ws_s02.tmb",
+        "bytes": 998,
+        "dependencies": 18,
+        "missingDependencies": []
+      },
+      {
+        "id": 1894,
+        "path": "chara/action/ws/bt_2bw_emp/ws_s02_hit.tmb",
+        "bytes": 431,
+        "dependencies": 5,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17747,
+    "name": "Apex Arrow",
+    "historicalIcon": 9402,
+    "iconPath": "ui/icon/009000/009402.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7067,
+        "path": "chara/action/ws/bt_2bw_emp/ws_s16.tmb",
+        "bytes": 877,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 7068,
+        "path": "chara/action/ws/bt_2bw_emp/ws_s16_hit.tmb",
+        "bytes": 427,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8838,
+    "name": "Empyreal Arrow",
+    "historicalIcon": 9214,
+    "iconPath": "ui/icon/009000/009214.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3992,
+        "path": "chara/action/ws/bt_2bw_emp/ws_s10.tmb",
+        "bytes": 1677,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8842,
+    "name": "Pitch Perfect",
+    "historicalIcon": 9218,
+    "iconPath": "ui/icon/009000/009218.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5219,
+        "path": "chara/action/ability/2bw_bard/abl015.tmb",
+        "bytes": 1284,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8841,
+    "name": "Sidewinder",
+    "historicalIcon": 9217,
+    "iconPath": "ui/icon/009000/009217.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3997,
+        "path": "chara/action/ability/2bw_bard/abl014.tmb",
+        "bytes": 1218,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18931,
+    "name": "Shadowbite",
+    "historicalIcon": 9399,
+    "iconPath": "ui/icon/009000/009399.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7064,
+        "path": "chara/action/ws/bt_2bw_emp/ws_s14.tmb",
+        "bytes": 1328,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 7065,
+        "path": "chara/action/ws/bt_2bw_emp/ws_s14_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8839,
+    "name": "Repelling Shot",
+    "historicalIcon": 9215,
+    "iconPath": "ui/icon/009000/009215.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 364,
+        "path": "chara/action/ws/bt_2bw_emp/ws_s06.tmb",
+        "bytes": 1874,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8843,
+    "name": "The Wanderer's Minuet",
+    "historicalIcon": 9219,
+    "iconPath": "ui/icon/009000/009219.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5217,
+        "path": "chara/action/magic/2bw_bard/mgc005.tmb",
+        "bytes": 980,
+        "dependencies": 32,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8844,
+    "name": "Army's Paeon",
+    "historicalIcon": 9220,
+    "iconPath": "ui/icon/009000/009220.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5215,
+        "path": "chara/action/magic/2bw_bard/mgc004.tmb",
+        "bytes": 990,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 19071,
+    "name": "Nature's Minne",
+    "historicalIcon": 9536,
+    "iconPath": "ui/icon/009000/009536.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5224,
+        "path": "chara/action/ability/2bw_bard/abl017.tmb",
+        "bytes": 1164,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8848,
+    "name": "Heated Split Shot",
+    "historicalIcon": 9224,
+    "iconPath": "ui/icon/009000/009224.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5227,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s11.tmb",
+        "bytes": 1380,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8849,
+    "name": "Heated Slug Shot",
+    "historicalIcon": 9225,
+    "iconPath": "ui/icon/009000/009225.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5228,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s12.tmb",
+        "bytes": 1374,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8850,
+    "name": "Heated Clean Shot",
+    "historicalIcon": 9226,
+    "iconPath": "ui/icon/009000/009226.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5229,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s13.tmb",
+        "bytes": 1756,
+        "dependencies": 35,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18932,
+    "name": "Spread Shot",
+    "historicalIcon": 9499,
+    "iconPath": "ui/icon/009000/009499.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3824,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s05.tmb",
+        "bytes": 2267,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 4006,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s05_hit.tmb",
+        "bytes": 424,
+        "dependencies": 8,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17749,
+    "name": "Drill",
+    "historicalIcon": 9394,
+    "iconPath": "ui/icon/009000/009394.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7072,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s16.tmb",
+        "bytes": 1096,
+        "dependencies": 31,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17750,
+    "name": "Air Anchor",
+    "historicalIcon": 9392,
+    "iconPath": "ui/icon/009000/009392.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7075,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s18.tmb",
+        "bytes": 1104,
+        "dependencies": 30,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17752,
+    "name": "Bioblaster",
+    "historicalIcon": 9395,
+    "iconPath": "ui/icon/009000/009395.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7073,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s17.tmb",
+        "bytes": 768,
+        "dependencies": 15,
+        "missingDependencies": []
+      },
+      {
+        "id": 7074,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s17_hit.tmb",
+        "bytes": 430,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18933,
+    "name": "Gauss Round",
+    "historicalIcon": 9500,
+    "iconPath": "ui/icon/009000/009500.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7069,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s14.tmb",
+        "bytes": 2266,
+        "dependencies": 39,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17753,
+    "name": "Ricochet",
+    "historicalIcon": 9396,
+    "iconPath": "ui/icon/009000/009396.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3846,
+        "path": "chara/action/ability/2gn_machin/abl018.tmb",
+        "bytes": 1402,
+        "dependencies": 30,
+        "missingDependencies": []
+      },
+      {
+        "id": 4008,
+        "path": "chara/action/ability/2gn_machin/abl018_hit.tmb",
+        "bytes": 431,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8855,
+    "name": "Wildfire",
+    "historicalIcon": 9231,
+    "iconPath": "ui/icon/009000/009231.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3832,
+        "path": "chara/action/ability/2gn_machin/abl004.tmb",
+        "bytes": 1025,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8853,
+    "name": "Blank",
+    "historicalIcon": 9229,
+    "iconPath": "ui/icon/009000/009229.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3844,
+        "path": "chara/action/ability/2gn_machin/abl016.tmb",
+        "bytes": 1730,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17754,
+    "name": "Hypercharge",
+    "historicalIcon": 9398,
+    "iconPath": "ui/icon/009000/009398.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3840,
+        "path": "chara/action/ability/2gn_machin/abl012.tmb",
+        "bytes": 693,
+        "dependencies": 16,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18934,
+    "name": "Tactician",
+    "historicalIcon": 9501,
+    "iconPath": "ui/icon/009000/009501.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7080,
+        "path": "chara/action/ability/2gn_machin/abl028.tmb",
+        "bytes": 645,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8851,
+    "name": "Heat Blast",
+    "historicalIcon": 9227,
+    "iconPath": "ui/icon/009000/009227.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5226,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s10.tmb",
+        "bytes": 1568,
+        "dependencies": 32,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17751,
+    "name": "Auto Crossbow",
+    "historicalIcon": 9393,
+    "iconPath": "ui/icon/009000/009393.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7070,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s15.tmb",
+        "bytes": 959,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 7071,
+        "path": "chara/action/ws/bt_2gn_emp/ws_s15_hit.tmb",
+        "bytes": 429,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17756,
+    "name": "Cascade",
+    "historicalIcon": 9442,
+    "iconPath": "ui/icon/009000/009442.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6963,
+        "path": "chara/action/ws/bt_chk_chk/ws_s01.tmb",
+        "bytes": 1113,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17757,
+    "name": "Fountain",
+    "historicalIcon": 9443,
+    "iconPath": "ui/icon/009000/009443.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6964,
+        "path": "chara/action/ws/bt_chk_chk/ws_s02.tmb",
+        "bytes": 1113,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18993,
+    "name": "Windmill",
+    "historicalIcon": 9502,
+    "iconPath": "ui/icon/009000/009502.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6967,
+        "path": "chara/action/ws/bt_chk_chk/ws_s05.tmb",
+        "bytes": 765,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 6968,
+        "path": "chara/action/ws/bt_chk_chk/ws_s05_hit.tmb",
+        "bytes": 427,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18994,
+    "name": "Bladeshower",
+    "historicalIcon": 9503,
+    "iconPath": "ui/icon/009000/009503.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6969,
+        "path": "chara/action/ws/bt_chk_chk/ws_s06.tmb",
+        "bytes": 765,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 6970,
+        "path": "chara/action/ws/bt_chk_chk/ws_s06_hit.tmb",
+        "bytes": 427,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17760,
+    "name": "Saber Dance",
+    "historicalIcon": 9457,
+    "iconPath": "ui/icon/009000/009457.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6975,
+        "path": "chara/action/ws/bt_chk_chk/ws_s09.tmb",
+        "bytes": 1294,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 6976,
+        "path": "chara/action/ws/bt_chk_chk/ws_s09_hit.tmb",
+        "bytes": 430,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17761,
+    "name": "Fan Dance",
+    "historicalIcon": 9459,
+    "iconPath": "ui/icon/009000/009459.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6987,
+        "path": "chara/action/ability/chk_rdc/abl003.tmb",
+        "bytes": 951,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18997,
+    "name": "Fan Dance II",
+    "historicalIcon": 9506,
+    "iconPath": "ui/icon/009000/009506.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6988,
+        "path": "chara/action/ability/chk_rdc/abl004.tmb",
+        "bytes": 806,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 6989,
+        "path": "chara/action/ability/chk_rdc/abl004_hit.tmb",
+        "bytes": 426,
+        "dependencies": 6,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17762,
+    "name": "Fan Dance III",
+    "historicalIcon": 9458,
+    "iconPath": "ui/icon/009000/009458.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6990,
+        "path": "chara/action/ability/chk_rdc/abl005.tmb",
+        "bytes": 951,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 6991,
+        "path": "chara/action/ability/chk_rdc/abl005_hit.tmb",
+        "bytes": 431,
+        "dependencies": 6,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17766,
+    "name": "Standard Step",
+    "historicalIcon": 9451,
+    "iconPath": "ui/icon/009000/009451.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6985,
+        "path": "chara/action/ability/chk_rdc/abl001.tmb",
+        "bytes": 795,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17824,
+    "name": "Technical Step",
+    "historicalIcon": 9452,
+    "iconPath": "ui/icon/009000/009452.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6986,
+        "path": "chara/action/ability/chk_rdc/abl002.tmb",
+        "bytes": 796,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17763,
+    "name": "Curing Waltz",
+    "historicalIcon": 9455,
+    "iconPath": "ui/icon/009000/009455.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6993,
+        "path": "chara/action/ability/chk_rdc/abl007.tmb",
+        "bytes": 615,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 6994,
+        "path": "chara/action/ability/chk_rdc/abl007_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17765,
+    "name": "Closed Position",
+    "historicalIcon": 9456,
+    "iconPath": "ui/icon/009000/009456.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6998,
+        "path": "chara/action/ability/chk_rdc/abl010.tmb",
+        "bytes": 949,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17764,
+    "name": "En Avant",
+    "historicalIcon": 9450,
+    "iconPath": "ui/icon/009000/009450.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7002,
+        "path": "chara/action/ability/chk_rdc/abl013.tmb",
+        "bytes": 767,
+        "dependencies": 8,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17758,
+    "name": "Reverse Cascade",
+    "historicalIcon": 9444,
+    "iconPath": "ui/icon/009000/009444.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6965,
+        "path": "chara/action/ws/bt_chk_chk/ws_s03.tmb",
+        "bytes": 1113,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17759,
+    "name": "Fountainfall",
+    "historicalIcon": 9445,
+    "iconPath": "ui/icon/009000/009445.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6966,
+        "path": "chara/action/ws/bt_chk_chk/ws_s04.tmb",
+        "bytes": 1157,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18995,
+    "name": "Rising Windmill",
+    "historicalIcon": 9504,
+    "iconPath": "ui/icon/009000/009504.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6971,
+        "path": "chara/action/ws/bt_chk_chk/ws_s07.tmb",
+        "bytes": 765,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 6972,
+        "path": "chara/action/ws/bt_chk_chk/ws_s07_hit.tmb",
+        "bytes": 427,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18996,
+    "name": "Bloodshower",
+    "historicalIcon": 9505,
+    "iconPath": "ui/icon/009000/009505.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6973,
+        "path": "chara/action/ws/bt_chk_chk/ws_s08.tmb",
+        "bytes": 765,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 6974,
+        "path": "chara/action/ws/bt_chk_chk/ws_s08_hit.tmb",
+        "bytes": 427,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17767,
+    "name": "Emboite",
+    "historicalIcon": 9446,
+    "iconPath": "ui/icon/009000/009446.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6977,
+        "path": "chara/action/ws/bt_chk_chk/ws_s10.tmb",
+        "bytes": 853,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17768,
+    "name": "Entrechat",
+    "historicalIcon": 9447,
+    "iconPath": "ui/icon/009000/009447.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6978,
+        "path": "chara/action/ws/bt_chk_chk/ws_s11.tmb",
+        "bytes": 853,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17769,
+    "name": "Jete",
+    "historicalIcon": 9448,
+    "iconPath": "ui/icon/009000/009448.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6979,
+        "path": "chara/action/ws/bt_chk_chk/ws_s12.tmb",
+        "bytes": 853,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17770,
+    "name": "Pirouette",
+    "historicalIcon": 9449,
+    "iconPath": "ui/icon/009000/009449.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6980,
+        "path": "chara/action/ws/bt_chk_chk/ws_s13.tmb",
+        "bytes": 853,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17771,
+    "name": "Standard Finish",
+    "historicalIcon": 9453,
+    "iconPath": "ui/icon/009000/009453.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6981,
+        "path": "chara/action/ws/bt_chk_chk/ws_s14.tmb",
+        "bytes": 853,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 6982,
+        "path": "chara/action/ws/bt_chk_chk/ws_s14_hit.tmb",
+        "bytes": 435,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17825,
+    "name": "Technical Finish",
+    "historicalIcon": 9454,
+    "iconPath": "ui/icon/009000/009454.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6983,
+        "path": "chara/action/ws/bt_chk_chk/ws_s15.tmb",
+        "bytes": 853,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 6984,
+        "path": "chara/action/ws/bt_chk_chk/ws_s15_hit.tmb",
+        "bytes": 429,
+        "dependencies": 8,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18076,
+    "name": "Ending",
+    "historicalIcon": 9471,
+    "iconPath": "ui/icon/009000/009471.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 367,
+        "path": "chara/action/ability/no_mot_ability.tmb",
+        "bytes": 122,
+        "dependencies": 0,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8872,
+    "name": "Ruin III",
+    "historicalIcon": 9248,
+    "iconPath": "ui/icon/009000/009248.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3983,
+        "path": "chara/action/magic/swl_summon/mgc001.tmb",
+        "bytes": 1278,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8873,
+    "name": "Bio III",
+    "historicalIcon": 9249,
+    "iconPath": "ui/icon/009000/009249.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5244,
+        "path": "chara/action/magic/swl_summon/mgc003.tmb",
+        "bytes": 679,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17777,
+    "name": "Energy Drain",
+    "historicalIcon": 9105,
+    "iconPath": "ui/icon/009000/009105.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7088,
+        "path": "chara/action/magic/swl_summon/mgc008.tmb",
+        "bytes": 1189,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18953,
+    "name": "Tri-disaster",
+    "historicalIcon": 9512,
+    "iconPath": "ui/icon/009000/009512.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3984,
+        "path": "chara/action/ability/swl_summon/abl022.tmb",
+        "bytes": 1570,
+        "dependencies": 36,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18937,
+    "name": "Outburst",
+    "historicalIcon": 9509,
+    "iconPath": "ui/icon/009000/009509.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7091,
+        "path": "chara/action/magic/swl_summon/mgc010.tmb",
+        "bytes": 1365,
+        "dependencies": 36,
+        "missingDependencies": []
+      },
+      {
+        "id": 7092,
+        "path": "chara/action/magic/swl_summon/mgc010_hit.tmb",
+        "bytes": 233,
+        "dependencies": 1,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8877,
+    "name": "Fester",
+    "historicalIcon": 9253,
+    "iconPath": "ui/icon/009000/009253.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 510,
+        "path": "chara/action/magic/swl_summon/plagueburst.tmb",
+        "bytes": 868,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18938,
+    "name": "Painflare",
+    "historicalIcon": 9510,
+    "iconPath": "ui/icon/009000/009510.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3962,
+        "path": "chara/action/ability/swl_summon/abl020.tmb",
+        "bytes": 1574,
+        "dependencies": 38,
+        "missingDependencies": []
+      },
+      {
+        "id": 4004,
+        "path": "chara/action/ability/swl_summon/abl020_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18939,
+    "name": "Bane",
+    "historicalIcon": 9511,
+    "iconPath": "ui/icon/009000/009511.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 508,
+        "path": "chara/action/magic/swl_summon/pandemic.tmb",
+        "bytes": 853,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1913,
+        "path": "chara/action/magic/swl_summon/pandemic_hit.tmb",
+        "bytes": 178,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17780,
+    "name": "Wither",
+    "historicalIcon": 9333,
+    "iconPath": "ui/icon/009000/009333.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 547,
+        "path": "chara/action/ability/swl_summon/abl019.tmb",
+        "bytes": 795,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1936,
+        "path": "chara/action/ability/swl_summon/abl019_hit.tmb",
+        "bytes": 418,
+        "dependencies": 12,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 9014,
+    "name": "Deathflare",
+    "historicalIcon": 9307,
+    "iconPath": "ui/icon/009000/009307.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3993,
+        "path": "chara/action/ability/swl_summon/abl027.tmb",
+        "bytes": 1254,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 4030,
+        "path": "chara/action/ability/swl_summon/abl027_hit.tmb",
+        "bytes": 435,
+        "dependencies": 6,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 9013,
+    "name": "Dreadwyrm Trance",
+    "historicalIcon": 9306,
+    "iconPath": "ui/icon/009000/009306.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3991,
+        "path": "chara/action/ability/swl_summon/abl026.tmb",
+        "bytes": 1242,
+        "dependencies": 30,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17778,
+    "name": "Fountain of Fire",
+    "historicalIcon": 9415,
+    "iconPath": "ui/icon/009000/009415.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7094,
+        "path": "chara/action/ability/swl_summon/abl036.tmb",
+        "bytes": 706,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17779,
+    "name": "Brand of Purgatory",
+    "historicalIcon": 9416,
+    "iconPath": "ui/icon/009000/009416.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7095,
+        "path": "chara/action/ability/swl_summon/abl037.tmb",
+        "bytes": 1161,
+        "dependencies": 36,
+        "missingDependencies": []
+      },
+      {
+        "id": 7096,
+        "path": "chara/action/ability/swl_summon/abl037_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17781,
+    "name": "Firebird Trance",
+    "historicalIcon": 9411,
+    "iconPath": "ui/icon/009000/009411.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7093,
+        "path": "chara/action/ability/swl_summon/abl035.tmb",
+        "bytes": 1139,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8887,
+    "name": "Enchanted Riposte",
+    "historicalIcon": 9263,
+    "iconPath": "ui/icon/009000/009263.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5144,
+        "path": "chara/action/ws/bt_2rp_emp/ws_s05.tmb",
+        "bytes": 1313,
+        "dependencies": 34,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8888,
+    "name": "Enchanted Zwerchhau",
+    "historicalIcon": 9264,
+    "iconPath": "ui/icon/009000/009264.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5145,
+        "path": "chara/action/ws/bt_2rp_emp/ws_s06.tmb",
+        "bytes": 1313,
+        "dependencies": 32,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8889,
+    "name": "Enchanted Redoublement",
+    "historicalIcon": 9265,
+    "iconPath": "ui/icon/009000/009265.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5146,
+        "path": "chara/action/ws/bt_2rp_emp/ws_s07.tmb",
+        "bytes": 1342,
+        "dependencies": 34,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8883,
+    "name": "Verstone",
+    "historicalIcon": 9259,
+    "iconPath": "ui/icon/009000/009259.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5165,
+        "path": "chara/action/magic/2rp_redmage/mgc009.tmb",
+        "bytes": 985,
+        "dependencies": 30,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8885,
+    "name": "Verfire",
+    "historicalIcon": 9261,
+    "iconPath": "ui/icon/009000/009261.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5164,
+        "path": "chara/action/magic/2rp_redmage/mgc008.tmb",
+        "bytes": 985,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17727,
+    "name": "Scatter",
+    "historicalIcon": 9514,
+    "iconPath": "ui/icon/009000/009514.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5163,
+        "path": "chara/action/magic/2rp_redmage/mgc007.tmb",
+        "bytes": 991,
+        "dependencies": 37,
+        "missingDependencies": []
+      },
+      {
+        "id": 5282,
+        "path": "chara/action/magic/2rp_redmage/mgc007_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 10025,
+    "name": "Vercure",
+    "historicalIcon": 9326,
+    "iconPath": "ui/icon/009000/009326.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5166,
+        "path": "chara/action/magic/2rp_redmage/mgc010.tmb",
+        "bytes": 677,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17788,
+    "name": "Enchanted Reprise",
+    "historicalIcon": 9418,
+    "iconPath": "ui/icon/009000/009418.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7119,
+        "path": "chara/action/ws/bt_2rp_emp/ws_s09.tmb",
+        "bytes": 1104,
+        "dependencies": 37,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18944,
+    "name": "Enchanted Moulinet",
+    "historicalIcon": 9515,
+    "iconPath": "ui/icon/009000/009515.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5147,
+        "path": "chara/action/ws/bt_2rp_emp/ws_s08.tmb",
+        "bytes": 1016,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 5278,
+        "path": "chara/action/ws/bt_2rp_emp/ws_s08_hit.tmb",
+        "bytes": 431,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8890,
+    "name": "Corps-a-corps",
+    "historicalIcon": 9266,
+    "iconPath": "ui/icon/009000/009266.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5148,
+        "path": "chara/action/ability/2rp_redmage/abl001.tmb",
+        "bytes": 1388,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8891,
+    "name": "Displacement",
+    "historicalIcon": 9267,
+    "iconPath": "ui/icon/009000/009267.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5149,
+        "path": "chara/action/ability/2rp_redmage/abl002.tmb",
+        "bytes": 1133,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17786,
+    "name": "Engagement",
+    "historicalIcon": 9419,
+    "iconPath": "ui/icon/009000/009419.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7118,
+        "path": "chara/action/ability/2rp_redmage/abl010.tmb",
+        "bytes": 961,
+        "dependencies": 31,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 20106,
+    "name": "Embolden",
+    "historicalIcon": 9539,
+    "iconPath": "ui/icon/009000/009539.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5153,
+        "path": "chara/action/ability/2rp_redmage/abl006.tmb",
+        "bytes": 839,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 5280,
+        "path": "chara/action/ability/2rp_redmage/abl006_hit.tmb",
+        "bytes": 436,
+        "dependencies": 9,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8882,
+    "name": "Veraero",
+    "historicalIcon": 9258,
+    "iconPath": "ui/icon/009000/009258.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5161,
+        "path": "chara/action/magic/2rp_redmage/mgc005.tmb",
+        "bytes": 654,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8884,
+    "name": "Verthunder",
+    "historicalIcon": 9260,
+    "iconPath": "ui/icon/009000/009260.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5160,
+        "path": "chara/action/magic/2rp_redmage/mgc004.tmb",
+        "bytes": 680,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 9433,
+    "name": "Verholy",
+    "historicalIcon": 9310,
+    "iconPath": "ui/icon/009000/009310.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5169,
+        "path": "chara/action/magic/2rp_redmage/mgc013.tmb",
+        "bytes": 959,
+        "dependencies": 36,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 9434,
+    "name": "Verflare",
+    "historicalIcon": 9311,
+    "iconPath": "ui/icon/009000/009311.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5168,
+        "path": "chara/action/magic/2rp_redmage/mgc012.tmb",
+        "bytes": 960,
+        "dependencies": 35,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8886,
+    "name": "Impact",
+    "historicalIcon": 9262,
+    "iconPath": "ui/icon/009000/009262.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5159,
+        "path": "chara/action/magic/2rp_redmage/mgc003.tmb",
+        "bytes": 683,
+        "dependencies": 35,
+        "missingDependencies": []
+      },
+      {
+        "id": 7117,
+        "path": "chara/action/magic/2rp_redmage/mgc003_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17787,
+    "name": "Scorch",
+    "historicalIcon": 9417,
+    "iconPath": "ui/icon/009000/009417.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7121,
+        "path": "chara/action/ability/2rp_redmage/abl011.tmb",
+        "bytes": 1112,
+        "dependencies": 36,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8904,
+    "name": "Physick",
+    "historicalIcon": 9282,
+    "iconPath": "ui/icon/009000/009282.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 524,
+        "path": "chara/action/magic/swl_summon/swlcarel.tmb",
+        "bytes": 679,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8905,
+    "name": "Adloquium",
+    "historicalIcon": 9283,
+    "iconPath": "ui/icon/009000/009283.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 515,
+        "path": "chara/action/magic/swl_summon/succor2.tmb",
+        "bytes": 1164,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18947,
+    "name": "Succor",
+    "historicalIcon": 9518,
+    "iconPath": "ui/icon/009000/009518.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 514,
+        "path": "chara/action/magic/swl_summon/succor1.tmb",
+        "bytes": 1108,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1920,
+        "path": "chara/action/magic/swl_summon/succor1_hit.tmb",
+        "bytes": 461,
+        "dependencies": 9,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17795,
+    "name": "Broil III",
+    "historicalIcon": 9389,
+    "iconPath": "ui/icon/009000/009389.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7130,
+        "path": "chara/action/magic/swl_summon/mgc011.tmb",
+        "bytes": 968,
+        "dependencies": 37,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17796,
+    "name": "Biolysis",
+    "historicalIcon": 9390,
+    "iconPath": "ui/icon/009000/009390.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7135,
+        "path": "chara/action/magic/swl_summon/mgc013.tmb",
+        "bytes": 653,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8909,
+    "name": "Lustrate",
+    "historicalIcon": 9287,
+    "iconPath": "ui/icon/009000/009287.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 440,
+        "path": "chara/action/ability/swl_summon/abl009.tmb",
+        "bytes": 937,
+        "dependencies": 20,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18948,
+    "name": "Indomitability",
+    "historicalIcon": 9519,
+    "iconPath": "ui/icon/009000/009519.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3966,
+        "path": "chara/action/ability/swl_summon/abl021.tmb",
+        "bytes": 915,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 4005,
+        "path": "chara/action/ability/swl_summon/abl021_hit.tmb",
+        "bytes": 433,
+        "dependencies": 5,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18949,
+    "name": "Excogitation",
+    "historicalIcon": 9520,
+    "iconPath": "ui/icon/009000/009520.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5255,
+        "path": "chara/action/ability/swl_summon/abl028.tmb",
+        "bytes": 955,
+        "dependencies": 30,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18940,
+    "name": "Focalization",
+    "historicalIcon": 9532,
+    "iconPath": "ui/icon/009000/009532.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 546,
+        "path": "chara/action/ability/swl_summon/abl018.tmb",
+        "bytes": 615,
+        "dependencies": 20,
+        "missingDependencies": []
+      },
+      {
+        "id": 1937,
+        "path": "chara/action/ability/swl_summon/abl018_hit.tmb",
+        "bytes": 426,
+        "dependencies": 10,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17797,
+    "name": "Aura Blast",
+    "historicalIcon": 9104,
+    "iconPath": "ui/icon/009000/009104.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 438,
+        "path": "chara/action/ability/swl_summon/abl007.tmb",
+        "bytes": 616,
+        "dependencies": 20,
+        "missingDependencies": []
+      },
+      {
+        "id": 1918,
+        "path": "chara/action/ability/swl_summon/abl007_hit.tmb",
+        "bytes": 423,
+        "dependencies": 6,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17990,
+    "name": "Dissipation",
+    "historicalIcon": 9466,
+    "iconPath": "ui/icon/009000/009466.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3989,
+        "path": "chara/action/ability/swl_summon/abl024.tmb",
+        "bytes": 1118,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8913,
+    "name": "Benefic",
+    "historicalIcon": 9292,
+    "iconPath": "ui/icon/009000/009292.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3857,
+        "path": "chara/action/magic/2gl_astro/mgc001.tmb",
+        "bytes": 705,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8914,
+    "name": "Benefic II",
+    "historicalIcon": 9293,
+    "iconPath": "ui/icon/009000/009293.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3867,
+        "path": "chara/action/magic/2gl_astro/mgc011.tmb",
+        "bytes": 1055,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18950,
+    "name": "Helios",
+    "historicalIcon": 9521,
+    "iconPath": "ui/icon/009000/009521.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3863,
+        "path": "chara/action/magic/2gl_astro/mgc007.tmb",
+        "bytes": 878,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 4000,
+        "path": "chara/action/magic/2gl_astro/mgc007_hit.tmb",
+        "bytes": 178,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17805,
+    "name": "Malefic IV",
+    "historicalIcon": 9424,
+    "iconPath": "ui/icon/009000/009424.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7145,
+        "path": "chara/action/magic/2gl_astro/mgc015.tmb",
+        "bytes": 680,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17806,
+    "name": "Combust III",
+    "historicalIcon": 9425,
+    "iconPath": "ui/icon/009000/009425.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7148,
+        "path": "chara/action/ability/2gl_astro/abl023.tmb",
+        "bytes": 811,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17807,
+    "name": "Gravity",
+    "historicalIcon": 9421,
+    "iconPath": "ui/icon/009000/009421.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3886,
+        "path": "chara/action/magic/2gl_astro/mgc013.tmb",
+        "bytes": 774,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 3914,
+        "path": "chara/action/magic/2gl_astro/mgc013_hit.tmb",
+        "bytes": 438,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8916,
+    "name": "Essential Dignity",
+    "historicalIcon": 9295,
+    "iconPath": "ui/icon/009000/009295.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3875,
+        "path": "chara/action/ability/2gl_astro/abl013.tmb",
+        "bytes": 942,
+        "dependencies": 20,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17991,
+    "name": "Celestial Opposition",
+    "historicalIcon": 9467,
+    "iconPath": "ui/icon/009000/009467.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3876,
+        "path": "chara/action/ability/2gl_astro/abl014.tmb",
+        "bytes": 972,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 3912,
+        "path": "chara/action/ability/2gl_astro/abl014_hit.tmb",
+        "bytes": 437,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 10027,
+    "name": "Minor Arcana",
+    "historicalIcon": 9327,
+    "iconPath": "ui/icon/009000/009327.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5264,
+        "path": "chara/action/ability/2gl_astro/abl020.tmb",
+        "bytes": 619,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18941,
+    "name": "Divination",
+    "historicalIcon": 9523,
+    "iconPath": "ui/icon/009000/009523.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7158,
+        "path": "chara/action/ability/2gl_astro/abl028.tmb",
+        "bytes": 876,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 7159,
+        "path": "chara/action/ability/2gl_astro/abl028_hit.tmb",
+        "bytes": 427,
+        "dependencies": 11,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17809,
+    "name": "Neutral Sect",
+    "historicalIcon": 9422,
+    "iconPath": "ui/icon/009000/009422.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7156,
+        "path": "chara/action/ability/2gl_astro/abl027.tmb",
+        "bytes": 681,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17804,
+    "name": "Aspected Benefic",
+    "historicalIcon": 9420,
+    "iconPath": "ui/icon/009000/009420.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3858,
+        "path": "chara/action/magic/2gl_astro/mgc002.tmb",
+        "bytes": 683,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18951,
+    "name": "Aspected Helios",
+    "historicalIcon": 9522,
+    "iconPath": "ui/icon/009000/009522.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3864,
+        "path": "chara/action/magic/2gl_astro/mgc008.tmb",
+        "bytes": 652,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 4001,
+        "path": "chara/action/magic/2gl_astro/mgc008_hit.tmb",
+        "bytes": 435,
+        "dependencies": 11,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 10028,
+    "name": "Lord of Crowns",
+    "historicalIcon": 9330,
+    "iconPath": "ui/icon/009000/009330.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5265,
+        "path": "chara/action/ability/2gl_astro/play07.tmb",
+        "bytes": 950,
+        "dependencies": 37,
+        "missingDependencies": []
+      },
+      {
+        "id": 5267,
+        "path": "chara/action/ability/2gl_astro/play07_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 10029,
+    "name": "Lady of Crowns",
+    "historicalIcon": 9329,
+    "iconPath": "ui/icon/009000/009329.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5266,
+        "path": "chara/action/ability/2gl_astro/play08.tmb",
+        "bytes": 958,
+        "dependencies": 37,
+        "missingDependencies": []
+      },
+      {
+        "id": 5268,
+        "path": "chara/action/ability/2gl_astro/play08_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8769,
+    "name": "Hard Slash",
+    "historicalIcon": 9142,
+    "iconPath": "ui/icon/009000/009142.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3790,
+        "path": "chara/action/ws/bt_2sw_emp/ws_s01.tmb",
+        "bytes": 1149,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8772,
+    "name": "Syphon Strike",
+    "historicalIcon": 9145,
+    "iconPath": "ui/icon/009000/009145.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3793,
+        "path": "chara/action/ws/bt_2sw_emp/ws_s04.tmb",
+        "bytes": 1699,
+        "dependencies": 26,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8773,
+    "name": "Souleater",
+    "historicalIcon": 9146,
+    "iconPath": "ui/icon/009000/009146.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3794,
+        "path": "chara/action/ws/bt_2sw_emp/ws_s05.tmb",
+        "bytes": 1699,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18906,
+    "name": "Unleash",
+    "historicalIcon": 9479,
+    "iconPath": "ui/icon/009000/009479.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3797,
+        "path": "chara/action/ability/2sw_dark/abl002.tmb",
+        "bytes": 1198,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 4009,
+        "path": "chara/action/ability/2sw_dark/abl002_hit.tmb",
+        "bytes": 431,
+        "dependencies": 8,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18907,
+    "name": "Stalwart Soul",
+    "historicalIcon": 9480,
+    "iconPath": "ui/icon/009000/009480.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7028,
+        "path": "chara/action/ability/2sw_dark/abl027.tmb",
+        "bytes": 708,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 7029,
+        "path": "chara/action/ability/2sw_dark/abl027_hit.tmb",
+        "bytes": 437,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8775,
+    "name": "Unmend",
+    "historicalIcon": 9148,
+    "iconPath": "ui/icon/009000/009148.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3796,
+        "path": "chara/action/ability/2sw_dark/abl001.tmb",
+        "bytes": 1591,
+        "dependencies": 33,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8776,
+    "name": "Bloodspiller",
+    "historicalIcon": 9149,
+    "iconPath": "ui/icon/009000/009149.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5196,
+        "path": "chara/action/ws/bt_2sw_emp/ws_s09.tmb",
+        "bytes": 1294,
+        "dependencies": 33,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17700,
+    "name": "Quietus",
+    "historicalIcon": 9380,
+    "iconPath": "ui/icon/009000/009380.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5194,
+        "path": "chara/action/ws/bt_2sw_emp/ws_s08.tmb",
+        "bytes": 1152,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 5195,
+        "path": "chara/action/ws/bt_2sw_emp/ws_s08_hit.tmb",
+        "bytes": 430,
+        "dependencies": 4,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17701,
+    "name": "Edge of Shadow",
+    "historicalIcon": 9468,
+    "iconPath": "ui/icon/009000/009468.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7032,
+        "path": "chara/action/ability/2sw_dark/abl029.tmb",
+        "bytes": 1583,
+        "dependencies": 36,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18908,
+    "name": "Flood of Shadow",
+    "historicalIcon": 9481,
+    "iconPath": "ui/icon/009000/009481.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7030,
+        "path": "chara/action/ability/2sw_dark/abl028.tmb",
+        "bytes": 1004,
+        "dependencies": 37,
+        "missingDependencies": []
+      },
+      {
+        "id": 7031,
+        "path": "chara/action/ability/2sw_dark/abl028_hit.tmb",
+        "bytes": 435,
+        "dependencies": 10,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8777,
+    "name": "Plunge",
+    "historicalIcon": 9150,
+    "iconPath": "ui/icon/009000/009150.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3812,
+        "path": "chara/action/ability/2sw_dark/abl016.tmb",
+        "bytes": 1669,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17702,
+    "name": "Delirium",
+    "historicalIcon": 9381,
+    "iconPath": "ui/icon/009000/009381.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5193,
+        "path": "chara/action/ability/2sw_dark/abl023.tmb",
+        "bytes": 618,
+        "dependencies": 19,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 8779,
+    "name": "The Blackest Night",
+    "historicalIcon": 9152,
+    "iconPath": "ui/icon/009000/009152.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5197,
+        "path": "chara/action/ability/2sw_dark/abl024.tmb",
+        "bytes": 1165,
+        "dependencies": 33,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18909,
+    "name": "Dark Missionary",
+    "historicalIcon": 9482,
+    "iconPath": "ui/icon/009000/009482.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7033,
+        "path": "chara/action/ability/2sw_dark/abl030.tmb",
+        "bytes": 621,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 7034,
+        "path": "chara/action/ability/2sw_dark/abl030_hit.tmb",
+        "bytes": 436,
+        "dependencies": 9,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17703,
+    "name": "Keen Edge",
+    "historicalIcon": 9352,
+    "iconPath": "ui/icon/009000/009352.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6921,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s01.tmb",
+        "bytes": 1549,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17704,
+    "name": "Brutal Shell",
+    "historicalIcon": 9353,
+    "iconPath": "ui/icon/009000/009353.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6923,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s02.tmb",
+        "bytes": 2067,
+        "dependencies": 32,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17705,
+    "name": "Solid Barrel",
+    "historicalIcon": 9354,
+    "iconPath": "ui/icon/009000/009354.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6929,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s05.tmb",
+        "bytes": 1593,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18910,
+    "name": "Demon Slice",
+    "historicalIcon": 9483,
+    "iconPath": "ui/icon/009000/009483.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6925,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s03.tmb",
+        "bytes": 1201,
+        "dependencies": 20,
+        "missingDependencies": []
+      },
+      {
+        "id": 6926,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s03_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18911,
+    "name": "Demon Slaughter",
+    "historicalIcon": 9484,
+    "iconPath": "ui/icon/009000/009484.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6934,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s08.tmb",
+        "bytes": 1201,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 6935,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s08_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17706,
+    "name": "Gnashing Fang",
+    "historicalIcon": 9364,
+    "iconPath": "ui/icon/009000/009364.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6930,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s06.tmb",
+        "bytes": 1551,
+        "dependencies": 33,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17707,
+    "name": "Savage Claw",
+    "historicalIcon": 9365,
+    "iconPath": "ui/icon/009000/009365.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6932,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s07.tmb",
+        "bytes": 1487,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17708,
+    "name": "Wicked Talon",
+    "historicalIcon": 9366,
+    "iconPath": "ui/icon/009000/009366.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6936,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s09.tmb",
+        "bytes": 1621,
+        "dependencies": 34,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17717,
+    "name": "Lightning Shot",
+    "historicalIcon": 9356,
+    "iconPath": "ui/icon/009000/009356.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6927,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s04.tmb",
+        "bytes": 1755,
+        "dependencies": 38,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17709,
+    "name": "Burst Strike",
+    "historicalIcon": 9357,
+    "iconPath": "ui/icon/009000/009357.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6950,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s11.tmb",
+        "bytes": 1101,
+        "dependencies": 31,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17710,
+    "name": "Fated Circle",
+    "historicalIcon": 9363,
+    "iconPath": "ui/icon/009000/009363.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6951,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s12.tmb",
+        "bytes": 1201,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 6952,
+        "path": "chara/action/ws/bt_2gb_emp/ws_s12_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17711,
+    "name": "Continuation",
+    "historicalIcon": 9361,
+    "iconPath": "ui/icon/009000/009361.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 0,
+        "path": "chara/action/.tmb",
+        "bytes": null,
+        "dependencies": 0,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17716,
+    "name": "Rough Divide",
+    "historicalIcon": 9355,
+    "iconPath": "ui/icon/009000/009355.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6939,
+        "path": "chara/action/ability/2gb_bgb/abl008.tmb",
+        "bytes": 1669,
+        "dependencies": 31,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17890,
+    "name": "Draw and Junction",
+    "historicalIcon": 9464,
+    "iconPath": "ui/icon/009000/009464.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6949,
+        "path": "chara/action/ability/2gb_bgb/abl015.tmb",
+        "bytes": 1334,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17748,
+    "name": "Bow Shock",
+    "historicalIcon": 9527,
+    "iconPath": "ui/icon/009000/009527.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6945,
+        "path": "chara/action/ability/2gb_bgb/abl013.tmb",
+        "bytes": 613,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 6946,
+        "path": "chara/action/ability/2gb_bgb/abl013_hit.tmb",
+        "bytes": 428,
+        "dependencies": 9,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17891,
+    "name": "Aurora",
+    "historicalIcon": 9465,
+    "iconPath": "ui/icon/009000/009465.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6937,
+        "path": "chara/action/ability/2gb_bgb/abl006.tmb",
+        "bytes": 1328,
+        "dependencies": 34,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17712,
+    "name": "Jugular Rip",
+    "historicalIcon": 9358,
+    "iconPath": "ui/icon/009000/009358.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6942,
+        "path": "chara/action/ability/2gb_bgb/abl010.tmb",
+        "bytes": 1194,
+        "dependencies": 34,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17713,
+    "name": "Abdomen Tear",
+    "historicalIcon": 9359,
+    "iconPath": "ui/icon/009000/009359.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6943,
+        "path": "chara/action/ability/2gb_bgb/abl011.tmb",
+        "bytes": 1138,
+        "dependencies": 35,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17714,
+    "name": "Eye Gouge",
+    "historicalIcon": 9360,
+    "iconPath": "ui/icon/009000/009360.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 6944,
+        "path": "chara/action/ability/2gb_bgb/abl012.tmb",
+        "bytes": 1138,
+        "dependencies": 33,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27795,
+    "name": "Slice",
+    "historicalIcon": 9540,
+    "iconPath": "ui/icon/009000/009540.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8335,
+        "path": "chara/action/ws/bt_2km_emp/ws_s01.tmb",
+        "bytes": 1228,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27796,
+    "name": "Waxing Slice",
+    "historicalIcon": 9541,
+    "iconPath": "ui/icon/009000/009541.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8336,
+        "path": "chara/action/ws/bt_2km_emp/ws_s02.tmb",
+        "bytes": 1228,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27797,
+    "name": "Infernal Slice",
+    "historicalIcon": 9542,
+    "iconPath": "ui/icon/009000/009542.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8337,
+        "path": "chara/action/ws/bt_2km_emp/ws_s03.tmb",
+        "bytes": 1509,
+        "dependencies": 29,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27802,
+    "name": "Spinning Scythe",
+    "historicalIcon": 9547,
+    "iconPath": "ui/icon/009000/009547.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8339,
+        "path": "chara/action/ws/bt_2km_emp/ws_s05.tmb",
+        "bytes": 898,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27803,
+    "name": "Nightmare Scythe",
+    "historicalIcon": 9548,
+    "iconPath": "ui/icon/009000/009548.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8340,
+        "path": "chara/action/ws/bt_2km_emp/ws_s06.tmb",
+        "bytes": 1336,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27806,
+    "name": "Harpe",
+    "historicalIcon": 9551,
+    "iconPath": "ui/icon/009000/009551.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8344,
+        "path": "chara/action/magic/2km_riaper/mgc001.tmb",
+        "bytes": 761,
+        "dependencies": 40,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27808,
+    "name": "Soul Slice",
+    "historicalIcon": 9553,
+    "iconPath": "ui/icon/009000/009553.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8345,
+        "path": "chara/action/ws/bt_2km_emp/ws_s08.tmb",
+        "bytes": 1851,
+        "dependencies": 44,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27809,
+    "name": "Soul Scythe",
+    "historicalIcon": 9554,
+    "iconPath": "ui/icon/009000/009554.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8346,
+        "path": "chara/action/ws/bt_2km_emp/ws_s09.tmb",
+        "bytes": 1262,
+        "dependencies": 37,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27810,
+    "name": "Blood Stalk",
+    "historicalIcon": 9555,
+    "iconPath": "ui/icon/009000/009555.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8350,
+        "path": "chara/action/ability/2km_reaper/abl001.tmb",
+        "bytes": 1578,
+        "dependencies": 39,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27813,
+    "name": "Grim Swathe",
+    "historicalIcon": 9558,
+    "iconPath": "ui/icon/009000/009558.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8351,
+        "path": "chara/action/ability/2km_reaper/abl002.tmb",
+        "bytes": 1278,
+        "dependencies": 37,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27814,
+    "name": "Gluttony",
+    "historicalIcon": 9559,
+    "iconPath": "ui/icon/009000/009559.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8352,
+        "path": "chara/action/ability/2km_reaper/abl003.tmb",
+        "bytes": 1815,
+        "dependencies": 48,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27817,
+    "name": "Hell's Ingress",
+    "historicalIcon": 9562,
+    "iconPath": "ui/icon/009000/009562.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8361,
+        "path": "chara/action/ability/2km_reaper/abl007.tmb",
+        "bytes": 1137,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27818,
+    "name": "Hell's Egress",
+    "historicalIcon": 9563,
+    "iconPath": "ui/icon/009000/009563.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8404,
+        "path": "chara/action/ability/2km_reaper/abl013.tmb",
+        "bytes": 1295,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27820,
+    "name": "Arcane Crest",
+    "historicalIcon": 9565,
+    "iconPath": "ui/icon/009000/009565.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8364,
+        "path": "chara/action/ability/2km_reaper/abl010.tmb",
+        "bytes": 608,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27821,
+    "name": "Enshroud",
+    "historicalIcon": 9566,
+    "iconPath": "ui/icon/009000/009566.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8353,
+        "path": "chara/action/ability/2km_reaper/abl004.tmb",
+        "bytes": 1764,
+        "dependencies": 49,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27798,
+    "name": "Gibbet",
+    "historicalIcon": 9543,
+    "iconPath": "ui/icon/009000/009543.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8347,
+        "path": "chara/action/ws/bt_2km_emp/ws_s10.tmb",
+        "bytes": 1895,
+        "dependencies": 47,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27799,
+    "name": "Gallows",
+    "historicalIcon": 9544,
+    "iconPath": "ui/icon/009000/009544.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8348,
+        "path": "chara/action/ws/bt_2km_emp/ws_s11.tmb",
+        "bytes": 1895,
+        "dependencies": 48,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27800,
+    "name": "Void Reaping",
+    "historicalIcon": 9545,
+    "iconPath": "ui/icon/009000/009545.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8355,
+        "path": "chara/action/ws/bt_2km_emp/ws_s13.tmb",
+        "bytes": 2415,
+        "dependencies": 46,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27801,
+    "name": "Cross Reaping",
+    "historicalIcon": 9546,
+    "iconPath": "ui/icon/009000/009546.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8356,
+        "path": "chara/action/ws/bt_2km_emp/ws_s14.tmb",
+        "bytes": 2572,
+        "dependencies": 50,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27804,
+    "name": "Guillotine",
+    "historicalIcon": 9549,
+    "iconPath": "ui/icon/009000/009549.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8349,
+        "path": "chara/action/ws/bt_2km_emp/ws_s12.tmb",
+        "bytes": 1139,
+        "dependencies": 31,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27805,
+    "name": "Grim Reaping",
+    "historicalIcon": 9550,
+    "iconPath": "ui/icon/009000/009550.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8357,
+        "path": "chara/action/ws/bt_2km_emp/ws_s15.tmb",
+        "bytes": 962,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27807,
+    "name": "Communio",
+    "historicalIcon": 9552,
+    "iconPath": "ui/icon/009000/009552.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8360,
+        "path": "chara/action/magic/2km_riaper/mgc002.tmb",
+        "bytes": 1469,
+        "dependencies": 68,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27811,
+    "name": "Unveiled Gibbet",
+    "historicalIcon": 9556,
+    "iconPath": "ui/icon/009000/009556.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8369,
+        "path": "chara/action/ability/2km_reaper/abl011.tmb",
+        "bytes": 1583,
+        "dependencies": 43,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27812,
+    "name": "Unveiled Gallows",
+    "historicalIcon": 9557,
+    "iconPath": "ui/icon/009000/009557.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8370,
+        "path": "chara/action/ability/2km_reaper/abl012.tmb",
+        "bytes": 1798,
+        "dependencies": 49,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27815,
+    "name": "Lemure's Slice",
+    "historicalIcon": 9560,
+    "iconPath": "ui/icon/009000/009560.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8358,
+        "path": "chara/action/ability/2km_reaper/abl005.tmb",
+        "bytes": 1378,
+        "dependencies": 40,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27816,
+    "name": "Lemure's Scythe",
+    "historicalIcon": 9561,
+    "iconPath": "ui/icon/009000/009561.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8359,
+        "path": "chara/action/ability/2km_reaper/abl006.tmb",
+        "bytes": 1078,
+        "dependencies": 38,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27819,
+    "name": "Regress",
+    "historicalIcon": 9564,
+    "iconPath": "ui/icon/009000/009564.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8362,
+        "path": "chara/action/ability/2km_reaper/abl008.tmb",
+        "bytes": 1137,
+        "dependencies": 21,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27822,
+    "name": "Dosis III",
+    "historicalIcon": 9567,
+    "iconPath": "ui/icon/009000/009567.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8329,
+        "path": "chara/action/magic/2ff_sage/mgc015.tmb",
+        "bytes": 1416,
+        "dependencies": 36,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27824,
+    "name": "Diagnosis",
+    "historicalIcon": 9569,
+    "iconPath": "ui/icon/009000/009569.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8297,
+        "path": "chara/action/magic/2ff_sage/mgc002.tmb",
+        "bytes": 1026,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27826,
+    "name": "Prognosis",
+    "historicalIcon": 9571,
+    "iconPath": "ui/icon/009000/009571.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8300,
+        "path": "chara/action/magic/2ff_sage/mgc003.tmb",
+        "bytes": 891,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 8409,
+        "path": "chara/action/magic/2ff_sage/mgc003_hit.tmb",
+        "bytes": 426,
+        "dependencies": 9,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27828,
+    "name": "Eukrasia",
+    "historicalIcon": 9573,
+    "iconPath": "ui/icon/009000/009573.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8304,
+        "path": "chara/action/magic/2ff_sage/mgc006.tmb",
+        "bytes": 1084,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27829,
+    "name": "Phlegma III",
+    "historicalIcon": 9574,
+    "iconPath": "ui/icon/009000/009574.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8330,
+        "path": "chara/action/magic/2ff_sage/mgc016.tmb",
+        "bytes": 1265,
+        "dependencies": 38,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27830,
+    "name": "Pneuma",
+    "historicalIcon": 9575,
+    "iconPath": "ui/icon/009000/009575.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8333,
+        "path": "chara/action/magic/2ff_sage/mgc019.tmb",
+        "bytes": 1279,
+        "dependencies": 43,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27831,
+    "name": "Druochole",
+    "historicalIcon": 9576,
+    "iconPath": "ui/icon/009000/009576.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8311,
+        "path": "chara/action/ability/2ff_sage/abl007.tmb",
+        "bytes": 1215,
+        "dependencies": 33,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27832,
+    "name": "Ixochole",
+    "historicalIcon": 9577,
+    "iconPath": "ui/icon/009000/009577.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8314,
+        "path": "chara/action/ability/2ff_sage/abl009.tmb",
+        "bytes": 885,
+        "dependencies": 25,
+        "missingDependencies": []
+      },
+      {
+        "id": 8413,
+        "path": "chara/action/ability/2ff_sage/abl009_hit.tmb",
+        "bytes": 426,
+        "dependencies": 13,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27833,
+    "name": "Haima",
+    "historicalIcon": 9578,
+    "iconPath": "ui/icon/009000/009578.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8320,
+        "path": "chara/action/ability/2ff_sage/abl014.tmb",
+        "bytes": 2105,
+        "dependencies": 31,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27834,
+    "name": "Icarus",
+    "historicalIcon": 9579,
+    "iconPath": "ui/icon/009000/009579.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8309,
+        "path": "chara/action/ability/2ff_sage/abl005.tmb",
+        "bytes": 1031,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27835,
+    "name": "Kardia",
+    "historicalIcon": 9580,
+    "iconPath": "ui/icon/009000/009580.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8298,
+        "path": "chara/action/ability/2ff_sage/abl001.tmb",
+        "bytes": 1215,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27823,
+    "name": "Eukrasian Dosis III",
+    "historicalIcon": 9568,
+    "iconPath": "ui/icon/009000/009568.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8331,
+        "path": "chara/action/magic/2ff_sage/mgc017.tmb",
+        "bytes": 1416,
+        "dependencies": 33,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27825,
+    "name": "Eukrasian Diagnosis",
+    "historicalIcon": 9570,
+    "iconPath": "ui/icon/009000/009570.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8305,
+        "path": "chara/action/magic/2ff_sage/mgc007.tmb",
+        "bytes": 1721,
+        "dependencies": 34,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 27827,
+    "name": "Eukrasian Prognosis",
+    "historicalIcon": 9572,
+    "iconPath": "ui/icon/009000/009572.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 8306,
+        "path": "chara/action/magic/2ff_sage/mgc008.tmb",
+        "bytes": 1086,
+        "dependencies": 27,
+        "missingDependencies": []
+      },
+      {
+        "id": 8411,
+        "path": "chara/action/magic/2ff_sage/mgc008_hit.tmb",
+        "bytes": 426,
+        "dependencies": 10,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17680,
+    "name": "Head Graze",
+    "historicalIcon": 9347,
+    "iconPath": "ui/icon/009000/009347.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7198,
+        "path": "chara/action/rol_common/rol021.tmb",
+        "bytes": 2029,
+        "dependencies": 28,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17678,
+    "name": "Leg Graze",
+    "historicalIcon": 9230,
+    "iconPath": "ui/icon/009000/009230.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7200,
+        "path": "chara/action/rol_common/rol024.tmb",
+        "bytes": 1791,
+        "dependencies": 23,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17679,
+    "name": "Foot Graze",
+    "historicalIcon": 9345,
+    "iconPath": "ui/icon/009000/009345.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 7199,
+        "path": "chara/action/rol_common/rol023.tmb",
+        "bytes": 1603,
+        "dependencies": 24,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18955,
+    "name": "Concentrate",
+    "historicalIcon": 9110,
+    "iconPath": "ui/icon/009000/009110.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 532,
+        "path": "chara/action/ability/pvp_common/abl004.tmb",
+        "bytes": 612,
+        "dependencies": 14,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 18928,
+    "name": "Recuperate",
+    "historicalIcon": 9108,
+    "iconPath": "ui/icon/009000/009108.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 601,
+        "path": "chara/action/ability/pvp_common/abl011.tmb",
+        "bytes": 607,
+        "dependencies": 17,
+        "missingDependencies": []
+      },
+      {
+        "id": 1875,
+        "path": "chara/action/normal_hit/normal_hit.tmb",
+        "bytes": 126,
+        "dependencies": 0,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 17682,
+    "name": "Peloton",
+    "historicalIcon": 9346,
+    "iconPath": "ui/icon/009000/009346.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 5443,
+        "path": "chara/action/rol_common/rol027.tmb",
+        "bytes": 1283,
+        "dependencies": 22,
+        "missingDependencies": []
+      },
+      {
+        "id": 5444,
+        "path": "chara/action/rol_common/rol027_hit.tmb",
+        "bytes": 429,
+        "dependencies": 6,
+        "missingDependencies": []
+      }
+    ]
+  },
+  {
+    "id": 4249,
+    "name": "Terminal Velocity",
+    "historicalIcon": 9116,
+    "iconPath": "ui/icon/009000/009116.tex",
+    "iconBytes": 3280,
+    "timelines": [
+      {
+        "id": 3925,
+        "path": "chara/action/limitbreak/lbk_range_lv1.tmb",
+        "bytes": 1972,
+        "dependencies": 34,
+        "missingDependencies": []
+      },
+      {
+        "id": 4012,
+        "path": "chara/action/limitbreak/lbk_range_lv1_hit.tmb",
+        "bytes": 439,
+        "dependencies": 7,
+        "missingDependencies": []
+      }
+    ]
+  }
+]

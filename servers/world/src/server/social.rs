@@ -26,13 +26,12 @@ pub fn handle_social_messages(
             invite_type,
         ) => {
             let mut log_message = LogMessageType::Default;
-            let mut network = network.lock();
-
             let is_online;
             {
                 let data = data.lock();
                 is_online = data.find_actor_instance(*recipient_actor_id).is_some();
             }
+            let mut network = network.lock();
 
             // The client seems to enforce offline friend list requests itself, but we'll still block it.
             if !is_online {

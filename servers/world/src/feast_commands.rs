@@ -4,7 +4,7 @@ pub fn is_match_command(text: &str) -> bool {
     words.next() == Some("!feast")
         && matches!(
             words.next(),
-            Some("status" | "hud" | "restart" | "dummies" | "attack" | "director")
+            Some("status" | "hud" | "restart" | "dummies" | "bots" | "attack" | "director" | "ground" | "actions" | "loadout" | "job")
         )
 }
 
@@ -19,6 +19,8 @@ mod tests {
             "!feast   status ",
             "!feast\trestart",
             "!feast dummies 3",
+            "!feast bots",
+            "!feast bots off",
             "!feast attack off",
             "!feast director on",
             "!feast director off",

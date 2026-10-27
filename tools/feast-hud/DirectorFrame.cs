@@ -25,18 +25,27 @@ public sealed record Participant(uint Id, byte Team, ushort Medals, byte Job, bo
 }
 public sealed record PartyAction(byte Slot, ushort Id, ushort RemainingTenths)
 {
-    public int RecastTenths => Id is 17832 or 18957 ? 450 : 300;
+    public bool IsAdrenaline => Id is >= 3359 and <= 3362 or 4249;
+    public int RecastTenths => FeastJobActions.Find(Id) is { } action ? (int)(action.Recast * 10) : Id is 17832 or 18957 ? 450 : 300;
     // Verified against the archived 6.08 Action sheet.
-    public int Icon => Id switch { 1584 => 9112, 17690 => 9339, 17832 => 9208,
-        17688 => 9294, 18957 => 9526, 17689 => 9113, _ => 0 };
+    public int Icon => Id switch { 3362 => 784, 1584 => 9112, 17690 => 9339, 17832 => 9208,
+        17688 => 9294, 18957 => 9526, 17689 => 9113, _ => FeastJobActions.Find(Id)?.Icon ?? 0 };
 }
-public sealed record DirectorFrame(Snapshot Summary, IReadOnlyList<Participant> Players, int RespawnSeconds);
+public sealed record HotbarAction(ushort BaseId, ushort ResolvedId, ushort CastMs, ushort RecastMs);
+public sealed record JobGauge(byte Job, byte Resource, byte Meditation, byte Polyglot, byte Element, bool Enochian, ushort Timer);
+public sealed record DirectorFrame(Snapshot Summary, IReadOnlyList<Participant> Players, int RespawnSeconds)
+{
+    public IReadOnlyList<HotbarAction> Hotbar { get; init; } = [];
+    public JobGauge? Gauge { get; init; }
+}
 
 // An ordered director frame is published only after its commit record arrives.
 public sealed class DirectorFrames
 {
     private Snapshot? pending;
     private readonly List<Participant> players = [];
+    private readonly List<HotbarAction> hotbar = [];
+    private JobGauge? jobGauge;
     private int respawn;
     public DirectorFrame? Current { get; private set; }
     public void Clear() { pending = null; players.Clear(); Current = null; }
@@ -47,7 +56,7 @@ public sealed class DirectorFrames
         switch (data[0])
         {
             case 0xF1:
-                pending = null; players.Clear();
+                pending = null; players.Clear(); hotbar.Clear(); jobGauge = null;
                 int phase = data[1] & 7, team = data[1] >> 3;
                 if (phase > 5 || team > 2 || BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(2, 2)) > 360 || data[8] > 200 || data[9] > 10) return false;
                 pending = new(new[] { "prep", "active", "sudden", "fang", "claw", "draw" }[phase],
@@ -65,7 +74,7 @@ public sealed class DirectorFrames
                 uint owner = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(1, 4));
                 int index = players.FindIndex(p => p.Id == owner);
                 var action = new PartyAction(data[5], BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(6, 2)), BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(8, 2)));
-                if (index < 0 || action.Slot > 2 || action.Icon == 0 || action.RemainingTenths > 450
+                if (index < 0 || action.Slot > 2 || action.Icon == 0 || action.RemainingTenths > action.RecastTenths
                     || players[index].Actions.Any(a => a.Slot == action.Slot))
                 { pending = null; return false; }
                 players[index] = players[index] with { Actions = players[index].Actions.Append(action).OrderBy(a => a.Slot).ToArray() };
@@ -76,8 +85,30 @@ public sealed class DirectorFrames
                 if (gaugeIndex < 0 || data[5] > 100) { pending = null; return false; }
                 players[gaugeIndex] = players[gaugeIndex] with { Adrenaline = data[5] };
                 return false;
+            case 0xF6 when pending != null:
+                var slot = new HotbarAction(BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(2,2)), BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(4,2)),
+                    BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(6,2)), BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(8,2)));
+                if (hotbar.Count >= 64 || data[1] != 0 || FeastJobActions.Find(slot.BaseId) == null || FeastJobActions.Find(slot.ResolvedId) == null
+                    || slot.CastMs > 10000 || slot.RecastMs > 60000 || hotbar.Any(a => a.BaseId == slot.BaseId))
+                { pending = null; return false; }
+                hotbar.Add(slot);
+                return false;
+            case 0xF7 when pending != null:
+                if (jobGauge != null || !FeastJobActions.Supports(data[1]) || data[2] > (data[1] == 25 ? 150 : 100)
+                    || data[3] > (data[1] is 35 or 39 ? 100 : data[1] is 23 or 38 ? 4 : 3)
+                    || data[4] > (data[1] is 38 or 39 ? 5 : 2) || data[5] > (data[1] == 39 ? 5 : 2) || data[6] > 1
+                    || (data[1] == 24 && (data[2] > 3 || BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(7,2)) >= 10000))
+                    || (data[1] == 22 && data[2] > 2)
+                    || (data[1] == 20 && data[2] > 5)
+                    || (data[1] is 27 or 37 && data[2] > 2)
+                    || (data[1] == 40 && (data[2] > 3 || BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(7,2)) >= 10000))
+                    || (data[1] == 33 && data[2] is not (0 or 7 or 8))
+                    || (data[1] == 38 && (data[4] > 4 || (data[7] & 15) > 4 || (data[7] >> 4) > 4 || (data[8] & 15) > 4 || (data[8] >> 4) > 4))
+                    || BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(7,2)) > (data[1] is 22 or 23 or 32 or 38 ? 30000 : 15000)) { pending = null; return false; }
+                jobGauge = new(data[1],data[2],data[3],data[4],data[5],data[6] == 1,BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(7,2)));
+                return false;
             case 0xF3 when pending != null:
-                Current = new(pending with { Ground = BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(1, 2)) }, players.ToArray(), respawn);
+                Current = new(pending with { Ground = BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(1, 2)) }, players.ToArray(), respawn) { Hotbar = hotbar.ToArray(), Gauge = jobGauge };
                 pending = null;
                 return true;
             default: pending = null; return false;

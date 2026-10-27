@@ -81,6 +81,8 @@ pub enum QueuedTaskData {
     },
     /// Reset a player's action combo status.
     ResetCombo,
+    /// Finish an early native PvP return request after the Feast KO lock expires.
+    FeastRespawn { homepoint: u32 },
 }
 
 #[derive(Debug, Clone)]

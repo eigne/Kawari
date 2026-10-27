@@ -45,7 +45,7 @@ internal static unsafe class NativeRoster
                 numbers->SetValue(n + 10, (int)actor.CurrentMp);
                 numbers->SetValue(n + 11, (int)Math.Max(1u, actor.MaxMp));
                 numbers->SetValue(n + 12, p.Adrenaline);
-                strings->SetValue(s + 5, actor.Name.TextValue, managed: true);
+                strings->SetValue(s + 5, DisplayName(p, actor, row), managed: true);
                 // Verified native row renderer RVA13C5ED2: n+13 is a 0..100
                 // cast percentage; s+6 replaces the name while the bar is visible.
                 bool casting = p.Alive && actor.IsCasting && actor.TotalCastTime > 0;
@@ -59,10 +59,18 @@ internal static unsafe class NativeRoster
                 {
                     var action = p.Actions[icon];
                     numbers->SetValue(n + 36 + icon, action.Icon);
-                    numbers->SetValue(n + 46 + icon, action.RemainingTenths);
-                    strings->SetValue(s + 7 + icon, action.RemainingTenths == 0 ? "" : ((action.RemainingTenths + 9) / 10).ToString(), managed: true);
+                    numbers->SetValue(n + 46 + icon, action.IsAdrenaline ? 0 : action.RemainingTenths);
+                    strings->SetValue(s + 7 + icon, action.IsAdrenaline || action.RemainingTenths == 0 ? "" : ((action.RemainingTenths + 9) / 10).ToString(), managed: true);
                 }
             }
         }
     }
+
+    // Training BNpcs with no BNpcName row can have an empty client-side name.
+    // Real characters retain their actual names; only unnamed practice actors
+    // receive this label, and targeting still uses their real entity ID.
+    internal static string DisplayName(Participant participant, IBattleChara actor, int row) =>
+        string.IsNullOrWhiteSpace(actor.Name.TextValue)
+            ? $"{participant.JobAbbreviation} {row + 1}"
+            : actor.Name.TextValue;
 }

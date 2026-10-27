@@ -59,7 +59,7 @@ pub use event_start::{EventStart, EventType};
 
 mod action_result;
 pub use action_result::{
-    ActionEffect, ActionResult, ActionResultFlag, DamageElement, DamageKind, DamageType, EffectKind,
+    ActionEffect, ActionResult, AoeActionResult, ActionResultFlag, DamageElement, DamageKind, DamageType, EffectKind,
 };
 
 mod actor_set_pos;
@@ -978,29 +978,7 @@ pub enum ServerZoneIpcData {
         unk3: u32,
         unk4: u32,
     },
-    AoeEffect8 {
-        source_actor: ObjectId,
-        unk1: u32,
-        action_key: u32,
-        dir: u16,
-        duration: f32,
-        unk3: u32,
-        request_id: u16,
-        action_id: u16,
-        action_variant: u8,
-        action_kind: u8,
-        flag: u8,
-        unk10: [u8; 18],
-        target_count: u8,
-        #[br(count = 512)]
-        #[brw(pad_size_to = 512)]
-        effects: Vec<u8>,
-        target_ids: [ObjectTypeId; 8],
-        #[brw(pad_after = 6)] // empty
-        #[br(map = read_packed_position)]
-        #[bw(map = write_packed_position)]
-        position: Position,
-    },
+    AoeEffect8(action_result::AoeActionResult),
     ActorCast {
         /// Usually the same as `action_id`.
         spell_id: u16,

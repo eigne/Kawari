@@ -132,7 +132,7 @@ impl Match {
                 .is_some_and(|p| p.present && p.job == job)
     }
 
-    fn pickup_space(&self, id: u32) -> u16 {
+    pub(super) fn pickup_space(&self, id: u32) -> u16 {
         let Some(p) = self.players.get(&id) else {
             return 0;
         };
@@ -421,7 +421,7 @@ use super::{
 };
 use crate::FromServer;
 use kawari::{
-    common::{ObjectId, Position, SharedGroupTimelineState},
+    common::{DirectorEvent, ObjectId, Position, SharedGroupTimelineState},
     ipc::zone::{ActorControlCategory, ObjectKind, SpawnObject},
 };
 use parking_lot::Mutex;
@@ -726,7 +726,31 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     }
     let now = runtime.started.elapsed().as_secs_f64();
     runtime.empty_since = None;
+    let previous_phase = runtime.rules.phase;
     runtime.rules.step(now, &inputs);
+    if previous_phase != runtime.rules.phase
+        && matches!(runtime.rules.phase, Phase::Active | Phase::SuddenDeath)
+        && let Some(director) = &instance.director
+    {
+        // Keep native duty warnings on the authoritative match clock, including
+        // the sudden-death extension, rather than the earlier entry timestamp.
+        let remaining = (runtime.rules.deadline - now).ceil().max(0.0) as u32;
+        for input in &inputs {
+            let id = ObjectId(input.id);
+            if matches!(instance.find_actor(id), Some(NetworkedActor::Player { .. })) {
+                network.lock().send_to_by_actor_id(
+                    id,
+                    FromServer::ActorControlSelf(ActorControlCategory::DirectorEvent {
+                        handler_id: director.id,
+                        event: DirectorEvent::SetDutyTimeRemaining {
+                            arg1: remaining, arg2: 0, arg3: 0, arg4: 0,
+                        },
+                    }),
+                    DestinationNetwork::ZoneClients,
+                );
+            }
+        }
+    }
     // Reuse the surviving Marked for Culling status and native stack icon.
     let stacks = runtime.rules.culling_stacks(now);
     for input in &inputs {
@@ -883,6 +907,16 @@ pub fn command(
     }
     tick(instance, network);
     let words: Vec<_> = text.split_whitespace().collect();
+    if words.first() == Some(&"ground") {
+        super::feast::ground_action(instance, network, id, &words);
+        return;
+    }
+    if matches!(words.first(), Some(&"actions") | Some(&"loadout") | Some(&"job")) {
+        super::feast::tick(instance, network);
+        let command = match words[0] { "actions" => "list", "job" => "status", _ => text };
+        super::feast::command(instance, network, id, command);
+        return;
+    }
     if words.first() == Some(&"director") {
         let enabled = match words.as_slice() {
             ["director", "on"] => true,
@@ -897,7 +931,7 @@ pub fn command(
         super::feast::notice(network, id, format!("Legacy director probe {}. Existing Feast rules continue; leave the arena or use !feast director off to end the probe.", if enabled { "requested" } else { "disabled" }));
         return;
     }
-    if matches!(words.first(), Some(&"dummies") | Some(&"attack")) {
+    if matches!(words.first(), Some(&"dummies") | Some(&"attack") | Some(&"bots")) {
         super::feast_training::command(instance, network, id, &words);
         return;
     }
@@ -936,6 +970,10 @@ pub fn command(
             .is_some_and(|m| matches!(m.rules.phase, Phase::Finished(_)))
         {
             if !instance.feast_dummies.is_empty() {
+                if instance.feast_dummies.values().any(|d| d.autonomous) {
+                    super::feast_training::command(instance, network, id, &["bots"]);
+                    return;
+                }
                 let count = instance.feast_dummies.len().to_string();
                 super::feast_training::command(instance, network, id, &["dummies", &count]);
                 return;
@@ -1011,11 +1049,7 @@ pub fn reset_training(instance: &mut Instance, network: &Arc<Mutex<NetworkState>
         rules.players.insert(
             id.0,
             Player {
-                team: if instance.feast_dummies.contains_key(id) {
-                    Team::Claw
-                } else {
-                    Team::Fang
-                },
+                team: instance.feast_dummies.get(id).map_or(Team::Fang, |d| d.team),
                 job: s.class_job,
                 medals: 100,
                 position: s.position.0.to_array(),

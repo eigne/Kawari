@@ -60,6 +60,7 @@ mod effect;
 mod feast;
 mod feast_director;
 mod feast_match;
+pub(crate) const FEAST_DUTY_DURATION: u16 = (feast_match::COUNTDOWN + feast_match::MATCH_TIME) as u16;
 mod feast_training;
 mod feast_supplies;
 mod instance;
@@ -616,7 +617,15 @@ fn server_logic_tick(
                     }
 
                     // If the actor _should_ be in the view of the other.
-                    let in_range = actor.in_range_of(other_actor);
+                    // Feast's native rosters need both teams' actors even at
+                    // opposite starting gates. Keep only match participants in
+                    // view; ordinary NPCs/objects retain normal distance culling.
+                    let feast_participants = instance.zone.id == 745
+                        && instance.feast_match.as_ref().is_some_and(|runtime| {
+                            runtime.rules.players.get(&id.0).is_some_and(|p| p.present)
+                                && runtime.rules.players.get(&other_id.0).is_some_and(|p| p.present)
+                        });
+                    let in_range = feast_participants || actor.in_range_of(other_actor);
                     let has_been_spawned = state.has_spawned(*other_id);
 
                     // There are four states:
@@ -940,9 +949,8 @@ pub async fn server_main_loop(
                                 );
                             }
                             QueuedTaskData::DeadFadeOut { actor_id } => {
-                                let mut network = network.lock();
-
                                 let mut data = data.lock();
+                                let mut network = network.lock();
                                 if let Some(instance) = data.instances.get_mut(*instance_index) {
                                     network.send_ac_in_range_instance(
                                         instance,
@@ -1022,6 +1030,15 @@ pub async fn server_main_loop(
                                     0,
                                     0,
                                 );
+                            }
+                            QueuedTaskData::FeastRespawn { homepoint } => {
+                                let still_in_feast = data.lock()
+                                    .find_actor_instance_mut(task.from_actor_id)
+                                    .is_some_and(|instance| instance.zone.id == 745);
+                                if still_in_feast {
+                                    handle_zone_messages(data.clone(), network.clone(), game_data.clone(),
+                                        &ToServer::ReturnAfterDeath(task.from_id, task.from_actor_id, *homepoint));
+                                }
                             }
                             QueuedTaskData::ResetCombo => {
                                 let mut data = data.lock();
@@ -1131,8 +1148,9 @@ pub async fn server_main_loop(
                 ) => {
                     tracing::info!("Player {from_id:?} is spawning into zone {zone_id}....");
 
-                    let mut network = network.lock();
                     let mut data = data.lock();
+
+                    let mut network = network.lock();
 
                     // create a new instance if necessary
                     let instance;
@@ -1346,8 +1364,9 @@ pub async fn server_main_loop(
                                 ActorControlCategory::SetTarget {},
                             );
 
-                            let mut network = network.lock();
                             let data = data.lock();
+
+                            let mut network = network.lock();
                             network.send_in_range(
                                 from_actor_id,
                                 &data,
@@ -1362,8 +1381,9 @@ pub async fn server_main_loop(
                                 ActorControlCategory::SetSoftTarget {},
                             );
 
-                            let mut network = network.lock();
                             let data = data.lock();
+
+                            let mut network = network.lock();
                             network.send_in_range(
                                 from_actor_id,
                                 &data,
@@ -1380,8 +1400,9 @@ pub async fn server_main_loop(
                                 },
                             );
 
-                            let mut network = network.lock();
                             let mut data = data.lock();
+
+                            let mut network = network.lock();
                             network.send_in_range(
                                 from_actor_id,
                                 &data,
@@ -1408,8 +1429,9 @@ pub async fn server_main_loop(
                                 },
                             );
 
-                            let mut network = network.lock();
                             let mut data = data.lock();
+
+                            let mut network = network.lock();
                             network.send_in_range(
                                 from_actor_id,
                                 &data,
@@ -1437,8 +1459,9 @@ pub async fn server_main_loop(
                                 },
                             );
 
-                            let mut network = network.lock();
                             let mut data = data.lock();
+
+                            let mut network = network.lock();
                             network.send_in_range(
                                 from_actor_id,
                                 &data,
@@ -1474,8 +1497,9 @@ pub async fn server_main_loop(
                                 },
                             );
 
-                            let mut network = network.lock();
                             let data = data.lock();
+
+                            let mut network = network.lock();
                             network.send_in_range(
                                 from_actor_id,
                                 &data,
@@ -1582,8 +1606,8 @@ pub async fn server_main_loop(
                             );
                         }
                         ClientTriggerCommand::PlaceWaymark { id, pos } => {
-                            let mut network = network.lock();
                             let data = data.lock();
+                            let mut network = network.lock();
 
                             update_party_waymark(
                                 &mut network,
@@ -1594,14 +1618,14 @@ pub async fn server_main_loop(
                             );
                         }
                         ClientTriggerCommand::ClearWaymark { id } => {
-                            let mut network = network.lock();
                             let data = data.lock();
+                            let mut network = network.lock();
 
                             update_party_waymark(&mut network, &data, from_actor_id, *id, None);
                         }
                         ClientTriggerCommand::ClearAllWaymarks {} => {
-                            let mut network = network.lock();
                             let data = data.lock();
+                            let mut network = network.lock();
 
                             // Clearing all waymarks is equivalent to sending a completely blank preset.
                             update_party_waymarks(
@@ -1779,9 +1803,8 @@ pub async fn server_main_loop(
                                 }
                             } else {
                                 // If not cancelling, then we need to send a confirmation to the opponent...
-                                let mut network = network.lock();
-
                                 let data = data.lock();
+                                let mut network = network.lock();
                                 let Some(instance) = data.find_actor_instance(from_actor_id) else {
                                     continue;
                                 };
@@ -2090,14 +2113,14 @@ pub async fn server_main_loop(
                     network.linkshells.retain(|_, shell| !shell.is_empty());
                 }
                 ToServer::ActorSummonsMinion(from_actor_id, minion_id) => {
-                    let mut network = network.lock();
                     let mut data = data.lock();
+                    let mut network = network.lock();
 
                     set_player_minion(&mut data, &mut network, minion_id, from_actor_id);
                 }
                 ToServer::ActorDespawnsMinion(from_actor_id) => {
-                    let mut network = network.lock();
                     let mut data = data.lock();
+                    let mut network = network.lock();
 
                     set_player_minion(&mut data, &mut network, 0, from_actor_id);
                 }
@@ -2342,8 +2365,8 @@ pub async fn server_main_loop(
                     }
                 }
                 ToServer::Dismounted(from_actor_id, party_id) => {
-                    let mut network = network.lock();
                     let data = data.lock();
+                    let mut network = network.lock();
 
                     let mut ids_to_dismount = Vec::new();
                     ids_to_dismount.push(from_actor_id);
@@ -2380,8 +2403,8 @@ pub async fn server_main_loop(
                     }
                 }
                 ToServer::SetOnlineStatus(from_actor_id, online_status) => {
-                    let mut network = network.lock();
                     let data = data.lock();
+                    let mut network = network.lock();
                     network.send_ac_in_range_inclusive(
                         &data,
                         from_actor_id,
@@ -2402,8 +2425,8 @@ pub async fn server_main_loop(
                     set_character_mode(instance, &mut network, from_actor_id, mode, arg);
                 }
                 ToServer::BroadcastActorControl(from_actor_id, actor_control) => {
-                    let mut network = network.lock();
                     let data = data.lock();
+                    let mut network = network.lock();
                     network.send_ac_in_range(&data, from_actor_id, actor_control);
                 }
                 ToServer::RemoveCooldowns(actor_id) => {
@@ -2481,8 +2504,10 @@ pub async fn server_main_loop(
             }
         }
 
-        // Remove any clients that errored out
+        // Remove any clients that errored out. Always acquire data before network,
+        // matching the simulation tick; the reverse order can deadlock both.
         {
+            let mut data = data.lock();
             let mut network = network.lock();
 
             network.to_remove.append(&mut to_remove);
@@ -2497,7 +2522,6 @@ pub async fn server_main_loop(
                 }
 
                 if let Some(actor_id) = actor_id {
-                    let mut data = data.lock();
                     // remove them from the instance
                     if let Some(current_instance) = data.find_actor_instance_mut(actor_id) {
                         network.remove_actor(current_instance, actor_id);

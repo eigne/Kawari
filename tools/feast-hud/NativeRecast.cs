@@ -23,7 +23,8 @@ internal sealed unsafe class NativeRecast
             if (component == null) continue;
             var action = row < players.Length && slot < players[row].Actions.Count && ageMs < 2500
                 ? players[row].Actions[slot] : null;
-            float remaining = action == null ? 0 : Math.Max(0, action.RemainingTenths - ageMs / 100f);
+            float remaining = action == null ? 0 : action.IsAdrenaline
+                ? 100 - players[row].Adrenaline : Math.Max(0, action.RemainingTenths - ageMs / 100f);
             bool active = remaining > 0;
             var image = *(AtkImageNode**)((byte*)component + 0xC0);
             if (image == null || image->Type != NodeType.Image) continue;
@@ -40,7 +41,7 @@ internal sealed unsafe class NativeRecast
             if (!active) continue;
             // ActionBar.uld part-list4: 9 columns, 44x46 parts, 48px row pitch.
             // Last atlas cell is the completion flash; use only progress cells.
-            int cell = Math.Clamp((int)((1 - remaining / action!.RecastTenths) * 79), 0, 79);
+            int cell = Math.Clamp((int)((1 - remaining / (action!.IsAdrenaline ? 100 : action.RecastTenths)) * 79), 0, 79);
             var part = (AtkUldPart*)entry.Part;
             part->U = (ushort)(cell % 9 * 44); part->V = (ushort)(cell / 9 * 48);
             node->SetPositionFloat(image->X, image->Y);
@@ -59,6 +60,8 @@ internal sealed unsafe class NativeRecast
         parts->PartCount = 1; parts->Parts = part;
         node->PartsList = parts; node->PartId = 0; node->Width = 44; node->Height = 46;
         node->NodeId = 0xFEA500;
+        node->Type = NodeType.Image;
+        node->WrapMode = 1; node->Flags = 0;
         node->Color.A = 110;
         node->NodeFlags = NodeFlags.Visible | NodeFlags.Enabled;
         // Insert immediately above the existing image, below timer text. No

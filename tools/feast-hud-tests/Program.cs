@@ -44,3 +44,158 @@ frames.Accept(summary); frames.Accept(gauge); Check(!frames.Accept(commit), "Unk
 frames.Accept(summary); frames.Accept(fang); gauge[5] = 101; frames.Accept(gauge);
 Check(!frames.Accept(commit), "Invalid gauge rejected");
 Console.WriteLine("4 adrenaline framing cases passed.");
+byte[] jobAction = [0xF6, 0, 0x9e, 0x22, 0x9f, 0x22, 0xd0, 0x07, 0x60, 0x09]; // Enochian -> Fire IV
+frames.Clear(); frames.Accept(summary); frames.Accept(fang); frames.Accept(jobAction);
+Check(frames.Current == null, "Hotbar changes wait for commit");
+frames.Accept(commit);
+Check(frames.Current!.Hotbar.Single() is { BaseId: 8862, ResolvedId: 8863, CastMs: 2000, RecastMs: 2400 }, "Historical action resolution decoded");
+frames.Accept(summary); frames.Accept(jobAction); frames.Accept(jobAction);
+Check(!frames.Accept(commit), "Duplicate hotbar action invalidates frame");
+frames.Accept(summary); frames.Accept(commit);
+Check(frames.Current!.Hotbar.Count == 0, "Hotbar state cannot leak into next job");
+foreach (uint job in new uint[] {19,25,34})
+{
+    var bar = FeastJobActions.Hotbar(job);
+    Check(bar.Length is > 15 and <= 36, "Full native kit fits three bars");
+    Check(bar.All(id => FeastJobActions.Contains(job,id) && FeastJobActions.Find(id)!.Icon != 784), "Historical icons and job whitelist");
+}
+Check(!FeastJobActions.Contains(25,8755), "Black Mage cannot bypass Paladin action gates");
+Console.WriteLine("11 job hotbar/catalog cases passed.");
+byte[] jobGauge = [0xF7,34,75,2,0,0,0,0x98,0x3a,0];
+frames.Clear(); frames.Accept(summary); frames.Accept(jobGauge);
+Check(frames.Current == null,"Job gauge waits for commit");
+frames.Accept(commit); Check(frames.Current!.Gauge is { Job:34,Resource:75,Meditation:2 },"Native gauge fields decoded");
+frames.Accept(summary); jobGauge[2]=101; frames.Accept(jobGauge); Check(!frames.Accept(commit),"Invalid Kenki rejected");
+frames.Accept(summary); frames.Accept(commit); Check(frames.Current!.Gauge==null,"Job gauge cleared between jobs");
+Console.WriteLine("4 native job gauge cases passed.");
+Check(FeastSpells.Icon(7432) == 9208, "Protect button uses historical PvP icon");
+Check(FeastSpells.Icon(7433) == 9113, "Attunement button uses historical PvP icon");
+Check(FeastSpells.Icon(16533) == 9439, "Glare button uses historical PvP icon");
+Check(FeastSpells.Icon(999999) == 0, "Unknown buttons retain their native icon");
+Console.WriteLine("4 WHM historical icon cases passed.");
+Check(FeastJobActions.Find(FeastSpells.Resolve(7432)) is { Name: "Protect", Recast: 45, Icon: 9208, MpCost: 0 }, "Protect metadata must not inherit modern Benison");
+Check(FeastJobActions.Find(8896) is { Name: "Cure II", MpCost: 1000, Cast: 1.5f }, "Historical Cure II tooltip cost and cast time");
+Check(FeastJobActions.Find(8866) is { MpCost: 4000 }, "Historical Flare tooltip cost");
+Console.WriteLine("3 historical tooltip metadata cases passed.");
+byte[] lilies = [0xF7,24,2,3,0,0,0,0xc4,9,0]; // 2 lilies, full blood, 2500ms
+frames.Clear(); frames.Accept(summary); frames.Accept(fang); frames.Accept(lilies); frames.Accept(commit);
+Check(frames.Current!.Gauge is { Job:24, Resource:2, Meditation:3, Timer:2500 }, "WHM gauge decoded atomically");
+frames.Accept(summary); lilies[2]=4; frames.Accept(lilies);
+Check(!frames.Accept(commit), "Reject fourth lily");
+lilies[2]=2; lilies[7]=0x10; lilies[8]=0x27;
+frames.Accept(summary); frames.Accept(lilies);
+Check(!frames.Accept(commit), "Reject unbounded lily timer");
+var resourceFrame = new DirectorFrame(new("active",60,100,0,"fang",100,125,0),
+    [new Participant(1,1,100,24,true) { Adrenaline=100 }],0) { Gauge=new(24,1,3,0,0,false,0) };
+Check(FeastResources.CanUse(17791,resourceFrame,1) && FeastResources.CanUse(18946,resourceFrame,1), "Lily enables Solace and Rapture");
+Check(FeastResources.CanUse(17793,resourceFrame,1), "Full blood enables Misery");
+Check(FeastResources.CanUse(3362,resourceFrame,1), "Full adrenaline enables Rain");
+var emptyFrame = resourceFrame with { Gauge=new(24,0,0,0,0,false,0), Players=[new Participant(1,1,100,24,true)] };
+Check(!FeastResources.CanUse(17791,emptyFrame,1) && !FeastResources.CanUse(18946,emptyFrame,1)
+    && !FeastResources.CanUse(17793,emptyFrame,1) && !FeastResources.CanUse(3362,emptyFrame,1), "Empty resources disable predictions");
+Check(!FeastResources.CanUse(3362,resourceFrame with { Summary=resourceFrame.Summary with { Phase="prep" } },1), "Preparation blocks actions");
+Check(!FeastResources.CanUse(3362,null,1) && !FeastResources.CanUse(3362,resourceFrame,99), "Missing state or participant fails closed");
+Console.WriteLine("9 WHM/adrenaline protocol and eligibility cases passed.");
+var headerFrame = new DirectorFrame(new("active",298,300,500,"claw",100,125,0),
+    [new(10,1,50,34,true),new(20,2,200,19,true),new(21,2,100,24,true)],0);
+var header = MatchHeaderState.From(headerFrame,0);
+Check(header.Left.Name=="Claws ★" && header.Left.Score==500 && header.Right.Name=="Fangs" && header.Right.Score==300, "Header preserves historical team colors and marks local team");
+Check(header.Left.Players.Select(p=>p.Id).SequenceEqual(new uint[]{20,21}) && header.Right.Players.Single().Medals==50, "Header medal slots keep team and roster ordering");
+Check(header.Clock=="4:58" && MatchHeaderState.From(headerFrame,1200).Clock=="4:57", "Header clock interpolates live frame");
+Check(MatchHeaderState.From(headerFrame,2501).Left.Players.Count==0 && MatchHeaderState.From(headerFrame,2501).Clock=="--:--", "Stale header hides old scores and roster");
+Check(MatchHeaderState.From(headerFrame with { Summary=headerFrame.Summary with { Team="fang" } },0).Right.Name=="Fangs ★", "Fang player marker stays on red side");
+Check(MatchHeaderState.From(headerFrame with { Summary=headerFrame.Summary with { Phase="claw" } },2000).Clock=="4:58", "Finished clock stops interpolating");
+Check(MatchHeaderState.From(headerFrame with { Summary=headerFrame.Summary with { Phase="sudden", Seconds=1 } },2000) is { Clock:"0:00", Phase:"SUDDEN DEATH" }, "Overtime clock clamps at zero");
+Check(MatchHeaderState.GaugeWidth(0)==0 && MatchHeaderState.GaugeWidth(300)==170 && MatchHeaderState.GaugeWidth(900)==340, "Medal gauge reflects 600 medal victory threshold");
+Console.WriteLine("8 native match header cases passed.");
+foreach (ushort id in new ushort[]{3359,3360,3361,3362})
+    Check(new PartyAction(0,id,0) is { IsAdrenaline:true, Icon:>0 }, "Adrenaline party slot has a historical icon");
+Console.WriteLine("4 party adrenaline icon cases passed.");
+Check(FeastJobActions.Supports(21) && FeastJobActions.Supports(22), "WAR and DRG enable native Feast hotbars");
+Check(FeastJobActions.Hotbar(21).Contains(8758u) && !FeastJobActions.Hotbar(21).Contains(8761u), "WAR base combo button excludes derived Maim");
+Check(FeastJobActions.Hotbar(22).Contains(18916u) && !FeastJobActions.Hotbar(22).Contains(8793u), "DRG base combo button excludes derived Full Thrust");
+Check(FeastJobActions.Contains(21,3359) && FeastJobActions.Contains(22,3360), "WAR and DRG retain role adrenaline actions");
+byte[] dragonGauge=[0xF7,22,2,0,0,2,0,0x30,0x75,0];
+frames.Clear();frames.Accept(summary);frames.Accept(dragonGauge);frames.Accept(commit);
+Check(frames.Current?.Gauge is { Job:22,Resource:2,Element:2,Timer:30000 }, "Dragon gauge accepts capped 30-second timer");
+dragonGauge[2]=3;frames.Accept(summary);frames.Accept(dragonGauge);
+Check(!frames.Accept(commit), "Dragon gauge rejects third eye");
+Console.WriteLine("6 WAR/DRG HUD cases passed.");
+int expandedChecks=0;
+foreach (uint job in new uint[]{20,23,27,28,30,31,32,33,35,37,38,39,40})
+{
+    Check(FeastJobActions.Supports(job), $"Historical job {job} enabled"); expandedChecks++;
+    var actions=FeastJobActions.Hotbar(job);
+    Check(actions.Length is > 8 and <= 36 && actions.Distinct().Count()==actions.Length, $"Job {job} has unique bounded hotbar"); expandedChecks++;
+    Check(actions.All(id=>FeastJobActions.Find(id) is { Icon:>0 }), $"Job {job} has original icons"); expandedChecks++;
+}
+Check(!FeastJobActions.Supports(36) && !FeastJobActions.Supports(41) && !FeastJobActions.Supports(42), "BLU and post-Feast jobs excluded"); expandedChecks++;
+Check(new PartyAction(0,4249,0).IsAdrenaline && !FeastResources.CanUse(4249,emptyFrame,1), "Terminal Velocity requires adrenaline and uses the LB slot"); expandedChecks++;
+Check(FeastJobActions.Find(17701) is { MpCost:2500 } && FeastJobActions.Find(8905) is { MpCost:1000 }, "Recovered fixed PvP MP costs"); expandedChecks++;
+// Reaper's complete atomic action frame exceeds the previous 32-record limit.
+frames.Clear(); frames.Accept(summary);
+foreach (var id in new ushort[]{27795,27796,27797,27802,27803,27806,27808,27809,27810,27813,27814,27817,27818,27820,27821,27798,27799,27800,27801,27804,27805,27807,27811,27812,27815,27816,27819,18992,18954,17676,17681,17677,17674,3360,18942,18943})
+{
+    byte[] row=[0xF6,0,(byte)id,(byte)(id>>8),(byte)id,(byte)(id>>8),0,0,0,0]; frames.Accept(row);
+}
+Check(frames.Accept(commit) && frames.Current!.Hotbar.Count==36, "Full Reaper frame is accepted atomically"); expandedChecks++;
+foreach (byte[] row in new byte[][]{
+    [0xF7,35,100,100,0,0,0,0,0,0], [0xF7,39,100,100,5,4,0,0x98,0x3a,0],
+    [0xF7,38,100,4,4,2,0,0x21,0x43,0], [0xF7,23,100,4,0,2,0,0x30,0x75,0]})
+{
+    frames.Clear(); frames.Accept(summary); frames.Accept(row); Check(frames.Accept(commit), $"Job {row[1]} gauge decodes"); expandedChecks++;
+}
+Console.WriteLine($"{expandedChecks} all-job HUD cases passed.");
+
+byte[] nativeGaugeHeader = new byte[40];
+"JobHudWHM0\0"u8.CopyTo(nativeGaugeHeader.AsSpan(8));
+foreach (ulong table in new ulong[] { 0x142295E18, 0x2c016582250 })
+{
+    BitConverter.GetBytes(table).CopyTo(nativeGaugeHeader, 0);
+    Check(NativeAddonIdentity.IsWhiteMageGauge(nativeGaugeHeader), "WHM identity survives a Dalamud-cloned vtable");
+}
+nativeGaugeHeader[17] = (byte)'1';
+Check(!NativeAddonIdentity.IsWhiteMageGauge(nativeGaugeHeader), "Other gauge names rejected");
+nativeGaugeHeader[17] = (byte)'0'; nativeGaugeHeader[18] = (byte)'X';
+Check(!NativeAddonIdentity.IsWhiteMageGauge(nativeGaugeHeader), "Gauge name must terminate exactly");
+Check(!NativeAddonIdentity.IsWhiteMageGauge(nativeGaugeHeader.AsSpan(0, 18)), "Short addon header rejected");
+Console.WriteLine("5 native gauge identity cases passed.");
+
+// Exercise every renderer with nonzero data, then zero/expiry, while guarding
+// the native vtable and bytes beyond the payload (including BRD's string ptr).
+int gaugeChecks = 0;
+foreach (var layout in NativeJobGaugeData.Layouts)
+{
+    var name = System.Text.Encoding.ASCII.GetBytes(layout.Name + "\0");
+    Check(NativeJobGaugeData.Identify(name, layout.Job) == layout, "Exact native gauge name/owner");
+    Check(NativeJobGaugeData.Identify(name, 0) == null, "Outside Feast does not match");
+    var buffer = Enumerable.Repeat((byte)0xA5,layout.Size+16).ToArray();
+    var state = new JobGauge(layout.Job,2,1,2,1,true,5000);
+    Check(NativeJobGaugeData.Write(layout,state,buffer), "Native projection exists for " + layout.Name);
+    Check(buffer.Take(8).All(x=>x==0xA5) && buffer.Skip(layout.Size).All(x=>x==0xA5), "Native pointers and adjacent fields preserved");
+    var before = buffer.ToArray();
+    Check(!NativeJobGaugeData.Write(layout,state with { Job=0 },buffer) && buffer.SequenceEqual(before), "Wrong-job frame cannot overwrite gauge");
+    Check(!NativeJobGaugeData.Write(layout,state,buffer.AsSpan(0,layout.Size-1)), "Short native payload rejected");
+    NativeJobGaugeData.Write(layout,state with {Resource=0,Meditation=0,Polyglot=0,Element=0,Enochian=false,Timer=0},buffer);
+    if (!layout.Visible) Check(buffer.Skip(8).Take(layout.Size-8).All(x=>x==0), "Non-Feast gauge stays disabled");
+    gaugeChecks += 6 + (layout.Visible?0:1);
+}
+Check(NativeJobGaugeData.Layouts.Select(x=>x.Job).Distinct().Count()==19,"All 19 jobs have native gauge mappings");
+int GaugeInt(string name, JobGauge state, int offset)
+{
+    var layout=NativeJobGaugeData.Layouts.Single(x=>x.Name==name);
+    var buffer=new byte[layout.Size]; NativeJobGaugeData.Write(layout,state,buffer);
+    return System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(buffer.AsSpan(offset,4));
+}
+Check(GaugeInt("JobHudWHM0",new(24,3,2,0,0,false,9999),12)==3,"WHM lilies");
+Check(GaugeInt("JobHudSAM0",new(34,100,3,0,0,false,0),12)==3,"SAM meditation distinct from Kenki");
+Check(GaugeInt("JobHudRDM0",new(35,80,60,0,0,false,0),16)==60,"RDM white mana distinct from black");
+Check(GaugeInt("JobHudGFF1",new(40,2,0,0,0,false,7000),24)==10000,"SGE ten-second generation");
+Check(GaugeInt("JobHudDNC0",new(38,0,0,2,2,false,0x4321),32)==4,"DNC fourth packed step");
+Check(GaugeInt("JobHudRRP1",new(39,50,50,5,2,false,12000),12)==5,"RPR Lemure distinct from Void");
+Check(GaugeInt("JobHudAST0",new(33,8,0,0,0,false,0),24)==8,"AST Lady crown");
+Check(GaugeInt("JobHudBLM0",new(25,120,0,2,1,true,9000),24)==12000,"BLM element timer separate from Enochian");
+byte[] blmTimer=[0xF7,25,150,0,2,1,1,0x98,0x3a,0];
+frames.Clear();frames.Accept(summary);frames.Accept(blmTimer);Check(frames.Accept(commit),"BLM fifteen-second element timer accepted");
+blmTimer[2]=151;frames.Accept(summary);frames.Accept(blmTimer);Check(!frames.Accept(commit),"BLM element timer bounded");
+Console.WriteLine($"{gaugeChecks+11} native gauge projection cases passed.");

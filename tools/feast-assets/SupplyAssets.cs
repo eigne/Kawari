@@ -9,6 +9,11 @@ internal static class SupplyAssets
 {
     public static void Run(GameData game)
     {
+        var objectRows = game.GetExcelSheet<EObj>()!
+            .Where(r => r.SgbPath.IsValid)
+            .Select(r => new { r.RowId, Sgb = r.SgbPath.RowId, Path = r.SgbPath.Value.SgbPath.ToString() })
+            .Where(r => r.Path.Contains("w_pvp_001") || r.Path.Contains("sgbg_l1p2_a0_gmc0"))
+            .ToArray();
         var records = new List<object>();
         foreach (var path in new[] {
             "bg/ffxiv/pvp_xx/shared/for_bg/sgbg_l1p2_a0_gmc04.sgb",
@@ -26,6 +31,6 @@ internal static class SupplyAssets
                 TimelineNames = Regex.Matches(text, @"(?:box|gem)_[a-z_]+").Select(m => m.Value).ToArray(), Dependencies = dependencies });
         }
         var statuses = new uint[]{994,1149}.Select(id => { var row = (game.GetExcelSheet<Status>() ?? throw new Exception("Missing Status sheet")).GetRow(id); return new {Id=id,Name=row.Name.ToString(),Description=row.Description.ToString()}; });
-        Console.WriteLine(JsonSerializer.Serialize(new {Assets=records,Statuses=statuses},new JsonSerializerOptions{WriteIndented=true}));
+        Console.WriteLine(JsonSerializer.Serialize(new {Assets=records,Statuses=statuses,Objects=objectRows},new JsonSerializerOptions{WriteIndented=true}));
     }
 }

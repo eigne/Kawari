@@ -46,6 +46,9 @@ pub struct Supplies {
     fading: HashMap<ObjectId, f64>,
 }
 impl Supplies {
+    pub fn kit_positions(&self, team: Team) -> impl Iterator<Item = [f32; 3]> + '_ {
+        self.kits.values().filter(move |kit| kit.team == team).map(|kit| kit.position)
+    }
     pub fn record_damage(&mut self, source: u32, target: ObjectId, amount: u32) {
         if let Some(b) = self.boxes.get_mut(&target) {
             *b.damage.entry(source).or_default() += u64::from(amount);
@@ -103,7 +106,12 @@ fn spawn(
         SpawnObject {
             entity_id: controller,
             kind: ObjectKind::EventObj,
+            // A valid bound-object row is required even when the model comes
+            // from bind_layout_id. Use the same controller row as Feast jails;
+            // the bound supply SG supplies its own model and timelines.
+            base_id: 2008986,
             bind_layout_id: layout,
+            radius: 1.0,
             position: Position(glam::Vec3::from_array(position)),
             not_targetable: true,
             args1: SharedGroupTimelineState::TIMELINE_4.bits(),
@@ -207,6 +215,7 @@ pub fn tick(
                     kit,
                     SpawnObject {
                         entity_id: kit,
+                        radius: 1.0,
                         kind: ObjectKind::EventObj,
                         base_id: if b.kind == Kind::Adrenaline {
                             2007626
@@ -304,6 +313,16 @@ mod tests {
         let mut supplies = Supplies::default();
         tick(&mut instance, &network, &rules, &mut supplies, 150.0);
         assert_eq!(supplies.boxes.len(), 2);
+        for controller in &supplies.controllers {
+            match instance.find_actor(*controller).unwrap() {
+                NetworkedActor::Object { object, .. } => {
+                    assert_eq!(object.base_id, 2008986);
+                    assert_eq!(object.radius, 1.0);
+                    assert!([7167385, 7167387].contains(&object.bind_layout_id));
+                }
+                _ => panic!("Supply model requires a bound native event object"),
+            }
+        }
         let id = *supplies.boxes.keys().next().unwrap();
         match instance.find_actor(id).unwrap() {
             NetworkedActor::Npc { spawn, .. } => {

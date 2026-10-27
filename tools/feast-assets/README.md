@@ -25,3 +25,18 @@ Supply audit: append `--supplies` to the command to verify original box/kit
 prefabs, their dependencies and retained statuses. Results for the installed
 7.51h2 client are recorded in `supplies-7.51h2.json`. The audit proves resource
 presence, not live rendering or historical box HP/expiry behavior.
+
+Job audit: run from the repository root and append `--jobs`. This reads the
+shared `resources/feast-actions.json` catalog for BLM/SAM/PLD. The checked-in
+`jobs-7.51h2.json` has 70 distinct actions, 139 present end/hit references and
+1,301 present dependencies. Tsubame-gaeshi's empty wrapper has no timeline;
+its Kaeshi variants have their original assets. The audit also records retained
+cast/recast fields and cooldown groups. Icons are restored separately by the HUD.
+
+UI audit: append `--ui` from the repository root to compare current resources with
+`target/feast-hud-recovery`, enumerate native menu rows, and verify the historical
+icons. The compact `ui-7.51h2.json` records the September 26 findings; generated
+reports additionally include node coordinates. This mode emits metadata, not
+texture pixels or game binaries. `resolve-ui-names.py` matches unknown recovered
+ULD filename hashes against old executable strings without executing that file.
+See `docs/src/development/feast-native-assets.md` for findings and integration limits.
