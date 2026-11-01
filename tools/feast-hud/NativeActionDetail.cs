@@ -10,7 +10,8 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 namespace Kawari.FeastHud;
 
 // Feed the surviving native tooltip, preserving its layout, placement and input.
-// Array indices verified against AgentActionDetail's 7.51h2 native setters.
+// Array indices verified against AgentActionDetail's 7.51h2 native setters;
+// ClientStructs keeps the same ActionDetail array numbering in 7.57.
 internal sealed unsafe class NativeActionDetail : IDisposable
 {
     private readonly IAddonLifecycle lifecycle;
@@ -23,7 +24,7 @@ internal sealed unsafe class NativeActionDetail : IDisposable
         this.lifecycle = lifecycle; this.client = client; this.player = player;
         // NativeDirector has already verified the executable hash. This agent
         // refreshes arrays without always requesting an addon lifecycle update.
-        var address = Process.GetCurrentProcess().MainModule!.BaseAddress + 0xEE2530;
+        var address = Process.GetCurrentProcess().MainModule!.BaseAddress + NativeClient.Current.ActionDetailUpdate;
         // A disposed Dalamud hook leaves a dispatch stub at this address.
         // The executable hash pins the original function even across reloads.
         update = interop.HookFromAddress<AgentUpdate>(address, AfterUpdate);

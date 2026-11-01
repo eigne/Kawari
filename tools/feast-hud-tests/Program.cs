@@ -226,3 +226,11 @@ Check(FeastActionMenu.Place(placed,10,0,8858)==placed&&FeastActionMenu.Clear(pla
 var rects=new[]{(0u,0u,100f,500f,40f,40f),(1u,3u,300f,450f,40f,40f)};
 Check(FeastActionMenu.HitTest(rects,120,520)==(0u,0u)&&FeastActionMenu.HitTest(rects,339,489)==(1u,3u)&&FeastActionMenu.HitTest(rects,140,520)==null,"Native slot hit test");
 Console.WriteLine($"{menuChecks+9} PvP actions menu cases passed.");
+var client751=NativeClient.ForHash("4236E770E673150E85F8D10BEAB2FC4834C82F86AAB8A555A9175439FC906A6D");
+var client757=NativeClient.ForHash("46A52AB1DBE80B9A8D6C4D4531BF66693904200C5135FACACD053EF28A5DE14A");
+Check(client751 is {PvPHeaderRefresh:0xD5C0A0,LegacyDirectorVtable:0x234E100,ActionDetailUpdate:0xEE2530,JobHudRequestedUpdate:0x15A0210},"7.51h2 addresses unchanged");
+// Same constructor-relative offsets in both builds; vtable moved with its neighbours.
+Check(client757 is {PvPHeaderRefresh:0xD62790,PvPHeaderOpen:0xD62D60,LegacyDirectorVtable:0x23780E0,ActionDetailUpdate:0xEE93D0,JobHudRequestedUpdate:0x15AB770},"7.57h1 addresses");
+Check(client757!.PvPHeaderOpen-client757.PvPHeaderRefresh==client751!.PvPHeaderOpen-client751.PvPHeaderRefresh,"PvP header functions keep their spacing");
+Check(NativeClient.ForHash("00")==null,"Unknown executables get no native hooks");
+Console.WriteLine("4 native client version cases passed.");

@@ -35,7 +35,7 @@ internal sealed unsafe class NativeResourceGauges : IDisposable
         this.interop = interop; this.log = log;
         var module = Process.GetCurrentProcess().MainModule!;
         imageBase = module.BaseAddress; imageSize = module.ModuleMemorySize;
-        refreshJob = interop.HookFromAddress<RefreshJobHud>(imageBase + 0x15A0210, RefreshJob);
+        refreshJob = interop.HookFromAddress<RefreshJobHud>(imageBase + NativeClient.Current.JobHudRequestedUpdate, RefreshJob);
         try
         {
             lifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "_LimitBreak", BeforeLimit);

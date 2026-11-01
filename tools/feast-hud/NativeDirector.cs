@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Game.Addon.Lifecycle;
@@ -10,8 +9,8 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 
 namespace Kawari.FeastHud;
 
-// Addresses are from the verified June 7.51h2 binary, not a newer struct dump.
-// Pin the executable hash; unhooked entry points also verify their live prefix.
+// Addresses come from NativeClient, pinned per verified executable hash;
+// unhooked entry points also verify their live prefix.
 // Hooked entry points may retain Dalamud dispatch stubs across plugin reloads.
 internal sealed unsafe class NativeDirector : IDisposable
 {
@@ -25,6 +24,7 @@ internal sealed unsafe class NativeDirector : IDisposable
     private readonly Hook<SetData> setData;
     private readonly Open open;
     private readonly nint imageBase;
+    private readonly nint legacyVtable;
     private readonly DirectorFrames frames = new();
     private readonly NativeRecast recast = new();
     private readonly NativeFeastLayout layout = new();
@@ -46,9 +46,8 @@ internal sealed unsafe class NativeDirector : IDisposable
         this.targets = targets; this.data = data;
         var module = Process.GetCurrentProcess().MainModule!;
         imageBase = module.BaseAddress;
-        using var file = File.OpenRead(module.FileName);
-        if (Convert.ToHexString(SHA256.HashData(file)) != "4236E770E673150E85F8D10BEAB2FC4834C82F86AAB8A555A9175439FC906A6D")
-            throw new InvalidOperationException("Feast native UI requires client 7.51h2 / 2026.06.18.");
+        var native = NativeClient.Current;
+        legacyVtable = imageBase + native.LegacyDirectorVtable;
         nint Address(int rva, string prefix, bool hook = false)
         {
             var expected = Convert.FromHexString(prefix);
@@ -59,8 +58,8 @@ internal sealed unsafe class NativeDirector : IDisposable
                 throw new InvalidOperationException($"Feast native function check failed at {rva:X}.");
             return imageBase + rva;
         }
-        var refreshAddress = Address(0xD5C0A0, "48896C24104889742418574883EC20", hook: true);
-        open = Marshal.GetDelegateForFunctionPointer<Open>(Address(0xD5C670, "41564883EC70488B01"));
+        var refreshAddress = Address(native.PvPHeaderRefresh, "48896C24104889742418574883EC20", hook: true);
+        open = Marshal.GetDelegateForFunctionPointer<Open>(Address(native.PvPHeaderOpen, "41564883EC70488B01"));
         setData = interop.HookFromAddress<SetData>((nint)EventFramework.MemberFunctionPointers.SetDirectorData, Receive);
         try { refresh = interop.HookFromAddress<Refresh>(refreshAddress, UpdateHeader); }
         catch { setData.Dispose(); throw; }
@@ -75,7 +74,7 @@ internal sealed unsafe class NativeDirector : IDisposable
     }
     private void UpdateHeader(nint agent, nint director, nint context)
     {
-        if (!InArena || director == 0 || *(nint*)director != imageBase + 0x234E100)
+        if (!InArena || director == 0 || *(nint*)director != legacyVtable)
         { refresh.Original(agent, director, context); return; }
         if (!replacedRefresh)
         {

@@ -1,5 +1,19 @@
 # Feast restoration handoff — start here
 
+## November 1 client 7.57h1 update (latest)
+
+The game auto-updated to 7.57h1 (2026.10.16). Upstream Kawari (now on Codeberg,
+remote `upstream`) was merged with the Feast work ported onto it (20799fd9); the
+duty/map sheet patches were rebuilt for 7.57 (tools/feast-map, backups/*-7.57h1).
+HUD: NativeClient.cs pins the five non-ClientStructs addresses per executable hash.
+7.57 values were matched from 7.51h2 through ClientStructs data.yml (same offsets
+from AgentPvPHeader/AgentActionDetail/AddonJobHud ctors; legacy director vtable
++0x29FE0 like its neighbours) and entry bytes checked in the 7.57 exe. UI array
+numbering is unchanged. Raw addon field offsets (PvPMKSPartyList +0x239/+0x2D8)
+are NOT re-verified. SDK in target/dalamud-sdk is now Dalamud 15.0.3.9 (old copy
+in target/dalamud-sdk-15.0.2.3). Astra was still running Dalamud 15.0.2.3 (7.51);
+it needs 15.0.3.9 for 7.57. Nothing verified in game yet.
+
 ## October 27 Feast PvP Actions window (latest)
 
 User asked to restore the Feast-era PvP actions menu with drag-to-hotbar. Added
