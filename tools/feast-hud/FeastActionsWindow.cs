@@ -10,8 +10,9 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 namespace Kawari.FeastHud;
 
 // Feast-era PvP Actions window: job, role and additional actions for the
-// current job, dragged onto the live PvP hotbars or the saved Feast layout.
-// Selection rules stay on the server; this window only sends !feast loadout.
+// current job, dragged onto the Wolves' Den PvP hotbars or the saved Feast
+// layout. Only opens in the Wolves' Den; the chosen loadout is sent with
+// !feast loadout during the next match's preparation, where the server checks it.
 internal sealed unsafe class FeastActionsWindow : Window
 {
     private const float IconSize = 40;
@@ -22,19 +23,19 @@ internal sealed unsafe class FeastActionsWindow : Window
     private readonly ITextureProvider textures;
     private readonly IDataManager data;
     private readonly FeastHotbars hotbars;
-    private readonly Action<string> sendCommand;
     private readonly List<(uint Bar, uint Slot, Vector2 Min, Vector2 Max)> layoutCells = [];
     private MenuAction? dragging;
     private (uint Job, List<string> Keys)? pending;
     private string status = "";
     public IReadOnlyList<PartyAction> EquippedAdditional { get; set; } = [];
-    public bool InArena => client.IsLoggedIn && client.TerritoryType == 745;
+    public bool InArena => client.IsLoggedIn && client.TerritoryType == FeastActionMenu.Arena;
+    public bool InDen => client.IsLoggedIn && FeastActionMenu.CanEditActions(client.TerritoryType);
 
     public FeastActionsWindow(IClientState client, IPlayerState player, IGameGui gameGui, ITextureProvider textures,
-        IDataManager data, FeastHotbars hotbars, Action<string> sendCommand) : base("PvP Actions###KawariFeastActions")
+        IDataManager data, FeastHotbars hotbars) : base("PvP Actions###KawariFeastActions")
     {
         this.client = client; this.player = player; this.gameGui = gameGui; this.textures = textures;
-        this.data = data; this.hotbars = hotbars; this.sendCommand = sendCommand;
+        this.data = data; this.hotbars = hotbars;
         Size = new Vector2(560, 600); SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new() { MinimumSize = new(460, 380), MaximumSize = new(900, 1200) };
     }
@@ -64,8 +65,7 @@ internal sealed unsafe class FeastActionsWindow : Window
         var jobName = data.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>().GetRowOrDefault(Job)?.Name.ExtractText() ?? "";
         ImGui.TextColored(Gold, System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(jobName));
         ImGui.SameLine();
-        ImGui.TextColored(Muted, InArena ? hotbars.Active ? "Drag an action onto a hotbar." : "Waiting for PvP hotbars..."
-            : "Drag actions onto the Feast hotbar layout below.");
+        ImGui.TextColored(Muted, hotbars.Active ? "Drag an action onto a hotbar." : "Waiting for PvP hotbars...");
         ImGui.Separator();
         layoutCells.Clear();
         if (ImGui.BeginTabBar("##feasttabs"))
@@ -171,8 +171,7 @@ internal sealed unsafe class FeastActionsWindow : Window
                 if (FeastActionMenu.ValidLoadout(menu.Job, next))
                 {
                     pending = null; hotbars.Config.Loadouts[menu.Job] = next; hotbars.Save();
-                    if (InArena) sendCommand(FeastActionMenu.LoadoutCommand(next));
-                    status = InArena ? "Additional actions sent to the match." : "Additional actions will be set when you enter the Feast.";
+                    status = "Additional actions will be set when you enter the Feast.";
                 }
                 else { pending = (menu.Job, next); status = "Choose two additional actions."; }
                 loadout = next;
@@ -187,7 +186,7 @@ internal sealed unsafe class FeastActionsWindow : Window
     private void DrawLayout()
     {
         ImGui.Spacing();
-        ImGui.TextWrapped(InArena ? "This mirrors your PvP hotbars. Dragging here or onto the hotbars both update it."
+        ImGui.TextWrapped(hotbars.Active ? "This mirrors your PvP hotbars. Dragging here or onto the hotbars both update it."
             : "Actions placed here fill your PvP hotbars when you enter the Feast. Right-click a slot to clear it.");
         var layout = hotbars.Config.Layouts.GetValueOrDefault(Job) ?? [];
         var draw = ImGui.GetWindowDrawList();
@@ -208,7 +207,7 @@ internal sealed unsafe class FeastActionsWindow : Window
                 {
                     Icon(draw, action.Icon, pos, size, 1);
                     if (ImGui.IsItemHovered() && dragging == null) Tooltip(action);
-                    if (!InArena && ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                    if (!hotbars.Active && ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     { hotbars.Config.Layouts[Job] = FeastActionMenu.Clear(layout, bar, i).ToList(); hotbars.Save(); }
                 }
                 else draw.AddRect(pos, pos + new Vector2(size), ImGui.GetColorU32(Frame), 3);
@@ -231,13 +230,13 @@ internal sealed unsafe class FeastActionsWindow : Window
         foreach (var cell in layoutCells)
             if (mouse.X >= cell.Min.X && mouse.Y >= cell.Min.Y && mouse.X < cell.Max.X && mouse.Y < cell.Max.Y)
             {
-                if (InArena) { status = hotbars.Place(cell.Bar, cell.Slot, dropped.HotbarId) ? $"{dropped.Action.Name} set." : "That slot cannot be changed right now."; return; }
+                if (hotbars.Active) { status = hotbars.Place(cell.Bar, cell.Slot, dropped.HotbarId) ? $"{dropped.Action.Name} set." : "That slot cannot be changed right now."; return; }
                 hotbars.Config.Layouts[Job] = FeastActionMenu.Place(hotbars.Config.Layouts.GetValueOrDefault(Job) ?? [], cell.Bar, cell.Slot, dropped.HotbarId).ToList();
                 hotbars.Save(); status = $"{dropped.Action.Name} added to Hotbar {cell.Bar + 1}."; return;
             }
         var target = NativeSlotAt(mouse - ImGui.GetMainViewport().Pos);
         if (target == null) return;
-        if (!hotbars.Active) { status = "Enter the Feast to place actions on your PvP hotbars, or use Hotbar Layout."; return; }
+        if (!hotbars.Active) { status = "Wait for your PvP hotbars to load, or use Hotbar Layout."; return; }
         status = hotbars.Place(target.Value.Bar, target.Value.Slot, dropped.HotbarId)
             ? $"{dropped.Action.Name} set on Hotbar {target.Value.Bar + 1}." : "That slot cannot be changed right now.";
     }
@@ -253,9 +252,10 @@ internal sealed unsafe class FeastActionsWindow : Window
             var slots = addon->ActionBarSlotVector;
             for (int i = 0; i < slots.Count && i < 12; i++)
             {
-                var node = slots.First[i].Icon;
-                if (node == null) continue;
-                var res = &node->AtkResNode;
+                // The icon is hidden on empty slots; the drag-drop frame is not.
+                var dragDrop = slots.First[i].ComponentDragDrop;
+                if (dragDrop == null || dragDrop->OwnerNode == null) continue;
+                var res = &dragDrop->OwnerNode->AtkResNode;
                 if (!res->IsVisible()) continue;
                 float scale = 1;
                 for (var n = res; n != null; n = n->ParentNode) scale *= n->ScaleX;

@@ -225,7 +225,10 @@ Check(placed.Single() is {Bar:0,Slot:0,Id:8859},"Dropping replaces a layout slot
 Check(FeastActionMenu.Place(placed,10,0,8858)==placed&&FeastActionMenu.Clear(placed,0,0).Count==0,"Cross bars ignored and clear works");
 var rects=new[]{(0u,0u,100f,500f,40f,40f),(1u,3u,300f,450f,40f,40f)};
 Check(FeastActionMenu.HitTest(rects,120,520)==(0u,0u)&&FeastActionMenu.HitTest(rects,339,489)==(1u,3u)&&FeastActionMenu.HitTest(rects,140,520)==null,"Native slot hit test");
-Console.WriteLine($"{menuChecks+9} PvP actions menu cases passed.");
+Check(FeastActionMenu.CanEditActions(250)&&!FeastActionMenu.CanEditActions(745)&&!FeastActionMenu.CanEditActions(132),"Actions are edited in the Wolves' Den only");
+Check(FeastActionMenu.UsesFeastHotbars(250)&&FeastActionMenu.UsesFeastHotbars(745)&&!FeastActionMenu.UsesFeastHotbars(132),"Feast hotbars in the Den and arena");
+Check(FeastActionMenu.CanCast(745)&&!FeastActionMenu.CanCast(250),"Feast actions are cast in the arena only");
+Console.WriteLine($"{menuChecks+12} PvP actions menu cases passed.");
 var client751=NativeClient.ForHash("4236E770E673150E85F8D10BEAB2FC4834C82F86AAB8A555A9175439FC906A6D");
 var client757=NativeClient.ForHash("46A52AB1DBE80B9A8D6C4D4531BF66693904200C5135FACACD053EF28A5DE14A");
 Check(client751 is {PvPHeaderRefresh:0xD5C0A0,LegacyDirectorVtable:0x234E100,ActionDetailUpdate:0xEE2530,JobHudRequestedUpdate:0x15A0210},"7.51h2 addresses unchanged");

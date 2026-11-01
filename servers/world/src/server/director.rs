@@ -1143,8 +1143,11 @@ pub fn handle_director_messages(
                         event: DirectorEvent::ContentDirector(
                             ContentDirectorEvent::InstanceContent(
                                 InstanceContentDirectorEvent::DutyCommence {
-                                    time_limit: instance.duration.unwrap_or_default().as_secs()
-                                        as u32,
+                                    // Feast follows its match clock, which respawns and restarts change.
+                                    time_limit: super::feast_match::duty_time_left(instance)
+                                        .unwrap_or(
+                                            instance.duration.unwrap_or_default().as_secs() as u32,
+                                        ),
                                 },
                             ),
                         ),

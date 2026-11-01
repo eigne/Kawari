@@ -178,6 +178,18 @@ impl Match {
         )
     }
 
+    /// Seconds the native duty timer should show: preparation plus the match,
+    /// then the time left in the match or sudden death. A finished match
+    /// shows a full round, since the next one starts from preparation.
+    pub fn duty_time_left(&self, now: f64) -> u32 {
+        let left = match self.phase {
+            Phase::Countdown => self.deadline - now + MATCH_TIME,
+            Phase::Active | Phase::SuddenDeath => self.deadline - now,
+            Phase::Finished(_) => COUNTDOWN + MATCH_TIME,
+        };
+        left.max(0.0).ceil() as u32
+    }
+
     /// Versioned display snapshot. Values always come from authoritative match state.
     pub fn hud_snapshot(&self, now: f64, actor: u32) -> String {
         let (fang, claw) = self.scores();
@@ -421,7 +433,10 @@ use super::{
 };
 use crate::FromServer;
 use kawari::{
-    common::{ContentDirectorEvent, DirectorEvent, ObjectId, Position, SharedGroupTimelineState},
+    common::{
+        ContentDirectorEvent, DirectorEvent, InstanceContentDirectorEvent, ObjectId, Position,
+        SharedGroupTimelineState,
+    },
     ipc::zone::{ActorControlCategory, ObjectKind, SpawnObject},
 };
 use parking_lot::Mutex;
@@ -439,6 +454,12 @@ pub struct Runtime {
     medal_viewers: BTreeMap<(u32, u32), SharedGroupTimelineState>,
     next_director_snapshot: f64,
     pub supplies: super::feast_supplies::Supplies,
+}
+
+/// Native duty time for a player zoning into the arena, from the live match clock.
+pub fn duty_time_left(instance: &Instance) -> Option<u32> {
+    let runtime = instance.feast_match.as_ref()?;
+    Some(runtime.rules.duty_time_left(runtime.started.elapsed().as_secs_f64()))
 }
 
 // The start_col layer centers the two jails at x = +/-58, y = 0.25.
@@ -729,12 +750,13 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     let previous_phase = runtime.rules.phase;
     runtime.rules.step(now, &inputs);
     if previous_phase != runtime.rules.phase
-        && matches!(runtime.rules.phase, Phase::Active | Phase::SuddenDeath)
+        && !matches!(runtime.rules.phase, Phase::Finished(_))
         && let Some(director) = instance.directors.first()
     {
         // Keep native duty warnings on the authoritative match clock, including
-        // the sudden-death extension, rather than the earlier entry timestamp.
-        let remaining = (runtime.rules.deadline - now).ceil().max(0.0) as u32;
+        // restarts and the sudden-death extension. The client ignores
+        // SetDutyTimeRemaining for this duty, so the timer is restarted instead.
+        let time_limit = runtime.rules.duty_time_left(now);
         for input in &inputs {
             let id = ObjectId(input.id);
             if matches!(instance.find_actor(id), Some(NetworkedActor::Player { .. })) {
@@ -742,9 +764,9 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
                     id,
                     FromServer::ActorControlSelf(ActorControlCategory::DirectorEvent {
                         handler_id: director.id,
-                        event: DirectorEvent::ContentDirector(ContentDirectorEvent::SetDutyTimeRemaining {
-                            time_remaining: remaining,
-                        }),
+                        event: DirectorEvent::ContentDirector(ContentDirectorEvent::InstanceContent(
+                            InstanceContentDirectorEvent::DutyCommence { time_limit },
+                        )),
                     }),
                     DestinationNetwork::ZoneClients,
                 );
@@ -912,6 +934,20 @@ pub fn command(
         return;
     }
     if matches!(words.first(), Some(&"actions") | Some(&"loadout") | Some(&"job")) {
+        // Actions are chosen in the Wolves' Den; the HUD applies them during
+        // preparation, and they stay fixed once the match begins.
+        let preparing = instance
+            .feast_match
+            .as_ref()
+            .is_some_and(|r| r.rules.phase == Phase::Countdown);
+        if words[0] == "loadout" && !preparing {
+            super::feast::notice(
+                network,
+                id,
+                "Additional actions are set in the Wolves' Den (!feast den) and cannot change during a match.".into(),
+            );
+            return;
+        }
         super::feast::tick(instance, network);
         let command = match words[0] { "actions" => "list", "job" => "status", _ => text };
         super::feast::command(instance, network, id, command);
@@ -1591,6 +1627,21 @@ mod tests {
             ),
             (Some(200), Some(175), Some(150), Some(125))
         );
+    }
+    #[test]
+    fn native_duty_time_follows_the_match_clock() {
+        let mut m = Match::new(0.0);
+        let p = inputs();
+        m.step(0.0, &p);
+        assert_eq!(m.duty_time_left(10.0), (COUNTDOWN + MATCH_TIME) as u32 - 10);
+        m.step(COUNTDOWN, &p);
+        assert_eq!(m.phase, Phase::Active);
+        assert_eq!(m.duty_time_left(COUNTDOWN + 100.0), MATCH_TIME as u32 - 100);
+        m.phase = Phase::SuddenDeath;
+        m.deadline += SUDDEN_DEATH;
+        assert_eq!(m.duty_time_left(COUNTDOWN + MATCH_TIME), SUDDEN_DEATH as u32);
+        m.phase = Phase::Finished(None);
+        assert_eq!(m.duty_time_left(1000.0), (COUNTDOWN + MATCH_TIME) as u32);
     }
     #[test]
     fn death_once_enemy_pickup_cap_overflow_and_expiry() {

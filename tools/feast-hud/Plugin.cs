@@ -13,6 +13,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.System.String;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 namespace Kawari.FeastHud;
 
 public sealed unsafe class Plugin : IDalamudPlugin
@@ -58,21 +59,36 @@ public sealed unsafe class Plugin : IDalamudPlugin
         catch { hotbars.Dispose(); native.Dispose(); throw; }
         try { resourceGauges = new NativeResourceGauges(native, objects, lifecycle, interop, log); }
         catch { actionDetail.Dispose(); hotbars.Dispose(); native.Dispose(); throw; }
-        actionsWindow = new FeastActionsWindow(client, player, gameGui, textures, data, hotbars, Send);
+        actionsWindow = new FeastActionsWindow(client, player, gameGui, textures, data, hotbars);
         windows.AddWindow(actionsWindow);
         pi.UiBuilder.Draw += windows.Draw;
-        pi.UiBuilder.OpenMainUi += actionsWindow.Toggle;
+        pi.UiBuilder.OpenMainUi += ToggleActions;
         // The CC-era PvP Profile replaced the Feast PvP Actions window; open it alongside.
         lifecycle.RegisterListener(AddonEvent.PostSetup, "PvpProfile", OnProfile);
         lifecycle.RegisterListener(AddonEvent.PreFinalize, "PvpProfile", OnProfile);
         framework.Update += Update;
         chat.ChatMessage += OnChat;
-        commands.AddHandler("/feastactions", new CommandInfo((_, _) => actionsWindow.Toggle()) { HelpMessage = "Open the Feast PvP Actions window." });
+        commands.AddHandler("/feastactions", new CommandInfo((_, _) => ToggleActions()) { HelpMessage = "Open the Feast PvP Actions window (Wolves' Den only)." });
         commands.AddHandler("/feasthud", new CommandInfo(Control) { HelpMessage = "Native Feast header follows the Crystalline Conflict Progress Gauge HUD position." });
+    }
+    private const string DenOnly = "PvP actions can only be changed in the Wolves' Den. Use !feast den to travel there.";
+    private void ToggleActions()
+    {
+        if (actionsWindow.InDen) actionsWindow.Toggle();
+        else chat.PrintError(DenOnly);
+    }
+    // Outside the Wolves' Den the PvP Profile closes on its first frame.
+    private void CloseProfileOutsideDen()
+    {
+        if (actionsWindow.InDen) return;
+        var profile = (AtkUnitBase*)gameGui.GetAddonByName("PvpProfile", 1).Address;
+        if (profile == null || !profile->IsVisible) return;
+        profile->Close(true);
+        chat.PrintError(DenOnly);
     }
     private void OnProfile(AddonEvent type, AddonArgs args)
     {
-        if (type == AddonEvent.PostSetup && !actionsWindow.IsOpen && FeastJobActions.Supports(player.ClassJob.RowId))
+        if (type == AddonEvent.PostSetup && actionsWindow.InDen && !actionsWindow.IsOpen && FeastJobActions.Supports(player.ClassJob.RowId))
         { actionsWindow.IsOpen = true; openedByProfile = true; }
         else if (type == AddonEvent.PreFinalize && openedByProfile) { actionsWindow.IsOpen = false; openedByProfile = false; }
     }
@@ -100,6 +116,8 @@ public sealed unsafe class Plugin : IDalamudPlugin
     {
         native.Update();
         resourceGauges.Update();
+        if (actionsWindow.IsOpen && !actionsWindow.InDen) { actionsWindow.IsOpen = false; openedByProfile = false; }
+        CloseProfileOutsideDen();
         hotbars.Update(Environment.TickCount64 - native.Received < 2500 ? native.Frame : null);
         SyncLoadout(Environment.TickCount64 - native.Received < 2500 ? native.Frame : null);
         if (native.Frame is { } frame)
@@ -154,7 +172,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
     public void Dispose() {
         lifecycle.UnregisterListener(AddonEvent.PostSetup, "PvpProfile", OnProfile);
         lifecycle.UnregisterListener(AddonEvent.PreFinalize, "PvpProfile", OnProfile);
-        pi.UiBuilder.Draw -= windows.Draw; pi.UiBuilder.OpenMainUi -= actionsWindow.Toggle;
+        pi.UiBuilder.Draw -= windows.Draw; pi.UiBuilder.OpenMainUi -= ToggleActions;
         windows.RemoveAllWindows(); commands.RemoveHandler("/feastactions");
         resourceGauges.Dispose();
         actionDetail.Dispose();

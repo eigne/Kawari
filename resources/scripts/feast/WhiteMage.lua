@@ -433,7 +433,7 @@ function M.command(id,text,target,now)
         M.players[id]={team=a.match_team or "fang",cooldowns={},gcd=0,lilies=0,blood=0,adrenaline=0,
             lily_time=0,last_tick=now,combat_until=0,loadout={protect=true,largesse=true}}
         if M.initialize then M.initialize(a,M.players[id]) end
-        return "Feast rules enabled (team "..M.players[id].team.."). Use !feast actions or !feast loadout <first> <second>."
+        return "Feast rules enabled (team "..M.players[id].team.."). Additional actions are chosen in the Wolves' Den (!feast den)."
     end
     if name=="off" then
         if has(id,"temperance") then emit("temperance_visual",id,id,0) end

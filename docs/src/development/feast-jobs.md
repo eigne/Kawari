@@ -97,8 +97,10 @@ Hotbars populate automatically inside territory 745.
 
 - `!feast actions`: action names for the current job.
 - `!feast job`: current job resources.
-- `!feast loadout <first> <second>`: select two additional role actions outside
-  combat. Names use underscores, e.g. `swiftcast manaward` or `rampart retaliation`.
+- `!feast loadout <first> <second>`: select two additional role actions during
+  the preparation phase only. Names use underscores, e.g. `swiftcast manaward` or
+  `rampart retaliation`. Players normally choose them in the Wolves' Den with the
+  HUD's PvP Actions window, which sends this command for them.
 
 Defaults are Drain/Addle, Feint/Bloodbath, and Full Swing/Weapon Throw.
 The first combo button progresses through the combo; Enochian and Tsubame

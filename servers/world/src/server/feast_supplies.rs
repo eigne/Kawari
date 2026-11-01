@@ -172,6 +172,7 @@ fn spawn(
     );
     // Native timeline table: 1 off, 2 break, 3 visible, 4 spawn.
     super::actor::set_shared_group_timeline_state(instance, &mut network.lock(), controller, &[4]);
+    tracing::info!(?kind, actor = id.0, controller = controller.0, layout, ?position, "Feast supply box spawned");
 }
 
 pub fn tick(

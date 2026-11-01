@@ -16,6 +16,12 @@ public static class FeastActionMenu
     private static readonly string[] Tank = ["low_blow", "full_swing", "weapon_throw", "reprisal", "rampart", "retaliation"];
     private static readonly string[] Ranged = ["head_graze", "leg_graze", "foot_graze", "concentrate", "recuperate", "peloton"];
     public const int LoadoutSize = 2;
+    public const uint Arena = 745, WolvesDen = 250;
+    // As before 6.1: actions are chosen in the Wolves' Den, whose PvP hotbars
+    // carry the Feast layout; the arena uses that layout but cannot change it.
+    public static bool CanEditActions(uint territory) => territory == WolvesDen;
+    public static bool UsesFeastHotbars(uint territory) => territory is Arena or WolvesDen;
+    public static bool CanCast(uint territory) => territory == Arena;
     // WHM keeps transitional PvE buttons that FeastSpells resolves to historical spells.
     public static readonly uint[] WhmButtons = [16533, 16532, 120, 135, 124, 16531, 16534, 16535,
         3570, 3571, 16536, 7568, 3, 140, 7432, 25861, 16560, 7571, 7433, 3362];

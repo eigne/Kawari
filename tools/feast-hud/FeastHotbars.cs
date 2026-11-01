@@ -72,7 +72,9 @@ internal sealed unsafe class FeastHotbars : IDisposable
     private delegate uint ActionStatus(ActionManager* manager, ActionType type, uint id, ulong target,
         [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.I1)] bool recast,
         [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.I1)] bool casting, uint* extra);
-    private bool Eligible => client.IsLoggedIn && client.TerritoryType == 745 && FeastJobActions.Supports(player.ClassJob.RowId);
+    private bool Eligible => client.IsLoggedIn && FeastActionMenu.UsesFeastHotbars(client.TerritoryType) && FeastJobActions.Supports(player.ClassJob.RowId);
+    // In the Wolves' Den the layout is shown but the native checks keep it unusable.
+    private bool Castable => Eligible && FeastActionMenu.CanCast(client.TerritoryType);
     private bool Allowed(uint id) => player.ClassJob.RowId == 24 ? NativeActions.Contains(id) : FeastJobActions.Contains(player.ClassJob.RowId,id);
     public FeastHotbars(IDalamudPluginInterface pi, IClientState client, IPlayerState player, IObjectTable objects, IGameInteropProvider interop, IDataManager data)
     {
@@ -156,11 +158,11 @@ internal sealed unsafe class FeastHotbars : IDisposable
         return iconId!.Original(slot,type,id);
     }
     private uint GetSpell(ActionType type, uint id)
-        => Eligible && type == ActionType.Action && Allowed(id)
+        => Castable && type == ActionType.Action && Allowed(id)
             ? player.ClassJob.RowId == 24 ? FeastSpells.Resolve(id) : live.FirstOrDefault(a => a.BaseId == id)?.ResolvedId ?? id : spell.Original(type, id);
     private bool UseGround(ActionManager* manager, ActionType type, uint id, ulong target, System.Numerics.Vector3* position, uint extra, byte route)
     {
-        if (!Eligible || type != ActionType.Action || !Allowed(id) || id is not (7857 or 3361 or 8812) || position == null)
+        if (!Castable || type != ActionType.Action || !Allowed(id) || id is not (7857 or 3361 or 8812) || position == null)
             return location!.Original(manager,type,id,target,position,extra,route);
         if (objects.LocalPlayer is { IsCasting: true }) return false;
         var p = *position;
@@ -189,7 +191,7 @@ internal sealed unsafe class FeastHotbars : IDisposable
     {
         // Retail's PvE/PvP, lily and unlock gates describe a different ruleset.
         // Never relax checks for another territory, job, or unimplemented action.
-        if (Eligible && type == ActionType.Action && Allowed(id))
+        if (Castable && type == ActionType.Action && Allowed(id))
         {
             if (extra != null) *extra = 0;
             if (!FeastResources.CanUse(player.ClassJob.RowId == 24 ? FeastSpells.Resolve(id) : id,

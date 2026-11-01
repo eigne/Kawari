@@ -164,20 +164,28 @@ hooks or automatic confirmation are used. Reload the plugin after updating.
 
 ## PvP Actions window
 
-`/feastactions` (or the plugin's main UI button) opens a Feast-era PvP Actions
-window for the current job. It also opens beside the native PvP Profile, which
-now shows Crystalline Conflict actions. Tabs:
+As before 6.1, PvP actions are set up in the Wolves' Den Pier (territory 250;
+`!feast den` travels there). The client switches to PvP hotbars there, and the
+plugin fills them with the Feast layout. The actions are shown but cannot be
+used outside the arena. `/feastactions` (or the plugin's main UI button) opens
+the Feast-era PvP Actions window for the current job, and also beside the
+native PvP Profile, which now shows Crystalline Conflict actions. Both only
+open in the Wolves' Den; anywhere else they close with a hint, so actions
+cannot change during a match. The server also refuses `!feast loadout` once a
+match has begun. The native PvP Profile is refused by the client for a
+character that has not unlocked PvP. Tabs:
 
 - **Job Actions**: job kit, fixed role action, Bolt/Medical Kit and the job's
   adrenaline rush, with historical icons and tooltips from `feast-actions.json`.
-- **Additional Actions**: choose two of the role's five. In the arena this sends
-  `!feast loadout <first> <second>` (the server refuses it in combat). Outside,
-  the choice is saved and sent once during the next match's preparation phase.
-- **Hotbar Layout**: the saved Feast layout for bars 1-3, editable outside the
-  arena; right-click clears a slot.
+- **Additional Actions**: choose two of the role's five. The choice is saved
+  and sent once as `!feast loadout <first> <second>` during the next match's
+  preparation phase.
+- **Hotbar Layout**: the saved Feast layout for bars 1-3. It mirrors the live
+  PvP hotbars once they are active; before then, right-click clears a slot.
 
-Drag an action onto a visible standard hotbar (`_ActionBar` to `_ActionBar09`)
-while the arena's PvP hotbars are active, or onto a Hotbar Layout cell. Placed
+Drag an action onto a visible standard hotbar (`_ActionBar` to `_ActionBar09`),
+including an empty slot, while the Den's PvP hotbars are active, or onto a
+Hotbar Layout cell. Placed
 slots are backed up and restored on leaving, like the default kit. Every second
 the plugin records where Feast actions sit on bars 1-10, so native moves and
 removals carry over; entering the arena applies that layout instead of the

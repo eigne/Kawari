@@ -2,6 +2,7 @@
 -- See tools/feast-map/README.md for the reversible metadata patch.
 required_rank = GM_RANK_DEBUG
 command_sender = "[feast] "
+local WOLVES_DEN_AETHERYTE = 55
 
 local function entry_mode()
     -- The running server may predate duty support while this script is reloaded.
@@ -54,8 +55,19 @@ function onCommand(player, args, name)
         return
     end
 
+    -- Feast actions and hotbars are set up in the Wolves' Den, as before 6.1.
+    if #args == 1 and args[1] == "den" then
+        if player.zone.id == 745 then
+            printf(player, "Leave the Feast arena first with !feast leave.")
+            return
+        end
+        player:warp_aetheryte(WOLVES_DEN_AETHERYTE, false)
+        printf(player, "Travelling to the Wolves' Den. Use /feastactions there to set your PvP actions.")
+        return
+    end
+
     if #args ~= 0 then
-        printf(player, "Usage: !feast to enter, !feast leave to exit, !feast status for medals/time, !feast restart after a result.")
+        printf(player, "Usage: !feast to enter, !feast den for the Wolves' Den, !feast leave to exit, !feast status for medals/time, !feast restart after a result.")
         return
     end
 

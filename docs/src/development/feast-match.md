@@ -9,6 +9,7 @@ a match blocks actions and pickups until returning to the original job.
 Commands:
 
 * `!feast`: enter the arena.
+* `!feast den`: travel to the Wolves' Den Pier, where PvP actions are chosen.
 * `!feast status`: time, team scores, your medals and cap.
 * `!feast restart`: start another countdown after a result.
 * `!feast leave`: leave the arena.

@@ -19,7 +19,11 @@ supply boxes, walk over eligible medals and team-owned kits, and respawn at thei
 team's jail after ten seconds. Supply damage and rewards use the normal rules.
 
 Movement uses the arena navmesh when available. Without navigation data it falls
-back to direct pursuit, which can cross scenery. There is no advanced positioning,
+back to direct pursuit, which can cross scenery. The navmesh generator leaves out
+the jail barriers (shared groups 7403947/7403946), which open during play; a
+mesh generated before that fix seals bots inside their jails. Delete
+`navimesh/bg/ffxiv/pvp_xx/pvp/l1p2/navimesh/l1p2.nvm` and run
+`kawari-navimesh 745 <that path>` to regenerate it. There is no advanced positioning,
 full rotation or coordinated focus fire. WHM heals, BLM manages elemental states,
 SAM uses combos/Iaijutsu/Kenki, and PLD uses Oath, spells and defenses.
 Native movement, targeting, and presentation still need an in-client playtest.
