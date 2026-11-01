@@ -161,3 +161,28 @@ Only AgentRevive's SelectYesno dialog is changed. Private KFEASTRESPAWN1 notices
 accompany HUD snapshots; stale data keeps confirmation disabled. The server checks
 the deadline independently. Unloading restores the original button; no combat
 hooks or automatic confirmation are used. Reload the plugin after updating.
+
+## PvP Actions window
+
+`/feastactions` (or the plugin's main UI button) opens a Feast-era PvP Actions
+window for the current job. It also opens beside the native PvP Profile, which
+now shows Crystalline Conflict actions. Tabs:
+
+- **Job Actions**: job kit, fixed role action, Bolt/Medical Kit and the job's
+  adrenaline rush, with historical icons and tooltips from `feast-actions.json`.
+- **Additional Actions**: choose two of the role's five. In the arena this sends
+  `!feast loadout <first> <second>` (the server refuses it in combat). Outside,
+  the choice is saved and sent once during the next match's preparation phase.
+- **Hotbar Layout**: the saved Feast layout for bars 1-3, editable outside the
+  arena; right-click clears a slot.
+
+Drag an action onto a visible standard hotbar (`_ActionBar` to `_ActionBar09`)
+while the arena's PvP hotbars are active, or onto a Hotbar Layout cell. Placed
+slots are backed up and restored on leaving, like the default kit. Every second
+the plugin records where Feast actions sit on bars 1-10, so native moves and
+removals carry over; entering the arena applies that layout instead of the
+default kit (empty layout or "Restore default layout" returns to the default).
+Cross hotbars are not drop targets. The window is ImGui, not the old
+`PvpActionJob`/`PvpActionAdditional` ULDs: those layouts survive, but their
+controller and list population have not been traced. Pure grouping, loadout and
+hit-test rules are in `FeastActionMenu.cs` and covered by `feast-hud-tests`.

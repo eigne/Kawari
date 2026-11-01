@@ -1,5 +1,21 @@
 # Feast restoration handoff — start here
 
+## October 27 Feast PvP Actions window (latest)
+
+User asked to restore the Feast-era PvP actions menu with drag-to-hotbar. Added
+FeastActionMenu.cs (pure grouping/loadout/layout/hit-test rules, 142 new HUD
+checks) and FeastActionsWindow.cs (ImGui window: Job Actions, Additional Actions,
+Hotbar Layout tabs). `/feastactions` opens it; it also opens beside PvpProfile.
+FeastHotbars now saves a per-job layout (Layouts) and loadout (Loadouts) in plugin
+config, applies the layout on arena entry instead of the default kit, and
+Place() backs up and sets a native slot. Action lists come from the existing
+feast-actions.json catalog built from pre-6.1 guides (historical-job-sources.json);
+not re-fetched this pass. No server changes. Release DLL built at the registered
+path while FFXIV was closed; previous files backed up in
+target/feast-actions-menu/before-install. Not tested in game: native slot
+hit-testing, ImGui coordinates under multi-viewport, and loadout auto-send.
+Commit d8da6c4c holds the Sept 26-27 work; it was not pushed (permission denied).
+
 ## September 27 all-job native gauge audit
 
 NativeResourceGauges now feeds native data readers for all19 jobs/29 addon

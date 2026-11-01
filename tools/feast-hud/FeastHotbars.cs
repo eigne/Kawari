@@ -16,14 +16,16 @@ public sealed class FeastHotbarConfig : Dalamud.Configuration.IPluginConfigurati
     public ulong Character { get; set; }
     public uint ClassJob { get; set; } = 24;
     public List<HotbarBackup> Slots { get; set; } = [];
+    // Per-job Feast hotbar layout from the PvP Actions window; empty means the default kit.
+    public Dictionary<uint, List<LayoutSlot>> Layouts { get; set; } = [];
+    public Dictionary<uint, List<string>> Loadouts { get; set; } = [];
 }
 
 // Temporary live PvP slots. Casts still travel through native ActionRequest,
 // ActionCast and ActionResult; the server's Feast engine validates each request.
 internal sealed unsafe class FeastHotbars : IDisposable
 {
-    private static readonly uint[] WhmActions = [16533, 16532, 120, 135, 124, 16531, 16534, 16535,
-        3570, 3571, 16536, 7568, 3, 140, 7432, 25861, 16560, 7571, 7433, 3362];
+    private static readonly uint[] WhmActions = FeastActionMenu.WhmButtons;
     // UseAction resolves the spell, adjusts it, then calls GetActionStatus with
     // that resolved ID. Recognize both stages, not just the original hotbar ID.
     private static readonly HashSet<uint> NativeActions = [..WhmActions, ..WhmActions.Select(FeastSpells.Resolve),
@@ -62,6 +64,10 @@ internal sealed unsafe class FeastHotbars : IDisposable
     private delegate int RecastTime(ActionType type, uint id, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.I1)] bool mechanics);
     private readonly FeastHotbarConfig config;
     private bool applied;
+    private long nextScan;
+    public bool Active => applied && Eligible;
+    public FeastHotbarConfig Config => config;
+    public void Save() => pi.SavePluginConfig(config);
     private delegate uint SpellId(ActionType type, uint id);
     private delegate uint ActionStatus(ActionManager* manager, ActionType type, uint id, ulong target,
         [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.I1)] bool recast,
@@ -294,14 +300,24 @@ internal sealed unsafe class FeastHotbars : IDisposable
             }
             return;
         }
-        if (applied) { UpdateIcons(module); return; }
+        if (applied)
+        {
+            UpdateIcons(module);
+            if (Environment.TickCount64 >= nextScan) { nextScan = Environment.TickCount64 + 1000; RecordLayout(module); }
+            return;
+        }
         if (config.Character == player.ContentId && config.Slots.Count != 0) Restore(module);
         config.Character = player.ContentId; config.ClassJob = player.ClassJob.RowId; config.Slots.Clear();
-        var Actions = player.ClassJob.RowId == 24 ? WhmActions : FeastJobActions.Hotbar(player.ClassJob.RowId);
-        for (uint i = 0; i < Actions.Length; i++)
+        var layout = config.Layouts.GetValueOrDefault(player.ClassJob.RowId)?.Where(s => s.Bar < 10 && s.Slot < 12 && Allowed(s.Id)).ToList();
+        if (layout is not { Count: > 0 })
         {
-            var slot = module->GetSlotById(i / 12, i % 12);
-            config.Slots.Add(new(i / 12, i % 12, slot->CommandType, slot->CommandId, Actions[i]));
+            var Actions = FeastActionMenu.MenuIds(player.ClassJob.RowId);
+            layout = Actions.Select((id, i) => new LayoutSlot((uint)i / 12, (uint)i % 12, id)).ToList();
+        }
+        foreach (var placed in layout)
+        {
+            var slot = module->GetSlotById(placed.Bar, placed.Slot);
+            config.Slots.Add(new(placed.Bar, placed.Slot, slot->CommandType, slot->CommandId, placed.Id));
         }
         pi.SavePluginConfig(config);
         foreach (var saved in config.Slots) module->GetSlotById(saved.Bar, saved.Slot)->Set(HotbarSlotType.Action, saved.Replacement);
@@ -325,6 +341,46 @@ internal sealed unsafe class FeastHotbars : IDisposable
             uint resolved = live.FirstOrDefault(a => a.BaseId == saved.Replacement)?.ResolvedId ?? saved.Replacement;
             if (FeastJobActions.Find(resolved) is { } action) slot->IconId = (uint)action.Icon;
         }
+    }
+    // Places a menu action on a live PvP hotbar slot. The slot's original
+    // content is backed up once and restored when the player leaves the arena.
+    public bool Place(uint bar, uint slotId, uint id)
+    {
+        var module = RaptureHotbarModule.Instance();
+        if (!Active || module == null || bar >= 10 || slotId >= 12 || !Allowed(id)) return false;
+        var slot = module->GetSlotById(bar, slotId);
+        if (slot == null) return false;
+        int index = config.Slots.FindIndex(s => s.Bar == bar && s.Slot == slotId);
+        if (index < 0) config.Slots.Add(new(bar, slotId, slot->CommandType, slot->CommandId, id));
+        else config.Slots[index] = config.Slots[index] with { Replacement = id };
+        slot->Set(HotbarSlotType.Action, id);
+        RecordLayout(module);
+        UpdateIcons(module);
+        return true;
+    }
+    // Restores the default kit for the current job on the next update.
+    public void ResetLayout(uint job)
+    {
+        config.Layouts.Remove(job);
+        var module = RaptureHotbarModule.Instance();
+        if (Active && module != null && config.ClassJob == job)
+        { Restore(module); config.Slots.Clear(); applied = false; }
+        pi.SavePluginConfig(config);
+    }
+    // Remembers where Feast actions sit, including native moves and removals.
+    private void RecordLayout(RaptureHotbarModule* module)
+    {
+        var current = new List<LayoutSlot>();
+        for (uint bar = 0; bar < 10; bar++)
+            for (uint i = 0; i < 12; i++)
+            {
+                var slot = module->GetSlotById(bar, i);
+                if (slot != null && slot->CommandType == HotbarSlotType.Action && Allowed(slot->CommandId)) current.Add(new(bar, i, slot->CommandId));
+            }
+        var saved = config.Layouts.GetValueOrDefault(config.ClassJob);
+        if (saved != null && saved.SequenceEqual(current)) return;
+        config.Layouts[config.ClassJob] = current;
+        pi.SavePluginConfig(config);
     }
     private void Restore(RaptureHotbarModule* module)
     {

@@ -183,6 +183,12 @@ needs correct descriptions, combo wrappers, drag-to-hotbar IDs, action validatio
 and additional-action selection. Some old Action rows now carry placeholder icon
 784 and `IsPvP=false`, so merely restoring the list is insufficient.
 
+October 27: a Feast-scoped ImGui PvP Actions window now exists (see
+`tools/feast-hud/README.md`), opened by `/feastactions` and alongside the native
+`PvpProfile` addon. Its drag target is the live native hotbar slots, written
+through `HotbarSlot.Set` and restored on exit. This is a stopgap; a native
+adapter remains preferable once list population is traced.
+
 Prefer a Feast-scoped adapter around the retained agent and panels over a new
 ImGui menu. Trace list population and drag events before installing hooks.
 Names such as `PvpActionSet` and `PvpProfileAction` appear in the old executable,

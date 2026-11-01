@@ -4,6 +4,9 @@ using Dalamud.Game.Chat;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Command;
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
@@ -24,6 +27,12 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private readonly FeastHotbars hotbars;
     private readonly NativeActionDetail actionDetail;
     private readonly NativeResourceGauges resourceGauges;
+    private readonly IDalamudPluginInterface pi;
+    private readonly IAddonLifecycle lifecycle;
+    private readonly IPlayerState player;
+    private readonly WindowSystem windows = new("Kawari.FeastHud");
+    private readonly FeastActionsWindow actionsWindow;
+    private bool openedByProfile, loadoutSynced;
     private int respawnMs = -1;
     private long respawnReceived, deadSince;
     private bool wasDead;
@@ -35,8 +44,10 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private bool InArena => client.IsLoggedIn && client.TerritoryType == 745;
     public Plugin(IDalamudPluginInterface pi, IClientState client, IFramework framework,
         IChatGui chat, ICommandManager commands, IGameGui gameGui, IObjectTable objects,
-        IGameInteropProvider interop, IAddonLifecycle lifecycle, IPluginLog log, IPlayerState player, ITargetManager targets, IDataManager data)
+        IGameInteropProvider interop, IAddonLifecycle lifecycle, IPluginLog log, IPlayerState player, ITargetManager targets, IDataManager data,
+        ITextureProvider textures)
     {
+        this.pi = pi; this.lifecycle = lifecycle; this.player = player;
         this.gameGui = gameGui; this.objects = objects;
         this.client = client; this.framework = framework; this.chat = chat; this.commands = commands;
         native = new NativeDirector(client, objects, lifecycle, interop, log, targets, data,
@@ -47,9 +58,42 @@ public sealed unsafe class Plugin : IDalamudPlugin
         catch { hotbars.Dispose(); native.Dispose(); throw; }
         try { resourceGauges = new NativeResourceGauges(native, objects, lifecycle, interop, log); }
         catch { actionDetail.Dispose(); hotbars.Dispose(); native.Dispose(); throw; }
+        actionsWindow = new FeastActionsWindow(client, player, gameGui, textures, data, hotbars, Send);
+        windows.AddWindow(actionsWindow);
+        pi.UiBuilder.Draw += windows.Draw;
+        pi.UiBuilder.OpenMainUi += actionsWindow.Toggle;
+        // The CC-era PvP Profile replaced the Feast PvP Actions window; open it alongside.
+        lifecycle.RegisterListener(AddonEvent.PostSetup, "PvpProfile", OnProfile);
+        lifecycle.RegisterListener(AddonEvent.PreFinalize, "PvpProfile", OnProfile);
         framework.Update += Update;
         chat.ChatMessage += OnChat;
+        commands.AddHandler("/feastactions", new CommandInfo((_, _) => actionsWindow.Toggle()) { HelpMessage = "Open the Feast PvP Actions window." });
         commands.AddHandler("/feasthud", new CommandInfo(Control) { HelpMessage = "Native Feast header follows the Crystalline Conflict Progress Gauge HUD position." });
+    }
+    private void OnProfile(AddonEvent type, AddonArgs args)
+    {
+        if (type == AddonEvent.PostSetup && !actionsWindow.IsOpen && FeastJobActions.Supports(player.ClassJob.RowId))
+        { actionsWindow.IsOpen = true; openedByProfile = true; }
+        else if (type == AddonEvent.PreFinalize && openedByProfile) { actionsWindow.IsOpen = false; openedByProfile = false; }
+    }
+    private void Send(string text)
+    {
+        var ui = UIModule.Instance(); if (ui == null) return;
+        var message = Utf8String.FromString(text);
+        try { ui->ProcessChatBoxEntry(message); } finally { message->Dtor(true); }
+    }
+    // Applies the loadout chosen outside the arena once per entry, before combat.
+    private void SyncLoadout(DirectorFrame? frame)
+    {
+        var self = frame?.Players.FirstOrDefault(p => p.Id == objects.LocalPlayer?.EntityId);
+        actionsWindow.EquippedAdditional = self?.Actions ?? [];
+        if (!InArena) { loadoutSynced = false; return; }
+        if (loadoutSynced || self == null || frame!.Summary.Phase != "prep") return;
+        loadoutSynced = true;
+        uint job = player.ClassJob.RowId;
+        if (!hotbars.Config.Loadouts.TryGetValue(job, out var wanted) || !FeastActionMenu.ValidLoadout(job, wanted)) return;
+        var current = actionsWindow.Loadout(job);
+        if (!current.Order().SequenceEqual(wanted.Order())) Send(FeastActionMenu.LoadoutCommand(wanted));
     }
     private void Control(string command, string args) => chat.Print("Feast uses the native match header. Move or scale it with Crystalline Conflict Progress Gauge in HUD Layout.");
     private void Update(IFramework _)
@@ -57,6 +101,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
         native.Update();
         resourceGauges.Update();
         hotbars.Update(Environment.TickCount64 - native.Received < 2500 ? native.Frame : null);
+        SyncLoadout(Environment.TickCount64 - native.Received < 2500 ? native.Frame : null);
         if (native.Frame is { } frame)
         {
             respawnMs = frame.RespawnSeconds * 1000; respawnReceived = native.Received;
@@ -66,9 +111,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
         if (native.Frame != null) return;
         if (Environment.TickCount64 < nextPoll) return;
         nextPoll = Environment.TickCount64 + 1000;
-        var ui = UIModule.Instance(); if (ui == null) return;
-        var message = Utf8String.FromString("!feast hud");
-        try { ui->ProcessChatBoxEntry(message); } finally { message->Dtor(true); }
+        Send("!feast hud");
     }
     private void OnChat(IHandleableChatMessage message)
     {
@@ -109,6 +152,10 @@ public sealed unsafe class Plugin : IDalamudPlugin
     }
 
     public void Dispose() {
+        lifecycle.UnregisterListener(AddonEvent.PostSetup, "PvpProfile", OnProfile);
+        lifecycle.UnregisterListener(AddonEvent.PreFinalize, "PvpProfile", OnProfile);
+        pi.UiBuilder.Draw -= windows.Draw; pi.UiBuilder.OpenMainUi -= actionsWindow.Toggle;
+        windows.RemoveAllWindows(); commands.RemoveHandler("/feastactions");
         resourceGauges.Dispose();
         actionDetail.Dispose();
         native.Dispose();

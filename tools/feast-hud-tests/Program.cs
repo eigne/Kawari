@@ -199,3 +199,30 @@ byte[] blmTimer=[0xF7,25,150,0,2,1,1,0x98,0x3a,0];
 frames.Clear();frames.Accept(summary);frames.Accept(blmTimer);Check(frames.Accept(commit),"BLM fifteen-second element timer accepted");
 blmTimer[2]=151;frames.Accept(summary);frames.Accept(blmTimer);Check(!frames.Accept(commit),"BLM element timer bounded");
 Console.WriteLine($"{gaugeChecks+11} native gauge projection cases passed.");
+int menuChecks=0;
+foreach (uint job in new uint[] {19,20,21,22,23,24,25,27,28,30,31,32,33,34,35,37,38,39,40})
+{
+    var menu=FeastActionMenu.For(job,FeastActionMenu.MenuIds(job));
+    Check(menu.JobActions.Count>=8,$"Job {job} lists its job actions");
+    Check(menu.Role?.Action.Key==FeastActionMenu.RoleActions(job)[0],$"Job {job} fixed role action");
+    Check(menu.Additional.Count==5,$"Job {job} offers five additional actions");
+    Check(menu.Common.Select(a=>a.Action.Key).Order().SequenceEqual(new[]{"bolt","kit"}),$"Job {job} common actions");
+    Check(menu.Adrenaline!=null&&FeastActionMenu.IsAdrenaline(menu.Adrenaline.Action.Id),$"Job {job} adrenaline rush");
+    var all=menu.JobActions.Concat(menu.Additional).Concat(menu.Common).Append(menu.Role!).Append(menu.Adrenaline!).ToArray();
+    Check(all.Length==FeastActionMenu.MenuIds(job).Length&&all.Select(a=>a.HotbarId).Distinct().Count()==all.Length,$"Job {job} menu covers the hotbar kit once");
+    Check(FeastActionMenu.ValidLoadout(job,FeastActionMenu.DefaultLoadout(job)),$"Job {job} default loadout valid");
+    menuChecks+=7;
+}
+var whmMenu=FeastActionMenu.For(24,FeastActionMenu.MenuIds(24));
+Check(whmMenu.JobActions.Any(a=>a.HotbarId==16533&&a.Action.Name=="Glare"),"WHM drags its transitional Glare button");
+Check(whmMenu.Additional.Select(a=>a.Action.Key).SequenceEqual(new[]{"repose","protect","rescue","largesse","attunement"}),"WHM additional order");
+Check(FeastActionMenu.Toggle(["protect","largesse"],"rescue").SequenceEqual(new[]{"largesse","rescue"}),"Third choice replaces the oldest");
+Check(FeastActionMenu.Toggle(["protect","largesse"],"protect").SequenceEqual(new[]{"largesse"}),"Unset leaves one choice");
+Check(!FeastActionMenu.ValidLoadout(24,["protect","protect"])&&!FeastActionMenu.ValidLoadout(24,["purify","protect"])&&!FeastActionMenu.ValidLoadout(25,["protect","largesse"]),"Invalid loadouts rejected");
+Check(FeastActionMenu.LoadoutCommand(["arms_length","feint"])=="!feast loadout arms_length feint","Loadout command matches the server parser");
+var placed=FeastActionMenu.Place([new(0,0,8858)],0,0,8859);
+Check(placed.Single() is {Bar:0,Slot:0,Id:8859},"Dropping replaces a layout slot");
+Check(FeastActionMenu.Place(placed,10,0,8858)==placed&&FeastActionMenu.Clear(placed,0,0).Count==0,"Cross bars ignored and clear works");
+var rects=new[]{(0u,0u,100f,500f,40f,40f),(1u,3u,300f,450f,40f,40f)};
+Check(FeastActionMenu.HitTest(rects,120,520)==(0u,0u)&&FeastActionMenu.HitTest(rects,339,489)==(1u,3u)&&FeastActionMenu.HitTest(rects,140,520)==null,"Native slot hit test");
+Console.WriteLine($"{menuChecks+9} PvP actions menu cases passed.");
