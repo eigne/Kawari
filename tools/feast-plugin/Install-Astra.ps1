@@ -1,7 +1,8 @@
 param(
     [string]$ProfileId = '{55f83ad4-b533-4684-a456-77398c222c24}',
     [string]$AccountId = '{1a7f787d-aaec-4bee-95c7-ad37c5863230}',
-    [string]$DalamudVersion = '15.0.2.3'
+    [string]$DalamudVersion = '15.0.3.9',
+    [string]$GameVersion = '2026.10.16.0000.0000'
 )
 $ErrorActionPreference = 'Stop'
 if (Get-Process astra -ErrorAction SilentlyContinue) { throw 'Close Astra before configuring it.' }
@@ -9,7 +10,7 @@ $feastDll = Join-Path $PSScriptRoot 'bin/Release/net10.0-windows/Kawari.Feast.dl
 if (!(Test-Path -LiteralPath $feastDll)) { throw 'Build the plugin first.' }
 $feastSource = Join-Path $env:APPDATA "XIVLauncher/addon/Hooks/$DalamudVersion"
 $feastVersion = Get-Content (Join-Path $feastSource 'version.json') -Raw | ConvertFrom-Json
-if ($feastVersion.SupportedGameVer -ne '2026.06.18.0000.0000') { throw 'Dalamud game version mismatch.' }
+if ($feastVersion.SupportedGameVer -ne $GameVersion) { throw 'Dalamud game version mismatch.' }
 $feastState = Join-Path $env:LOCALAPPDATA 'State/astrastaterc'
 $feastText = [IO.File]::ReadAllText($feastState)
 $feastGroup = "[profile-$ProfileId]"

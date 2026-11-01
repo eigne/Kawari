@@ -12,7 +12,16 @@ from AgentPvPHeader/AgentActionDetail/AddonJobHud ctors; legacy director vtable
 numbering is unchanged. Raw addon field offsets (PvPMKSPartyList +0x239/+0x2D8)
 are NOT re-verified. SDK in target/dalamud-sdk is now Dalamud 15.0.3.9 (old copy
 in target/dalamud-sdk-15.0.2.3). Astra was still running Dalamud 15.0.2.3 (7.51);
-it needs 15.0.3.9 for 7.57. Nothing verified in game yet.
+it needs 15.0.3.9 for 7.57.
+
+Verified in game later that day: on 15.0.2.3 the HUD loaded but the CC header,
+CC party list and "Unbinding in 0s" returned. Astra's dalamud/local, runtime
+(adds 10.0.14) and assets (447) were copied from XIVLauncher's 15.0.3.9; old
+copies are in %APPDATA%/astra/dalamud/backup-15.0.2.3-20261101-153152.
+Install-Astra.ps1 now defaults to 15.0.3.9 / 2026.10.16. The merge also made Lua
+see intended_use as variant names ("Town"), so Feast.lua compares strings.
+After both: !feast duty pop, graphite Claws/Fangs header, Feast team lists,
+!feast bots 4v4 match start and !feast leave all pass. Combat not re-tested.
 
 ## October 27 Feast PvP Actions window (latest)
 

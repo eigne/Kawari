@@ -10,9 +10,9 @@ local function entry_mode()
 end
 
 local function can_queue(player)
-    -- Town = 0, OpenWorld = 1. Neither is a duty instance.
+    -- intended_use is serialized by variant name. Neither is a duty instance.
     return player.zone.id ~= 745 and
-        (player.zone.intended_use == 0 or player.zone.intended_use == 1)
+        (player.zone.intended_use == "Town" or player.zone.intended_use == "Overworld")
 end
 
 function onCommand(player, args, name)
@@ -46,7 +46,7 @@ function onCommand(player, args, name)
             printf(player, "You are not in the Feast arena.")
             return
         end
-        if player.zone.intended_use == 28 then
+        if player.zone.intended_use == "CrystallineConflict" then
             player:abandon_content()
         else
             player:change_territory(128, { x = 0.0, y = 40.0, z = 0.0 })
