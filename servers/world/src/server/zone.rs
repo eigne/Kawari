@@ -1279,8 +1279,16 @@ pub fn handle_zone_messages(
             let mut data = data.lock();
 
             // replace the connection's actor in the table
-            let instance = data.find_actor_instance_mut(*from_actor_id).unwrap();
-            *instance.find_actor_mut(*from_actor_id).unwrap() = NetworkedActor::Player {
+            // A late load (e.g. after a disconnect mid-transfer) can name an actor that is no longer in any instance.
+            let Some(instance) = data.find_actor_instance_mut(*from_actor_id) else {
+                tracing::warn!("Client {from_id:?} loaded a zone, but actor {from_actor_id:?} has no instance");
+                return true;
+            };
+            let Some(actor) = instance.find_actor_mut(*from_actor_id) else {
+                tracing::warn!("Client {from_id:?} loaded a zone, but actor {from_actor_id:?} is missing");
+                return true;
+            };
+            *actor = NetworkedActor::Player {
                 spawn: player_spawn.clone(),
                 status_effects: StatusEffects::default(),
                 teleport_query: TeleportQuery::default(),
