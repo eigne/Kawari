@@ -12,6 +12,8 @@ Commands:
 * `!feast den`: travel to the Wolves' Den Pier, where PvP actions are chosen.
 * `!feast status`: time, team scores, your medals and cap.
 * `!feast restart`: start another countdown after a result.
+* `!feast supply [heart]`: testing aid that spawns an adrenaline (or Wolf's Heart)
+  supply wave immediately during the match, instead of waiting for 90/180/270s.
 * `!feast leave`: leave the arena.
 * `!feast dummies [1-3]`: start fresh solo practice with stationary opponents.
 * `!feast attack on` / `!feast attack off`: enable/disable their retaliation.

@@ -268,6 +268,7 @@ pub fn tick(
                     .sum::<f32>()
                     <= 4.0
         }) {
+            tracing::info!(kind = ?kit.kind, player = winner, "Feast supply kit collected");
             super::feast::grant_supply(instance, network, ObjectId(winner), kit.kind);
             collected.push(id);
         }
@@ -288,19 +289,29 @@ pub fn tick(
         network.lock().remove_actor(instance, id);
     }
     for kind in supplies.due(rules.phase, now - (rules.deadline - MATCH_TIME)) {
-        match kind {
-            Kind::Adrenaline => {
-                // Original planmap yellow supply placements, north/south of the centre.
-                for (layout, z) in [(7167385, 10.0), (7167387, -10.0)] {
-                    // Do not stack a later wave over an unbroken earlier box.
-                    let occupied = supplies.boxes.keys().any(|id| matches!(instance.find_actor(*id), Some(NetworkedActor::Npc {spawn, ..}) if spawn.gimmick_id == layout));
-                    if !occupied {
-                        spawn(instance, network, supplies, kind, layout, [0.0, -2.5, z]);
-                    }
+        spawn_wave(instance, network, supplies, kind);
+    }
+}
+
+/// Spawns one supply wave now. Also used by `!feast supply` for testing.
+pub fn spawn_wave(
+    instance: &mut Instance,
+    network: &Arc<Mutex<NetworkState>>,
+    supplies: &mut Supplies,
+    kind: Kind,
+) {
+    match kind {
+        Kind::Adrenaline => {
+            // Original planmap yellow supply placements, north/south of the centre.
+            for (layout, z) in [(7167385, 10.0), (7167387, -10.0)] {
+                // Do not stack a later wave over an unbroken earlier box.
+                let occupied = supplies.boxes.keys().any(|id| matches!(instance.find_actor(*id), Some(NetworkedActor::Npc {spawn, ..}) if spawn.gimmick_id == layout));
+                if !occupied {
+                    spawn(instance, network, supplies, kind, layout, [0.0, -2.5, z]);
                 }
             }
-            Kind::WolfsHeart => spawn(instance, network, supplies, kind, 7167407, [0.0, -2.5, 0.0]),
         }
+        Kind::WolfsHeart => spawn(instance, network, supplies, kind, 7167407, [0.0, -2.5, 0.0]),
     }
 }
 

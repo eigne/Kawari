@@ -933,6 +933,24 @@ pub fn command(
         super::feast::ground_action(instance, network, id, &words);
         return;
     }
+    if words.first() == Some(&"supply") {
+        let kind = match words.get(1) {
+            Some(&"heart") => super::feast_supplies::Kind::WolfsHeart,
+            _ => super::feast_supplies::Kind::Adrenaline,
+        };
+        match instance.feast_match.take() {
+            Some(mut m) if m.rules.phase == Phase::Active => {
+                super::feast_supplies::spawn_wave(instance, network, &mut m.supplies, kind);
+                instance.feast_match = Some(m);
+                super::feast::notice(network, id, format!("Spawned a {kind:?} supply wave."));
+            }
+            m => {
+                instance.feast_match = m;
+                super::feast::notice(network, id, "Supplies can only spawn during the match.".into());
+            }
+        }
+        return;
+    }
     if matches!(words.first(), Some(&"actions") | Some(&"loadout") | Some(&"job")) {
         // Actions are chosen in the Wolves' Den; the HUD applies them during
         // preparation, and they stay fixed once the match begins.

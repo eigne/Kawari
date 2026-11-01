@@ -52,8 +52,10 @@ Do not describe this candidate as a complete or exact Feast recreation.
 - Ordinary KO medal lifetime remains **60 seconds provisional**; disconnect drops persist.
 - Passive adrenaline uses 180 seconds. Confirm final-version rate, combat/KO modifiers,
   death retention against captures. Native gauge scale is verified as 0..100 in the June row renderer.
-- Native box appearance/targetability, break/pickup animations and Wolf's Heart movement
-  must be verified in the running client. Unit tests cannot establish rendering or speed.
+- Verified in the client on November 1: both box models appear, boxes are targetable and
+  take damage, break into the team kit, and walking over an adrenaline kit fills the gauge.
+  Wolf's Heart movement and kit effects still need a live check. `!feast supply [heart]`
+  spawns a wave at once for testing.
 - Culling weather changes are still missing; status and damage are implemented.
 - The supported combat kit remains WHM. Other historical jobs, stat normalization,
   damage scaling, full crowd-control resistance and line-of-sight still need work.
