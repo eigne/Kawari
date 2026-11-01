@@ -60,8 +60,6 @@ impl ScramblerKeyGenerator {
     }
 
     fn derive(&self, set: u8, n_seed_1: u8, n_seed_2: u8, epoch: u32) -> u8 {
-        // FIXME: so many probably unnecessary casts here
-
         let mid_index = 8 * (n_seed_1 as usize % (self.mid_table.len() / 8));
         let mid_table_value = self.mid_table[4 + mid_index];
         let mut mid_bytes = [0u8; 4];
@@ -107,7 +105,6 @@ impl ScramblerKeyGenerator {
 #[derive(Debug, Clone)]
 pub struct ScramblerKeys {
     keys: [u8; 3],
-    // TODO: maybe move somewhere else?
     opcode_key_table: Vec<i32>,
 }
 
@@ -224,6 +221,20 @@ pub fn scramble_packet(opcode_name: &str, base_key: u8, opcode_based_key: i32, d
                 for i in 0..30 {
                     let offset = op_offset + i * 12;
                     unscramble_add::<u16>(data, offset, base_key as u16);
+                }
+            }
+            "PartyList" => {
+                let op_offset = 456;
+                for i in 0..8 {
+                    let offset = op_offset * i;
+                    unscramble_add::<u64>(data, 64 + offset, base_key as u64);
+                    unscramble_add::<u32>(data, 72 + offset, base_key as u32);
+                    unscramble_add::<u32>(data, 76 + offset, base_key as u32);
+                    unscramble_add::<u32>(data, 80 + offset, base_key as u32);
+                    unscramble_add::<u16>(data, 96 + offset, base_key as u16);
+                    unscramble_add::<u8>(data, 101 + offset, base_key);
+                    unscramble_add::<u8>(data, 103 + offset, base_key);
+                    unscramble_add::<u8>(data, 105 + offset, base_key);
                 }
             }
             _ => {}

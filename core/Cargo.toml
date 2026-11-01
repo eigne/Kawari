@@ -22,6 +22,7 @@ serde_yaml_ng = { workspace = true }
 
 [dependencies]
 serde = { workspace = true }
+serde_derive = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml_ng = { workspace = true }
 tracing = { workspace = true }
@@ -34,7 +35,6 @@ strum_macros = { workspace = true }
 tokio = { workspace = true, optional = true }
 mlua = { workspace = true, optional = true }
 diesel = { workspace = true, optional = true }
-bstr = { workspace = true }
 glam = { workspace = true }
 
 # Used for managing our insane amount of opcodes.

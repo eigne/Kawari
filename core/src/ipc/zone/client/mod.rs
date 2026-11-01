@@ -1,6 +1,6 @@
 use binrw::binrw;
-use bstr::BString;
 use kawari_core_macro::opcode_data;
+use physis::sestring::SeString;
 
 mod action_request;
 pub use crate::ipc::zone::client::action_request::{ActionRequest, ActionType};
@@ -9,7 +9,9 @@ mod send_chat_message;
 pub use send_chat_message::SendChatMessage;
 
 mod client_trigger;
-pub use crate::ipc::zone::client::client_trigger::{ClientTrigger, ClientTriggerCommand};
+pub use crate::ipc::zone::client::client_trigger::{
+    ClientTrigger, ClientTriggerCommand, ClientTriggerTarget,
+};
 
 mod event_yield_handler;
 pub use crate::ipc::zone::client::event_yield_handler::EventYieldHandler;
@@ -45,8 +47,8 @@ pub use super::social_list::{
 use super::config::Config;
 use crate::common::{
     CHAR_NAME_MAX_LENGTH, ClientLanguage, HandlerId, HouseId, JumpState, MoveAnimationState,
-    MoveAnimationType, ObjectId, Position, read_bool_from, read_sestring, read_string,
-    write_bool_as, write_sestring, write_string,
+    MoveAnimationType, ObjectId, Position, read_bool_from, read_string, write_bool_as,
+    write_string,
 };
 use crate::opcodes::ClientZoneIpcType;
 use crate::packet::ServerIpcSegmentHeader;
@@ -147,6 +149,7 @@ pub enum ClientZoneIpcData {
     EventYieldHandler2(EventYieldHandler<2>),
     EventYieldHandler4(EventYieldHandler<4>),
     EventYieldHandler16(EventYieldHandler<16>),
+    EventYieldHandler32(EventYieldHandler<32>),
     EventYieldHandler128(EventYieldHandler<128>),
     StandardControlsPivot {
         /// Set to 4 when beginning to pivot.
@@ -189,7 +192,7 @@ pub enum ClientZoneIpcData {
         #[brw(pad_after = 2)]
         unk2: u16,
         #[br(count = 56)]
-        #[bw(pad_size_to = 56)]
+        #[brw(pad_size_to = 56)]
         unk3: Vec<u8>,
     },
     StartWalkInEvent {
@@ -240,7 +243,7 @@ pub enum ClientZoneIpcData {
     },
     SearchFellowships {
         #[br(count = 112)]
-        #[bw(pad_size_to = 112)]
+        #[brw(pad_size_to = 112)]
         unk: Vec<u8>,
     },
     StartCountdown {
@@ -386,9 +389,8 @@ pub enum ClientZoneIpcData {
         handler_id: HandlerId,
     },
     Trade {
-        sequence: u16,
-        unk1: u16, // Some value echoed back to the client
-        unk2: u32, // Observed as 1 when beginning a trade, and 7 when doing the second trade opcode
+        sequence: u32,
+        action_type: u32, // Observed as 1 when beginning a trade, and 7 when doing the second trade opcode
         target_actor_id: ObjectId,
         unk3: [u8; 4],
     },
@@ -437,7 +439,7 @@ pub enum ClientZoneIpcData {
         #[brw(pad_before = 4)] // empty
         sequence: u16, // probably
         #[br(count = 130)]
-        #[bw(pad_size_to = 130)]
+        #[brw(pad_size_to = 130)]
         unk: Vec<u8>,
     },
     CreateLocalLinkshellRequest {
@@ -478,12 +480,12 @@ pub enum ClientZoneIpcData {
     },
     CheckCWLinkshellNameAvailability {
         unk1: u8, // TODO: What is this? Seems to be always 1?
-        #[bw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
+        #[brw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
         #[br(count = CHAR_NAME_MAX_LENGTH)]
         #[br(map = read_string)]
         #[bw(map = write_string)]
         name: String,
-        unk2: [u8; 7], // Unknown data, likely garbage since several other client opcodes have been discovered to leave garbage behind around name strings*/
+        unk2: [u8; 7], // Unknown data, likely garbage since several other client opcodes have been discovered to leave garbage behind around name strings
     },
     CreateNewCrossworldLinkshell {
         /// The name of the cross-world linkshell.
@@ -553,10 +555,8 @@ pub enum ClientZoneIpcData {
         /// The message to send. In-game it's only 200 characters, but it's larger than 201 bytes due to multi-byte characters.
         #[brw(pad_size_to = LETTER_MSG_MAX_LENGTH)]
         #[br(count = LETTER_MSG_MAX_LENGTH)]
-        #[br(map = read_sestring)]
-        #[bw(map = write_sestring)]
         #[brw(pad_after = 7)] // Seems to just be padding/garbage
-        message: BString, // NOTE: This is a BString due to the fact that SEString macros can appear in its contents.
+        message: SeString,
     },
     ViewLetter {
         /// The sender's content id.
@@ -652,6 +652,33 @@ pub enum ClientZoneIpcData {
         unk1: [u8; 24],
     },
     DyeInformation(DyeInformation),
+    RequestRecruitingPartyCount {
+        unk1: [u8; 8], // empty, as far as i've seen
+    },
+    UnkMarketBoardRequest1 {
+        /// Corresponds to an item on the marketboard. Index into the Item Excel sheet.
+        item_id: u32,
+        unk2: u32,
+    },
+    UnkMarketBoardRequest2 {
+        unk1: u32,
+        #[brw(pad_after = 3)] // unused
+        request_id: u8,
+    },
+    PerformanceNote {
+        unk1: [u8; 24],
+    },
+    CreateFellowship {
+        #[brw(pad_size_to = 60)]
+        #[br(count = 60)]
+        #[br(map = read_string)]
+        #[bw(map = write_string)]
+        #[brw(pad_after = 4)] // Seems to just be padding/garbage
+        name: String,
+    },
+    SearchFellowshipsJoin {
+        community_id: u64,
+    },
 }
 
 #[cfg(test)]

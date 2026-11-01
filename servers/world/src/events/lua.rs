@@ -65,22 +65,22 @@ impl LuaEventHandler {
     }
 
     /// Injects any applicable Lua parameters from Excel, such as from `Opening`.
-    fn inject_lua_parameters(id: HandlerId, lua: &mut Lua, gamedata: &mut GameData) {
+    fn inject_lua_parameters(id: HandlerId, lua: &mut Lua, game_data: &mut GameData) {
         let variables = match id.handler_type() {
             HandlerType::Opening => {
                 let opening_id = id.0;
-                gamedata.get_opening_variables(opening_id)
+                game_data.get_opening_variables(opening_id)
             }
             HandlerType::Quest => {
                 let quest_id = id.0;
-                gamedata.get_quest_variables(quest_id)
+                game_data.get_quest_variables(quest_id)
             }
             HandlerType::CustomTalk => {
                 let ct_id = id.0;
-                gamedata.get_custom_talk_variables(ct_id)
+                game_data.get_custom_talk_variables(ct_id)
             }
             // NOTE: ExitRange Lua script uses AetheryteSystemDefine variables, that's why it's here...
-            HandlerType::Aetheryte | HandlerType::ExitRange => gamedata.get_aetheryte_variables(),
+            HandlerType::Aetheryte | HandlerType::ExitRange => game_data.get_aetheryte_variables(),
             _ => Vec::new(),
         };
 
@@ -221,5 +221,13 @@ impl EventHandler for LuaEventHandler {
             .globals()
             .get("CONDITION")
             .unwrap_or(Condition::OccupiedInQuestEvent)
+    }
+
+    fn disable_event_pos_rollback(&self) -> bool {
+        self.lua
+            .0
+            .globals()
+            .get("DISABLE_EVENT_POS_ROLLBACK")
+            .unwrap_or(false)
     }
 }

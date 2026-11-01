@@ -12,19 +12,17 @@ If you want anyone on the server to travel to said zone, you can add this modded
 
 ## Moving around zones faster
 
-The game lacks a noclip or flying mode, so getting around zones can appear a bit tough. There's a few solutions to alleviate traveling around some of the bigger zones or through normally inaccessible paths.
+With Kawari we have numerous options to aid exploration without a client-side plugin!
 
-* Try changing your speed with the [`//gm speed <factor>` GM command](gm_commands.md).
+* You can switch to a flying camera with the `!spectator` [debug command](debug_commands.md).
 * You can use the [`!nudge` debug command](debug_commands.md) to quickly teleport.
 * If you know an exact spot or need to travel an extremely long distance, use the `//gm pos <x> <y> <z>` command to teleport there.
-* While the game client doesn't provide a noclip or flying mode, Kawari itself does with the [`!mount` debug command](debug_commands.md), allowing you to mount in any zone and fly around as much as you'd like. You can also pair it with the GM speed command mentioned above to move even faster.
+* You can quickly mount onto anything with [`!mount` debug command](debug_commands.md).
+* You can change your speed with the [`//gm speed <factor>` GM command](gm_commands.md), which applies to the spectator camera and mounts.
 
 ## Importing characters from retail
 
 It's possible to import existing characters from the retail server using [Auracite](https://auracite.xiv.zone). You can upload the backup ZIP on the account management page.
-
-> [!NOTE]
-> This feature is still a work-in-progress, and not all data is imported yet. Only backups created with the newest version are supported.
 
 ## Legacy Mark/Tattoo
 
@@ -40,3 +38,8 @@ This is currently only possible by manually editing the database.
 The game regularly rotates various festivals or events throughout the year. Their content is normally unavailable after they finished on retail, however parts of them can still be seen in Kawari. You can set festivals temporarily using the `!festival` [debug command](debug_commands.md), or permanently change the active festivals on [the Admin Panel](https://admin.ffxiv.localhost).
 
 Patch updates may retroactively change or remove older festival content due to the nature of the format.
+
+## Recommended client-side plugins
+
+* cl_showpos for the ease-of-access to position and certain zone information.
+* Chronofoil for passively recording packet captures.

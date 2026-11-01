@@ -23,7 +23,7 @@ impl ZoneConnection {
         let model_ids;
         let second_model_stain_ids;
         {
-            let mut game_data = self.gamedata.lock();
+            let mut game_data = self.game_data.lock();
             let inventory = &self.player_data.inventory;
 
             main_weapon_id = inventory.get_main_weapon_id(&mut game_data);
@@ -112,9 +112,8 @@ impl ZoneConnection {
                         sequence: self.player_data.item_sequence,
                         container: container_type,
                         quantity: item.quantity,
-                        catalog_id: item.item_id,
+                        item_id: item.item_id,
                         slot: slot_index as u16,
-                        ..Default::default()
                     }),
                 ),
                 _ => ServerZoneIpcSegment::new(ServerZoneIpcData::UpdateItem(ItemInfo {
@@ -199,7 +198,7 @@ impl ZoneConnection {
         if self.player_data.character.actor_id == actor_id {
             let level;
             {
-                let mut game_data = self.gamedata.lock();
+                let mut game_data = self.game_data.lock();
 
                 level = self
                     .player_data
@@ -227,20 +226,26 @@ impl ZoneConnection {
         self.update_class_info().await;
     }
 
-    pub async fn send_inventory_ack(&mut self, sequence: u32, action_type: u16) {
+    pub async fn send_inventory_ack(&mut self, sequence: u32, action_type: u8, unk1: u8) {
         let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::InventoryActionAck {
             sequence,
             action_type,
+            equipped_items_inventory_type: ContainerType::Inventory0, // TODO: wrong!!
+            unk1,
         });
         self.send_ipc_self(ipc).await;
         self.player_data.item_sequence += 1;
     }
 
-    pub async fn send_inventory_transaction_finish(&mut self, unk1: u32, unk2: u32) {
+    pub async fn send_inventory_transaction_finish(
+        &mut self,
+        operation_type: ItemOperationKind,
+        unk2: u32,
+    ) {
         let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::InventoryTransactionFinish {
             sequence: self.player_data.item_sequence,
             sequence_repeat: self.player_data.item_sequence,
-            unk1,
+            operation_type,
             unk2,
         });
         self.send_ipc_self(ipc).await;
@@ -325,14 +330,14 @@ impl ZoneConnection {
             src_actor_id: self.player_data.character.actor_id,
             src_storage_id: src_container,
             src_container_index: src_index,
-            src_stack: src_item.quantity,
-            src_catalog_id: src_item.item_id,
+            src_stack: src_item.quantity as u32,
+            src_item_id: src_item.item_id,
 
             dst_actor_id: self.player_data.character.actor_id,
             dst_storage_id: dst_container,
             dst_container_index: dst_index,
-            dst_stack: dst_item.quantity,
-            dst_catalog_id: dst_item.item_id,
+            dst_stack: dst_item.quantity as u32,
+            dst_item_id: dst_item.item_id,
 
             dummy_container: ContainerType::Equipped,
         });
@@ -344,7 +349,7 @@ impl ZoneConnection {
         // Check the weapon's compatible class jobs:
         let classjobs;
         {
-            let mut game_data = self.gamedata.lock();
+            let mut game_data = self.game_data.lock();
 
             let weapon = self.player_data.inventory.equipped.main_hand.item_id;
             let item_info = game_data
@@ -367,7 +372,7 @@ impl ZoneConnection {
         if soul_crystal.quantity > 0 {
             let classjob_id;
             {
-                let mut game_data = self.gamedata.lock();
+                let mut game_data = self.game_data.lock();
                 classjob_id = game_data.get_applicable_classjob(soul_crystal.item_id);
             }
 
@@ -385,7 +390,7 @@ impl ZoneConnection {
     pub async fn remove_incompatible_armor(&mut self, action: &ItemOperation) {
         // NOTE: This has to match client behavior exactly! As this happens client-side.
 
-        let mut game_data = self.gamedata.lock();
+        let mut game_data = self.game_data.lock();
 
         // First remove incompatible classjob gear.
         for slot in EquipSlot::iter() {

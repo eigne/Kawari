@@ -1,49 +1,33 @@
 use binrw::binrw;
 use bitflags::bitflags;
-use serde::{Deserialize, Serialize};
+use serde_derive::{Deserialize, Serialize};
 use strum_macros::{Display, EnumIter, FromRepr};
 
 use crate::{
     common::{ObjectId, ObjectTypeId, read_quantized_rotation, write_quantized_rotation},
-    ipc::zone::ActionType,
+    ipc::zone::{ActionType, ServerZoneIpcData, ServerZoneIpcSegment},
 };
 
-// TODO: this might be a flag?
 #[binrw]
-#[derive(
-    Debug, Eq, PartialEq, Clone, Copy, Default, Display, Deserialize, Serialize, EnumIter, FromRepr,
-)]
-#[repr(u8)]
-#[brw(repr = u8)]
-#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-pub enum DamageKind {
-    // These are all "normal" attacks, not direct hits/criticals or anything special.
-    #[default]
-    Normal = 0x0,
-    Critical = 0x1,
-    DirectHit = 0x2,
-}
+#[derive(Eq, PartialEq, Clone, Copy, Default)]
+pub struct DamageKind(u8);
 
-#[cfg(feature = "server")]
-impl mlua::IntoLua for DamageKind {
-    fn into_lua(self, _: &mlua::Lua) -> mlua::Result<mlua::Value> {
-        Ok(mlua::Value::Integer(self as i64))
+bitflags! {
+    impl DamageKind: u8 {
+        const CRITICAL = 0x20;
+        const DIRECT_HIT = 0x40;
     }
 }
 
-#[cfg(feature = "server")]
-impl mlua::FromLua for DamageKind {
-    fn from_lua(value: mlua::Value, _: &mlua::Lua) -> mlua::Result<Self> {
-        match value {
-            mlua::Value::Integer(integer) => Ok(Self::from_repr(integer as u8).unwrap()),
-            _ => unreachable!(),
-        }
+impl std::fmt::Debug for DamageKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        bitflags::parser::to_writer(self, f)
     }
 }
 
 #[binrw]
 #[derive(Debug, PartialEq, Clone, Copy, Default)]
-pub enum EffectKind {
+pub enum TargetEffectKind {
     #[default]
     /// There's no effect entry.
     #[brw(magic = 0u8)]
@@ -77,10 +61,10 @@ pub enum EffectKind {
     Heal { unk1: [u8; 5], amount: u16 },
     /// Seen while attacking giant clams.
     #[brw(magic = 7u8)]
-    Invincible {},
+    Invincible,
     /// Seen during Head Graze.
     #[brw(magic = 8u8)]
-    InterruptAction {},
+    InterruptAction,
     /// Executes/combies an action combo.
     #[brw(magic = 27u8)]
     ExecuteCombo {
@@ -104,8 +88,7 @@ pub enum EffectKind {
         /// Index into the Status Excel sheet.
         effect_id: u16,
 
-        // NOTE: the following is for our internal usage, this is not an actual part of the packet
-        // TODO: this shouldn't be here, instead we should maybe create a lua-specific struct for all of this information
+        // HACK: this shouldn't be here, instead we should maybe create a lua-specific struct for all of this information
         #[brw(ignore)]
         duration: f32,
     },
@@ -121,8 +104,7 @@ pub enum EffectKind {
         /// Index into the Status Excel sheet.
         effect_id: u16,
 
-        // NOTE: the following is for our internal usage, this is not an actual part of the packet
-        // TODO: this shouldn't be here, instead we should maybe create a lua-specific struct for all of this information
+        // HACK: this shouldn't be here, instead we should maybe create a lua-specific struct for all of this information
         #[brw(ignore)]
         duration: f32,
     },
@@ -139,11 +121,29 @@ pub enum EffectKind {
     /// Play this VFX.
     #[brw(magic = 59u8)]
     PlayVFX { unk: [u8; 5], effect_id: u16 },
+    /// Seen with the Gyshal Greens item and while deciphering maps.
+    #[brw(magic = 61u8)]
+    SummonCompanion {
+        param0: u8,
+        param1: u8,
+        param2: u8,
+        param3: u8,
+        param4: u8,
+        value: u16,
+    },
     /// Seen in the Summon Carbuncle action.
     #[brw(magic = 62u8)]
     SummonPet { unk: [u8; 7] },
     /// Unknown effect (that should be added!)
-    Unknown { magic: u8, unk: [u8; 7] },
+    Unknown {
+        magic: u8,
+        param0: u8,
+        param1: u8,
+        param2: u8,
+        param3: u8,
+        param4: u8,
+        value: u16,
+    },
 }
 
 #[repr(u8)]
@@ -219,33 +219,30 @@ impl mlua::FromLua for DamageElement {
 }
 
 #[binrw]
-#[brw(little)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct ActionEffect {
-    #[brw(pad_size_to = 8)]
-    pub kind: EffectKind,
-}
+pub struct TargetEffect(#[brw(pad_size_to = 8)] pub TargetEffectKind);
 
 #[binrw]
 #[derive(Clone, Copy, Eq, PartialEq, Default)]
-pub struct ActionResultFlag(u8);
+pub struct ActionEffectFlag(u8);
 
 bitflags! {
-    impl ActionResultFlag : u8 {
+    impl ActionEffectFlag : u8 {
         const FORCE_ANIMATION_LOCK = 0x1;
     }
 }
 
-impl std::fmt::Debug for ActionResultFlag {
+impl std::fmt::Debug for ActionEffectFlag {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         bitflags::parser::to_writer(self, f)
     }
 }
 
 #[binrw]
-#[brw(little)]
 #[derive(Debug, Clone, Default)]
-pub struct ActionResult {
+#[brw(import{max_targets: usize})]
+#[brw(assert(targets.len() <= max_targets, "Too many targets! {} > {}", targets.len(), max_targets))]
+pub struct ActionEffect {
     pub animation_target_id: ObjectTypeId,
     /// Index into the Action Excel sheet.
     pub action_id: u32,
@@ -264,13 +261,27 @@ pub struct ActionResult {
     pub animation_variation: u8,
     /// The kind of action.
     pub action_type: ActionType,
-    pub flags: ActionResultFlag,
-    pub effect_count: u8,
-    pub unk4: u16,
-    pub unk5: [u8; 6], // might be not read by the client?
-    pub effects: [ActionEffect; 8],
+    pub flags: ActionEffectFlag,
+    #[br(temp)]
+    #[bw(calc = targets.len() as u8)]
+    pub target_count: u8,
+    #[brw(pad_before = 8)] // not read?
+    pub effects: [TargetEffect; 8],
     #[brw(pad_before = 6, pad_after = 4)]
-    pub target_id_again: ObjectTypeId,
+    #[br(count = max_targets)]
+    #[brw(pad_size_to = max_targets * 8)]
+    pub targets: Vec<ObjectTypeId>,
+}
+
+impl ActionEffect {
+    pub fn package(&self) -> Option<ServerZoneIpcSegment> {
+        match self.targets.len() {
+            0..=1 => Some(ServerZoneIpcSegment::new(ServerZoneIpcData::ActionEffect1(
+                self.clone(),
+            ))),
+            _ => None,
+        }
+    }
 }
 
 #[binrw]
@@ -295,11 +306,11 @@ pub struct AoeActionResult {
     pub animation_variation: u8,
     /// The kind of action.
     pub action_type: ActionType,
-    pub flags: ActionResultFlag,
+    pub flags: ActionEffectFlag,
     pub effect_count: u8,
     pub unk4: u16,
     pub unk5: [u8; 6], // might be not read by the client?
-    pub effects: [[ActionEffect; 8]; 8],
+    pub effects: [[TargetEffect; 8]; 8],
     #[brw(pad_before = 6)]
     pub target_ids: [ObjectTypeId; 8],
     // The wire payload is 636 bytes: packed XYZ at 624, then six reserved bytes.
@@ -346,7 +357,9 @@ mod tests {
         let buffer = read(d).unwrap();
         let mut buffer = Cursor::new(&buffer);
 
-        let action_result = ActionResult::read_le(&mut buffer).unwrap();
+        let action_result =
+            ActionEffect::read_le_args(&mut buffer, ActionEffectBinReadArgs { max_targets: 1 })
+                .unwrap();
         assert_eq!(
             action_result.animation_target_id.object_id,
             ObjectId(0x40070E42)
@@ -359,17 +372,14 @@ mod tests {
         assert_eq!(action_result.rotation, 1.207309);
         assert_eq!(action_result.spell_id, 31);
         assert_eq!(action_result.animation_variation, 0);
-        assert_eq!(action_result.flags, ActionResultFlag::empty());
+        assert_eq!(action_result.flags, ActionEffectFlag::empty());
         assert_eq!(action_result.action_type, ActionType::Action);
-        assert_eq!(action_result.effect_count, 1);
-        assert_eq!(action_result.unk4, 0);
-        assert_eq!(action_result.unk5, [0; 6]);
 
         // effect 0: attack
         assert_eq!(
-            action_result.effects[0].kind,
-            EffectKind::Damage {
-                damage_kind: DamageKind::Normal,
+            action_result.effects[0].0,
+            TargetEffectKind::Damage {
+                damage_kind: DamageKind::default(),
                 damage_type: DamageType::Slashing,
                 damage_element: DamageElement::Unaspected,
                 bonus_percent: 0,
@@ -381,8 +391,8 @@ mod tests {
 
         // effect 1: start action combo
         assert_eq!(
-            action_result.effects[1].kind,
-            EffectKind::ExecuteCombo {
+            action_result.effects[1].0,
+            TargetEffectKind::ExecuteCombo {
                 sequence: 0,
                 unk2: 0,
                 unk3: 0,
@@ -392,10 +402,7 @@ mod tests {
             }
         );
 
-        assert_eq!(
-            action_result.target_id_again.object_id,
-            ObjectId(0x40070E42)
-        );
+        assert_eq!(action_result.targets[0].object_id, ObjectId(0x40070E42));
     }
 
     #[test]
@@ -406,7 +413,9 @@ mod tests {
         let buffer = read(d).unwrap();
         let mut buffer = Cursor::new(&buffer);
 
-        let action_result = ActionResult::read_le(&mut buffer).unwrap();
+        let action_result =
+            ActionEffect::read_le_args(&mut buffer, ActionEffectBinReadArgs { max_targets: 1 })
+                .unwrap();
         assert_eq!(
             action_result.animation_target_id.object_id,
             ObjectId(277554542)
@@ -419,15 +428,12 @@ mod tests {
         assert_eq!(action_result.rotation, 2.6254003);
         assert_eq!(action_result.spell_id, 3);
         assert_eq!(action_result.animation_variation, 0);
-        assert_eq!(action_result.flags, ActionResultFlag::empty());
+        assert_eq!(action_result.flags, ActionEffectFlag::empty());
         assert_eq!(action_result.action_type, ActionType::Action);
-        assert_eq!(action_result.effect_count, 1);
-        assert_eq!(action_result.unk4, 0);
-        assert_eq!(action_result.unk5, [0; 6]);
 
         assert_eq!(
-            action_result.effects[0].kind,
-            EffectKind::GainEffect {
+            action_result.effects[0].0,
+            TargetEffectKind::GainEffect {
                 unk1: 0,
                 unk2: 48,
                 unk3: 0,
@@ -437,7 +443,7 @@ mod tests {
             }
         );
 
-        assert_eq!(action_result.target_id_again.object_id, ObjectId(277554542));
+        assert_eq!(action_result.targets[0].object_id, ObjectId(277554542));
     }
 
     #[test]
@@ -448,7 +454,9 @@ mod tests {
         let buffer = read(d).unwrap();
         let mut buffer = Cursor::new(&buffer);
 
-        let action_result = ActionResult::read_le(&mut buffer).unwrap();
+        let action_result =
+            ActionEffect::read_le_args(&mut buffer, ActionEffectBinReadArgs { max_targets: 1 })
+                .unwrap();
         assert_eq!(
             action_result.animation_target_id.object_id,
             ObjectId(277114100)
@@ -461,22 +469,19 @@ mod tests {
         assert_eq!(action_result.rotation, -0.8154669);
         assert_eq!(action_result.spell_id, 4);
         assert_eq!(action_result.animation_variation, 0);
-        assert_eq!(action_result.flags, ActionResultFlag::empty());
+        assert_eq!(action_result.flags, ActionEffectFlag::empty());
         assert_eq!(action_result.action_type, ActionType::Mount);
-        assert_eq!(action_result.effect_count, 1);
-        assert_eq!(action_result.unk4, 0);
-        assert_eq!(action_result.unk5, [0; 6]);
 
         assert_eq!(
-            action_result.effects[0].kind,
-            EffectKind::Mount {
+            action_result.effects[0].0,
+            TargetEffectKind::Mount {
                 unk1: 1,
                 unk2: 0,
                 id: 55,
             }
         );
 
-        assert_eq!(action_result.target_id_again.object_id, ObjectId(277114100));
+        assert_eq!(action_result.targets[0].object_id, ObjectId(277114100));
     }
 
     #[test]
@@ -487,7 +492,9 @@ mod tests {
         let buffer = read(d).unwrap();
         let mut buffer = Cursor::new(&buffer);
 
-        let action_result = ActionResult::read_le(&mut buffer).unwrap();
+        let action_result =
+            ActionEffect::read_le_args(&mut buffer, ActionEffectBinReadArgs { max_targets: 1 })
+                .unwrap();
         assert_eq!(
             action_result.animation_target_id.object_id,
             ObjectId(277114100)
@@ -500,21 +507,18 @@ mod tests {
         assert_eq!(action_result.rotation, -2.0225368);
         assert_eq!(action_result.spell_id, 13266);
         assert_eq!(action_result.animation_variation, 0);
-        assert_eq!(action_result.flags, ActionResultFlag::empty());
+        assert_eq!(action_result.flags, ActionEffectFlag::empty());
         assert_eq!(action_result.action_type, ActionType::Action);
-        assert_eq!(action_result.effect_count, 1);
-        assert_eq!(action_result.unk4, 0);
-        assert_eq!(action_result.unk5, [0; 6]);
 
         assert_eq!(
-            action_result.effects[0].kind,
-            EffectKind::LoseEffect {
+            action_result.effects[0].0,
+            TargetEffectKind::LoseEffect {
                 param: 219,
                 unk: [0; 3],
                 effect_id: 565
             }
         );
 
-        assert_eq!(action_result.target_id_again.object_id, ObjectId(277114100));
+        assert_eq!(action_result.targets[0].object_id, ObjectId(277114100));
     }
 }

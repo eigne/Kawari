@@ -2,12 +2,12 @@
 
 use crate::{
     GameData, ToServer, ZoneConnection,
-    gamedata::{Attributes, Modifiers},
+    gamedata::Modifiers,
     inventory::{EquippedStorage, Storage},
 };
-use icarus::ParamGrow::ParamGrowRow;
+use icarus::{ParamGrow::ParamGrowRow, Tribe::TribeRow};
 use kawari::{
-    common::{MAXIMUM_RESTED_EXP, ObjectId},
+    common::{ActionCategory, MAXIMUM_RESTED_EXP, ObjectId},
     ipc::zone::{
         ActorControlCategory, PlayerStats, ServerZoneIpcData, ServerZoneIpcSegment, UpdateClassInfo,
     },
@@ -90,11 +90,16 @@ pub struct BaseParameters {
     pub control: u32,
     pub gathering: u32,
     pub perception: u32,
+
+    // Needed for cast time calculations
+    pub base_speed: i32,
+    pub level_modifier: i32,
 }
 
 impl BaseParameters {
     pub fn get_mut(&mut self, index: u8) -> &mut u32 {
         match index {
+            0 => &mut self.strength, // HACK: Classjob #0 (used by enemies) index this value I think, so don't remove that without thinking first.
             1 => &mut self.strength,
             2 => &mut self.dexterity,
             3 => &mut self.vitality,
@@ -173,47 +178,50 @@ impl BaseParameters {
     }
 
     /// Calculates a set of attributes based on the level and class modifiers.
-    pub fn calculate_based_on_level(
+    pub fn perform_calculations(
         &mut self,
-        attributes: &Attributes,
-        _level: u32,
+        primary_stat: u8,
+        tribe_row: &TribeRow,
         param_grow: &ParamGrowRow,
         modifiers: &Modifiers,
     ) {
         // Akh Morning data can't be extrapolated from game sheets, and it's missing a significant amount of entries from 50-70, so let's try making a decent approximation with the BaseSpeed, HpModifier and LevelModifier columns.
         self.strength = modifiers
             .apply_to(1, param_grow.BaseSpeed as u32)
-            .saturating_add_signed(attributes.strength as i32);
+            .saturating_add_signed(tribe_row.STR as i32);
         self.dexterity = modifiers
             .apply_to(2, param_grow.BaseSpeed as u32)
-            .saturating_add_signed(attributes.dexterity as i32);
+            .saturating_add_signed(tribe_row.DEX as i32);
         self.vitality = modifiers
             .apply_to(3, param_grow.BaseSpeed as u32)
-            .saturating_add_signed(attributes.vitality as i32);
+            .saturating_add_signed(tribe_row.VIT as i32);
         self.intelligence = modifiers
             .apply_to(4, param_grow.BaseSpeed as u32)
-            .saturating_add_signed(attributes.intelligence as i32);
+            .saturating_add_signed(tribe_row.INT as i32);
         self.mind = modifiers
             .apply_to(5, param_grow.BaseSpeed as u32)
-            .saturating_add_signed(attributes.mind as i32);
+            .saturating_add_signed(tribe_row.MND as i32);
         self.piety = modifiers
             .apply_to(6, param_grow.BaseSpeed as u32)
-            .saturating_add_signed(attributes.piety as i32);
+            .saturating_add_signed(tribe_row.PIE as i32);
 
         self.spell_speed = param_grow.BaseSpeed as u32;
         self.tenacity = param_grow.BaseSpeed as u32;
-        self.attack_power = *self.get_mut(4); // TODO: don't hardcode PrimaryStat
+        self.attack_power = *self.get_mut(primary_stat);
         self.skill_speed = self.tenacity;
         self.haste = 100; // Controls cast times
 
         // This is fixed and isn't modified by any items in retail, so it's safe to be set here.
         self.mp = param_grow.MpModifier as u32;
+
+        // Needed for cast time calculations
+        self.base_speed = param_grow.BaseSpeed;
+        self.level_modifier = param_grow.LevelModifier;
     }
 
     // This should be called after item stat calculations.
     pub fn calculate_potencies(
         &mut self,
-        _level: u32,
         param_grow: &ParamGrowRow,
         modifiers: Option<&Modifiers>,
     ) {
@@ -236,7 +244,7 @@ impl BaseParameters {
         };
 
         let hp_mod = param_grow.HpModifier as f32;
-        let base_vit = (param_grow.BaseSpeed as f32) * classjob_vit_mod; // TODO: Tribe adjustments, if we care about such a minimal change?
+        let base_vit = (param_grow.BaseSpeed as f32) * classjob_vit_mod;
         let lv_mod = param_grow.LevelModifier as f32;
 
         self.hp = (100.0
@@ -280,15 +288,44 @@ impl BaseParameters {
                         // Make sure to cap attributes when ilvl syncing:
                         let value = if let Some(item_level_attributes) = item_level_attributes {
                             let attribute_cap = item_level_attributes[i];
-                            (slot.base_param_values[i].min(attribute_cap as i16)) as u32 // TODO: is there ever negative values?
+                            (slot.base_param_values[i].min(attribute_cap as i16)) as i32
                         } else {
-                            slot.base_param_values[i] as u32 // TODO: is there ever negative values?
+                            slot.base_param_values[i] as i32
                         };
-                        *self.get_mut(*param_id) += value;
+                        *self.get_mut(*param_id) =
+                            self.get_mut(*param_id).saturating_add_signed(value);
                     }
                 }
             }
         }
+    }
+
+    /// Takes into account the haste and skill/speed stat based on `Client::Game::ActionManager::GetAdjustedCastTime`.
+    /// `cast_time` should be in milliseconds!
+    /// Returns a cast time in milliseconds.
+    pub fn get_adjusted_cast_time(&self, action_category: ActionCategory, cast_time: u32) -> i32 {
+        // It only applies to these kinds of actions...
+        if action_category != ActionCategory::Invalid
+            && action_category != ActionCategory::AutoAttack
+            && action_category != ActionCategory::Spell
+            && action_category != ActionCategory::Weaponskill
+        {
+            return cast_time as i32;
+        }
+
+        let stat_speed_value = match action_category {
+            ActionCategory::Weaponskill => self.skill_speed as i32,
+            ActionCategory::Spell => self.spell_speed as i32,
+            _ => self.base_speed,
+        };
+
+        let ivar12 = ((self.base_speed - stat_speed_value) * 0x82) / (self.level_modifier) + 1000;
+        let mut new_val = 0;
+        if -1 < ivar12 {
+            new_val = ivar12;
+        }
+
+        (self.haste as i32 * ((new_val * cast_time as i32) / 1000)) / 100
     }
 }
 
@@ -310,10 +347,10 @@ impl ZoneConnection {
     pub async fn update_class_info(&mut self) {
         let ipc;
         {
-            let game_data = self.gamedata.lock();
+            let game_data = self.game_data.lock();
 
             ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::UpdateClassInfo(UpdateClassInfo {
-                class_id: self.player_data.classjob.current_class as u8,
+                classjob_id: self.player_data.classjob.current_class as u8,
                 class_level: self.current_level(&game_data),
                 current_level: self.current_level(&game_data),
                 synced_level: self.synced_level.unwrap_or_default() as u16,
@@ -346,7 +383,7 @@ impl ZoneConnection {
 
         let ipc;
         {
-            let game_data = self.gamedata.lock();
+            let game_data = self.game_data.lock();
 
             ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::UnkClassRelated {
                 classjob_id: self.player_data.classjob.current_class as u8,
@@ -365,15 +402,15 @@ impl ZoneConnection {
 
     /// Scaled parameters based on level and item level sync.
     pub fn base_parameters(&self) -> BaseParameters {
-        let mut game_data = self.gamedata.lock();
+        let mut game_data = self.game_data.lock();
 
         let modifiers = game_data
             .get_class_job_modifiers(self.player_data.classjob.current_class as u32)
             .expect("Failed to read param grow");
 
-        let attributes = game_data
-            .get_racial_base_attributes(self.player_data.subrace)
-            .expect("Failed to read racial attributes");
+        let tribe_row = game_data
+            .get_tribe(self.player_data.customize.chara_make.customize.tribe as u8)
+            .expect("Failed to read tribe");
 
         let level = self
             .synced_level
@@ -400,13 +437,12 @@ impl ZoneConnection {
             .get_param_grow(level as u32)
             .expect("Failed to read param grow");
 
+        let primary_stat = game_data
+            .get_job_primary_stat(self.player_data.classjob.current_class as u16)
+            .unwrap_or(1);
+
         let mut base_parameters = BaseParameters::default();
-        base_parameters.calculate_based_on_level(
-            &attributes,
-            level as u32,
-            &param_grow,
-            &modifiers,
-        );
+        base_parameters.perform_calculations(primary_stat, &tribe_row, &param_grow, &modifiers);
         base_parameters.calculate_stat_across_all_items(
             &self.player_data.inventory.equipped,
             if item_level_sync.is_some() {
@@ -415,22 +451,22 @@ impl ZoneConnection {
                 None
             },
         );
-        base_parameters.calculate_potencies(level as u32, &param_grow, Some(&modifiers));
+        base_parameters.calculate_potencies(&param_grow, Some(&modifiers));
 
         base_parameters
     }
 
     /// Same as `base_parameters` but doesn't take into account level or item level sync.
     pub fn unscaled_base_parameters(&mut self) -> BaseParameters {
-        let mut game_data = self.gamedata.lock();
+        let mut game_data = self.game_data.lock();
 
         let modifiers = game_data
             .get_class_job_modifiers(self.player_data.classjob.current_class as u32)
             .expect("Failed to read param grow");
 
-        let attributes = game_data
-            .get_racial_base_attributes(self.player_data.subrace)
-            .expect("Failed to read racial attributes");
+        let tribe_row = game_data
+            .get_tribe(self.player_data.customize.chara_make.customize.tribe as u8)
+            .expect("Failed to read tribe");
 
         let level = self.current_level(&game_data);
 
@@ -438,15 +474,14 @@ impl ZoneConnection {
             .get_param_grow(level as u32)
             .expect("Failed to read param grow");
 
+        let primary_stat = game_data
+            .get_job_primary_stat(self.player_data.classjob.current_class as u16)
+            .unwrap_or(1);
+
         let mut base_parameters = BaseParameters::default();
-        base_parameters.calculate_based_on_level(
-            &attributes,
-            level as u32,
-            &param_grow,
-            &modifiers,
-        );
+        base_parameters.perform_calculations(primary_stat, &tribe_row, &param_grow, &modifiers);
         base_parameters.calculate_stat_across_all_items(&self.player_data.inventory.equipped, None);
-        base_parameters.calculate_potencies(level as u32, &param_grow, Some(&modifiers));
+        base_parameters.calculate_potencies(&param_grow, Some(&modifiers));
 
         base_parameters
     }
@@ -502,8 +537,12 @@ impl ZoneConnection {
     async fn update_server_stats(&mut self) {
         let current_level;
         {
-            let gamedata = self.gamedata.lock();
-            current_level = self.current_level(&gamedata);
+            let game_data = self.game_data.lock();
+            if let Some(synced_level) = self.synced_level {
+                current_level = synced_level;
+            } else {
+                current_level = self.current_level(&game_data) as u8;
+            }
         }
 
         let base_parameters = self.base_parameters();
@@ -511,7 +550,7 @@ impl ZoneConnection {
         self.handle
             .send(ToServer::SetNewStatValues(
                 self.player_data.character.actor_id,
-                current_level as u8,
+                current_level,
                 self.player_data.classjob.current_class as u8,
                 base_parameters,
             ))
@@ -530,7 +569,7 @@ impl ZoneConnection {
     }
 
     pub fn set_level_for(&mut self, classjob_id: u8, level: u16) {
-        let game_data = self.gamedata.lock();
+        let game_data = self.game_data.lock();
 
         let index = game_data
             .get_exp_array_index(classjob_id as u16)
@@ -546,7 +585,7 @@ impl ZoneConnection {
     }
 
     pub fn set_current_exp(&mut self, exp: i32) {
-        let game_data = self.gamedata.lock();
+        let game_data = self.game_data.lock();
 
         let index = game_data
             .get_exp_array_index(self.player_data.classjob.current_class as u16)
@@ -576,7 +615,7 @@ impl ZoneConnection {
         let index;
         let mut level_up = 0;
         {
-            let mut game_data = self.gamedata.lock();
+            let mut game_data = self.game_data.lock();
 
             index = game_data
                 .get_exp_array_index(self.player_data.classjob.current_class as u16)
@@ -647,11 +686,11 @@ impl ZoneConnection {
             // Here is where the fun calculations come in for rested EXP.
             // We need to basically convert EXP to "seconds" - which is what rested EXP is counted in.
 
-            let mut gamedata = self.gamedata.lock();
-            let current_level = self.current_level(&gamedata);
+            let mut game_data = self.game_data.lock();
+            let current_level = self.current_level(&game_data);
 
             // This is the size of the bar in EXP.
-            let max_exp = gamedata.get_max_exp(current_level as u32);
+            let max_exp = game_data.get_max_exp(current_level as u32);
             assert!(max_exp > 0);
 
             // This is the size of the bar in seconds.
@@ -672,5 +711,42 @@ impl ZoneConnection {
         let exp = exp + (exp * (bonus_percent as f32 / 100.0).round() as i32);
 
         (bonus_percent, exp)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // RDM lv 52 as of 7.56h1
+    #[test]
+    fn test_jolt_cast_time() {
+        let mut stat = BaseParameters::default();
+        stat.level_modifier = 392;
+        stat.base_speed = 344;
+        stat.spell_speed = 385;
+        stat.haste = 100;
+
+        // 1.97 seconds
+        assert_eq!(
+            stat.get_adjusted_cast_time(ActionCategory::Spell, 2000),
+            1974
+        );
+    }
+
+    // THM lv 31 as of 7.56h1
+    #[test]
+    fn test_blizzard_cast_time() {
+        let mut stat = BaseParameters::default();
+        stat.level_modifier = 181;
+        stat.base_speed = 181;
+        stat.spell_speed = 181;
+        stat.haste = 100;
+
+        // 1.97 seconds
+        assert_eq!(
+            stat.get_adjusted_cast_time(ActionCategory::Spell, 2000),
+            2000
+        );
     }
 }

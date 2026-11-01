@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     sync::Arc,
     time::{Instant, SystemTime},
 };
@@ -10,8 +11,8 @@ use tokio::net::TcpStream;
 use crate::{
     Content, GameData, Recipe, Unlock,
     database::{
-        AetherCurrent, Aetheryte, Character, ClassJob, Companion, Friends, GrandCompany, Mentor,
-        Quest, SearchInfo, Volatile,
+        AetherCurrent, Aetheryte, Buddy, Character, ClassJob, Companion, Customize, Friends,
+        GrandCompany, Mentor, Quest, SearchInfo, Volatile,
     },
     lua::{KawariLua, LuaTask},
 };
@@ -26,9 +27,8 @@ use kawari::{
     },
     opcodes::ServerZoneIpcType,
     packet::{
-        CompressionType, ConnectionState, ConnectionType, IpcSegmentHeader, PacketSegment,
-        SegmentData, SegmentType, ServerIpcSegmentHeader, parse_packet, send_keep_alive,
-        send_packet,
+        ConnectionState, ConnectionType, IpcSegmentHeader, PacketSegment, SegmentData, SegmentType,
+        ServerIpcSegmentHeader, parse_packet, send_keep_alive, send_packet,
     },
 };
 
@@ -50,7 +50,6 @@ mod mail;
 mod party;
 mod quest;
 mod social;
-pub mod spawn_allocator;
 mod stats;
 pub use stats::BaseParameters;
 mod unlock;
@@ -84,7 +83,6 @@ pub struct PersistentQuest {
 pub struct PlayerData {
     pub character: Character,
     pub classjob: ClassJob,
-    pub subrace: u8,
     pub volatile: Volatile,
     pub inventory: Inventory,
     pub city_state: u8,
@@ -109,6 +107,9 @@ pub struct PlayerData {
     pub grand_company: GrandCompany,
     // TODO: These inventories need to be made persistent and also vary per property, this is just for initial support
     pub house_inventory: HousingInventory,
+    pub buddy: Buddy,
+    pub equipped_glasses_ids: [u16; 2],
+    pub customize: Customize,
 }
 
 /// Various obsfucation-related bits like the seeds and keys for this connection.
@@ -132,7 +133,7 @@ pub struct ZoneConnection {
 
     pub database: Arc<Mutex<WorldDatabase>>,
     pub lua: Arc<Mutex<KawariLua>>,
-    pub gamedata: Arc<Mutex<GameData>>,
+    pub game_data: Arc<Mutex<GameData>>,
 
     pub teleport_reason: TeleportReason,
     pub active_minion: u32,
@@ -154,8 +155,7 @@ pub struct ZoneConnection {
 
     // TODO: support more than one content in the queue
     pub queued_content: Option<u16>,
-    pub content_settings: Option<DutyFinderSetting>,
-    pub current_instance_id: Option<u16>,
+    pub duty_settings: Option<DutyFinderSetting>,
 
     pub conditions: Conditions,
 
@@ -168,8 +168,7 @@ pub struct ZoneConnection {
     pub old_rotation: f32,
 
     /// Information about the current content.
-    pub content_handler_id: HandlerId,
-    pub event_handler_id: Option<HandlerId>,
+    pub event_handler_id: Option<HandlerId>, // TODO: replace with a helper function
     pub recipe: Option<Recipe>,
     pub synced_level: Option<u8>,
     /// Player Search results.
@@ -194,10 +193,20 @@ pub struct ZoneConnection {
     pub offered_teleport: Option<TeleportQuery>,
     /// Whether the player is trading with another player or not.
     pub is_trading: bool,
-    /// For the crappy setup_director() function right now.
-    pub director_vars: Option<ServerZoneIpcSegment>,
     /// Current dye action information.
     pub dyeing_information: Option<DyeInformation>,
+    /// Temporary data for marketboard requests.
+    pub marketboard_request_item_id: u32,
+    /// Temporary data for the spectator debug command.
+    pub hide_spectator_ui: bool,
+    /// Whether the player is spawned in before.
+    pub initial_login: bool,
+    /// Mapping of motivation NPCs to their FATE ids for easier lookup. Used in the FATE event handler.
+    pub fate_motivation_npcs: HashMap<ObjectId, u16>,
+    /// Used only for the local player's PlayerSpawn.
+    pub content_handler_id: Option<HandlerId>,
+    /// Whether the player can offer this teleport to their party.
+    pub can_share_teleport: bool, // TODO: remove this and add more teleport reasons
 }
 
 impl ZoneConnection {
@@ -214,7 +223,11 @@ impl ZoneConnection {
     /// Sends an IPC segment to the player, where the source actor can be specified.
     pub async fn send_ipc_from(&mut self, source_actor: ObjectId, ipc: ServerZoneIpcSegment) {
         let segment = PacketSegment {
-            source_actor,
+            source_actor: if source_actor == ObjectId::default() {
+                self.player_data.character.actor_id
+            } else {
+                source_actor
+            },
             target_actor: self.player_data.character.actor_id,
             segment_type: SegmentType::Ipc,
             data: SegmentData::Ipc(ipc),
@@ -230,11 +243,7 @@ impl ZoneConnection {
             &mut self.socket,
             &mut self.state,
             ConnectionType::Zone,
-            if self.config.enable_packet_compression {
-                CompressionType::Oodle
-            } else {
-                CompressionType::Uncompressed
-            },
+            self.config.compression(),
             &[segment],
         ))
         .await;
@@ -341,9 +350,13 @@ impl ZoneConnection {
         .await;
     }
 
-    pub async fn register_for_content(&mut self, content_ids: [u16; 5]) {
+    pub async fn register_for_content(
+        &mut self,
+        content_ids: [u16; 5],
+        settings: DutyFinderSetting,
+    ) {
         if content_ids.contains(&476) {
-            let ready = self.gamedata.lock().feast_duty_metadata_ready();
+            let ready = self.game_data.lock().feast_duty_metadata_ready();
             if !ready {
                 self.send_notice("Feast duty metadata is not restored. Queue refused before director initialization.")
                     .await;
@@ -351,15 +364,18 @@ impl ZoneConnection {
             }
         }
         self.queued_content = Some(content_ids[0]);
+        self.duty_settings = Some(settings);
 
         // update
         {
             let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ContentFinderUpdate {
                 state1: 1,
+                unk1: [0; 6],
                 classjob_id: self.player_data.classjob.current_class as u8, // TODO: store what they registered with, because it can change
-                unk1: [0, 0, 0, 0, 0, 0, 96, 4, 2, 64, 1, 0, 0, 0, 0, 0, 1, 1],
+                unk2: [0; 4],
+                duty_settings: settings,
                 content_ids,
-                unk2: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                unk3: [0; 10],
             });
             self.send_ipc_self(ipc).await;
         }
@@ -367,12 +383,11 @@ impl ZoneConnection {
         // found
         {
             let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ContentFinderFound {
-                unk1: [
-                    3, 0, 0, 0, 0, 0, 0, 0, 96, 4, 2, 64, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-                    0, 0,
-                ],
+                unk1: [3, 0, 0, 0, 0, 0, 0, 0],
+                duty_settings: settings,
+                unk2: [0; 12],
                 content_id: content_ids[0],
-                unk2: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                unk3: [0; 10],
             });
             self.send_ipc_self(ipc).await;
         }
@@ -503,5 +518,15 @@ impl ZoneConnection {
             });
             self.send_ipc_self(ipc).await;
         }
+    }
+
+    pub fn check_tele_sharing_eligibility(&mut self, aetheryte_id: u32) {
+        let mut game_data = self.game_data.lock();
+        // The teleport can only be offered if it's a town aetheryte (not shard) and the player is actually teleporting, not using the aethernet.
+        self.can_share_teleport = game_data.is_aetheryte(aetheryte_id);
+    }
+
+    pub fn can_offer_teleport(&self) -> bool {
+        self.party_id != 0 && self.can_share_teleport
     }
 }

@@ -47,7 +47,7 @@ impl EventHandler for InclusionShopEventHandler {
 
         let result;
         {
-            let mut game_data = connection.gamedata.lock();
+            let mut game_data = connection.game_data.lock();
             result = game_data.get_specialshop_item(special_shop_id, item_index);
         }
 
@@ -73,16 +73,5 @@ impl EventHandler for InclusionShopEventHandler {
                 )
                 .await;
         }
-    }
-
-    async fn on_return(
-        &self,
-        _event: &Event,
-        _connectionn: &mut ZoneConnection,
-        _scene: u16,
-        _results: &[i32],
-        player: &mut LuaPlayer,
-    ) {
-        player.finish_event();
     }
 }

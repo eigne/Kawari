@@ -11,9 +11,19 @@ use crate::{
 };
 
 #[binrw]
+#[brw(repr = u32)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum BaseStat {
+    Health = 1,
+    Mana = 3,
+    GatheringPoints = 7,
+    CraftingPoints = 8,
+}
+
+#[binrw]
 #[derive(Debug, PartialEq, Clone)]
 pub enum LiveEventType {
-    /// "[Item] recorded in gathering log". Only prints the text, doesn't set the bitmask.
+    /// "\[Item\] recorded in gathering log". Only prints the text, doesn't set the bitmask.
     #[brw(magic = 5u32)]
     RecordInGatheringLog {
         /// The actual Item ID, not the GathertingItem one.
@@ -40,7 +50,7 @@ pub enum LiveEventType {
 
     /// Ends the current crafting session.
     #[brw(magic = 15u32)]
-    EndCraft {},
+    EndCraft,
 
     /// Sets the main hand weapon model.
     #[brw(magic = 38u32)]
@@ -69,6 +79,7 @@ pub enum ActorControlCategory {
         shown: bool,
         /// This seems to always be set to 1. If set to another value, the animation glitches for other clients.
         unk_flag: u32,
+        unk2: u32,
     },
 
     /// Sets auto-attack mode of this entity.
@@ -144,6 +155,13 @@ pub enum ActorControlCategory {
         unk3: u32,
     },
 
+    #[brw(magic = 11u32)]
+    Unk11 { unk1: ObjectId, unk2: u32 },
+
+    /// Does what it says!
+    #[brw(magic = 13u32)]
+    SetBaseStat { base_stat: BaseStat, amount: u32 },
+
     /// Kills this actor, including playing an animation and setting HP/MP to zero.
     /// Does *not* change the state of the actor.
     #[brw(magic = 14u32)]
@@ -153,7 +171,12 @@ pub enum ActorControlCategory {
     },
 
     #[brw(magic = 15u32)]
-    CancelCast {},
+    CancelCast {
+        unk1: u32,
+        unk2: u32,
+        /// Action ID of the cast being cancelled.
+        action_id: u32,
+    },
 
     /// Sets the current value of the cooldown timer.
     #[brw(magic = 16u32)]
@@ -189,12 +212,29 @@ pub enum ActorControlCategory {
         source_actor_id: ObjectId,
     },
 
+    #[brw(magic = 23u32)]
+    FloatingNumberVFX {
+        unk1: u32,
+        /// See TargetEffectKind.
+        kind: u32,
+        amount: u32,
+        object_id: ObjectId,
+    },
+
     /// Updates the rested EXP bonus shown in the EXP bar.
     #[brw(magic = 24u32)]
     UpdateRestedExp { exp: u32 },
 
     #[brw(magic = 27u32)]
     Flee { speed: u16 },
+
+    #[brw(magic = 34u32)]
+    ShowLockonVfx {
+        /// Index into the Lockon Excel sheet.
+        id: u32,
+        /// Who to show the lockon VFX on.
+        target: ObjectId,
+    },
 
     #[brw(magic = 38u32)]
     ToggleInvisibility {
@@ -205,7 +245,7 @@ pub enum ActorControlCategory {
 
     /// Seen while dead actors fade away.
     #[brw(magic = 39u32)]
-    DeadFadeOut {},
+    DeadFadeOut,
 
     #[brw(magic = 41u32)]
     ToggleUnlock {
@@ -219,17 +259,21 @@ pub enum ActorControlCategory {
 
     /// Sets the EXP, but doesn't display anything visually.
     #[brw(magic = 43u32)]
-    SetEXP { classjob_id: u32, amount: u32 },
+    SetEXP {
+        classjob_id: u32,
+        amount: u32,
+        rested_exp: u32,
+    },
 
     #[brw(magic = 50u32)]
-    SetTarget {},
+    SetTarget,
 
     #[brw(magic = 58u32)]
-    SetSoftTarget {},
+    SetSoftTarget,
 
     /// Plays this character's idle animation, I guess?
     #[brw(magic = 60u32)]
-    PlayIdleAnimation {},
+    PlayIdleAnimation,
 
     // Sets the player's HP and seems to deal unique damage(?) Seen while falling off an Eden arena.
     #[brw(magic = 80u32)]
@@ -280,6 +324,7 @@ pub enum ActorControlCategory {
     #[brw(magic = 109u32)]
     DirectorEvent {
         handler_id: HandlerId,
+        #[br(args(handler_id))]
         event: DirectorEvent,
     },
 
@@ -412,10 +457,21 @@ pub enum ActorControlCategory {
     #[brw(magic = 236u32)]
     MovementRelatedUnk { unk1: u32 },
 
+    /// Updates the summoned status and time remaining of your chocobo companion.
     #[brw(magic = 253u32)]
-    CompanionUnlock {
-        unk1: u32,
-        unk2: u32, // unlocked?
+    CompanionUpdate {
+        /// When true, the chocobo is marked as "Summoned" in the Companion UI.
+        #[br(map = read_bool_from::<u32>)]
+        #[bw(map = write_bool_as::<u32>)]
+        summoned: bool,
+        #[br(map = read_bool_from::<u32>)]
+        #[bw(map = write_bool_as::<u32>)]
+        set_time_remaining: bool,
+        /// In centiseconds. Only used if `set_time_remaining` is true, for some reason.
+        time_remaining: u32,
+        unk4: u32,
+        unk5: u32,
+        unk6: u32,
     },
 
     #[brw(magic = 254u32)]
@@ -436,6 +492,10 @@ pub enum ActorControlCategory {
         unk3: u32,
     },
 
+    /// Seen while dismissing your chocobo companion.
+    #[brw(magic = 258u32)]
+    DismissCompanion { unk1: u32 },
+
     /// Sets up "pets" like carbuncles.
     #[brw(magic = 260u32)]
     SetPetParameters {
@@ -445,6 +505,13 @@ pub enum ActorControlCategory {
         unk3: u32,
         /// Usually 7?
         unk4: u32,
+    },
+
+    /// Seen while summoning your chocobo companion.
+    #[brw(magic = 264u32)]
+    UnkCompanionRelated {
+        unk1: ObjectId,
+        unk2: u32, // TODO: maybe object type?
     },
 
     #[brw(magic = 270u32)]
@@ -483,7 +550,7 @@ pub enum ActorControlCategory {
 
     /// Interrupts the currently playing emote.
     #[brw(magic = 291u32)]
-    InterruptEmote {},
+    InterruptEmote,
 
     /// Generic catch-all for crafting/gathering actions.
     #[brw(magic = 300u32)]
@@ -502,7 +569,7 @@ pub enum ActorControlCategory {
     PlayerCurrency {
         unk1: u32,
         /// Index into the Item Excel sheet.
-        catalog_id: u32,
+        item_id: u32,
         /// Max number of held currency.
         max_count: u32,
     },
@@ -571,6 +638,9 @@ pub enum ActorControlCategory {
         from_actor_id: ObjectId,
     },
 
+    #[brw(magic = 503u32)]
+    Unk503 { unk1: u32, unk2: ObjectId },
+
     #[brw(magic = 504u32)]
     SetStatusIcon { icon: OnlineStatus },
 
@@ -613,7 +683,7 @@ pub enum ActorControlCategory {
     MapMarkerUpdateBegin { flags: u32 },
 
     #[brw(magic = 512u32)]
-    MapMarkerUpdateEnd {},
+    MapMarkerUpdateEnd,
 
     #[brw(magic = 516u32)]
     ToggleCutsceneSeen {
@@ -625,8 +695,10 @@ pub enum ActorControlCategory {
 
     #[brw(magic = 517u32)]
     LogMessage {
-        log_message: u32, // Index to LogMessage sheet
-        id: u32,          // Index to variable sheet, depending on LogMessage
+        /// Index into the LogMessage Excel sheet.
+        log_message: u32,
+        /// Index to the variable sheet, depending on LogMessage.
+        id: u32,
     },
 
     #[brw(magic = 519u32)]
@@ -766,9 +838,24 @@ pub enum ActorControlCategory {
         unlocked: bool,
     },
 
+    #[brw(magic = 940u32)]
+    SetOrnament {
+        /// Index into the Ornament Excel sheet.
+        id: u32,
+    },
+
+    #[brw(magic = 944u32)]
+    SetGlasses {
+        // Guessed
+        index: u32,
+        /// Index into the Glasses Excel sheet.
+        id: u32,
+    },
+
     #[brw(magic = 945u32)]
     ToggleGlassesStyleUnlock {
-        id: u32, // Index to GlassesStyle sheet
+        /// Index to GlassesStyle Excel sheet.
+        id: u32,
         #[br(map = read_bool_from::<u32>)]
         #[bw(map = write_bool_as::<u32>)]
         unlocked: bool,
@@ -794,7 +881,7 @@ pub enum ActorControlCategory {
 
     /// The server displays the Interior Furnishings menu for the client.
     #[brw(magic = 1015u32)]
-    FurnitureMenu(),
+    FurnitureMenu,
 
     /// The server acknowledges the client's request to translate (move or rotate) an item. The purpose of sending the item's container is unclear.
     #[brw(magic = 1017u32)]
@@ -836,17 +923,56 @@ pub enum ActorControlCategory {
 
     /// Called during dueling.
     #[brw(magic = 1504u32)]
-    SetPvPState {
-        state: u32, // TODO: turn into enum
-    },
+    SetPvPState { state: u32 },
 
     /// Called during dueling.
     #[brw(magic = 1506u32)]
     StartDuelCountdown { opponent_id: ObjectId },
 
+    /// Needed for EnableDutyActions/SetDutyActions to function.
+    #[brw(magic = 1512u32)]
+    UnkDutyActions { unk1: u32 },
+
+    /// Sets up duty-specific actions like the ones seen in Occult Crescent.
+    #[brw(magic = 1514u32)]
+    SetDutyActions {
+        /// Index into the Action Excel sheet.
+        action_ids: [u32; 5],
+    },
+
+    /// Unsure, but needed for SetDutyActions to work?
+    #[brw(magic = 1515u32)]
+    EnableDutyActions {
+        #[br(map = read_bool_from::<u32>)]
+        #[bw(map = write_bool_as::<u32>)]
+        enabled: bool,
+    },
+
     /// Calls into animation-related functions I think?
     #[brw(magic = 1529u32)]
-    UnkAnimationRelated {},
+    UnkAnimationRelated,
+
+    /// That's the name of the function in FFXIVClientStructs: ProcessHotDot
+    #[brw(magic = 1540u32)]
+    HotDot {
+        /// The source status of this HoT(?)
+        status_id: u32,
+        /// Amount of damage to display.
+        amount: u32,
+        /// Who did the damage?
+        source_actor_id: ObjectId,
+    },
+
+    /// Shows the flying text and some VFX on the target, but doesn't display in the log or change anything else.
+    #[brw(magic = 1541u32)]
+    DamageFlyingText {
+        unk1: u32,
+        /// Amount of damage to display.
+        amount: u32,
+        /// Who did the damage?
+        source_actor_id: ObjectId,
+        unk4: u32,
+    },
 
     #[brw(magic = 1545u32)]
     UnkCooldownsRelated {
@@ -855,6 +981,18 @@ pub enum ActorControlCategory {
         unk3: u32,
         unk4: u32,
     },
+
+    /// Initializes the SpectatorManager on the client.
+    #[brw(magic = 1600u32)]
+    InitializeSpectatorManager { row_id: u32, unk2: u32, unk3: u32 },
+
+    /// This hides the spectator UI (including the uninitialized one.)
+    #[brw(magic = 1601u32)]
+    HideSpectatorUI,
+
+    /// This actually shows the Spectator UI.
+    #[brw(magic = 1607u32)]
+    ShowSpectatorUI,
 
     /// Calls some method in PvPProfile, unsure what it does yet.
     #[brw(magic = 1610u32)]
@@ -867,20 +1005,20 @@ pub enum ActorControlCategory {
 
     /// Collection UI stuff.
     #[brw(magic = 2251u32)]
-    McGuffinUnk {
-        unk1: u32,
-        unk2: u32,
-        unk3: u32,
-        unk4: u32,
+    UpdateMcGuffin {
+        /// Data specific to this McBuffin.
+        data: u32,
+        /// Index into the McGuffin Excel sheet.
+        id: u32,
+        /// If this McGuffin is unlocked or not.
+        #[br(map = read_bool_from::<u32>)]
+        #[bw(map = write_bool_as::<u32>)]
+        unlocked: bool,
     },
 
+    /// Adds this to the FateStartNPCs list and sets the type to what's specified in `ObjectTypeId`.
     #[brw(magic = 2351u32)]
-    FateNpc {
-        actor_id: ObjectId,
-        unk2: u32,
-        unk3: u32,
-        unk4: u32,
-    },
+    FateStartNpc { actor_id: ObjectTypeId },
 
     #[brw(magic = 2352u32)]
     UnkFate2 {
@@ -922,19 +1060,41 @@ pub enum ActorControlCategory {
         is_bonus: u32,
     },
 
+    /// Associates an NPC with a preparing FATE. You need to talk to this NPC to begin, and also to return items to (if applicable?)
     #[brw(magic = 2359u32)]
     SetupMotivationNpc {
         /// Index into the FATE Excel sheet.
         fate_id: u32,
+        /// The NPC to be used.
         motivation_npc: ObjectId,
-        /// Divided by 1000.0 for map coordinates.
-        position_x: u32,
-        position_y: u32,
-        position_z: u32,
+        unk1: u32,
+        /// Only used if the BNpc is not spawned yet.
+        #[bw(map = |x: &f32| (*x * 1000.0) as i32)]
+        #[br(map = |x: i32| (x as f32) / 1000.0)]
+        x: f32,
+        #[bw(map = |x: &f32| (*x * 1000.0) as i32)]
+        #[br(map = |x: i32| (x as f32) / 1000.0)]
+        y: f32,
+        #[bw(map = |x: &f32| (*x * 1000.0) as i32)]
+        #[br(map = |x: i32| (x as f32) / 1000.0)]
+        z: f32,
     },
 
+    /// Puts the collection point icon on top of their head.
+    #[brw(magic = 2360u32)]
+    SetCollectionPointNpc {
+        /// Index into the FATE Excel sheet.
+        fate_id: u32,
+        /// The NPC to be used.
+        motivation_npc: ObjectId,
+    },
+
+    /// Needs to be sent otherwise the Level Sync button disappears.
+    #[brw(magic = 2362u32)]
+    FateLevelSynced { fate_id: u32 },
+
     #[brw(magic = 2363u32)]
-    UnkFate6 {
+    UnkFate7 {
         unk1: u32,
         unk2: u32,
         unk3: u32,
@@ -943,12 +1103,11 @@ pub enum ActorControlCategory {
 
     /// Sets progress and other fields too. Unsure why this is used sometimes instead of FateProgress?
     #[brw(magic = 2364u32)]
-    UnkFate7 {
+    FateUpdate {
         /// Index into the FATE Excel sheet.
         fate_id: u32,
-        unk2: u32,
-        unk3: u32,
-        unk4: u32,
+        progress: u32,
+        param: u32,
     },
 
     #[brw(magic = 2365u32)]
@@ -985,7 +1144,7 @@ pub enum ActorControlCategory {
 
     /// Sets something for all objects bound to this FATE...
     #[brw(magic = 2370u32)]
-    UnkFate12 {
+    FateUpdateTargetableStatus {
         /// Index into the FATE Excel sheet.
         fate_id: u32,
     },

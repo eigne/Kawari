@@ -1,8 +1,8 @@
 mod fishing;
 pub use fishing::*;
 
-mod gimmick_accessor;
-pub use gimmick_accessor::*;
+mod gimmick;
+pub use gimmick::*;
 
 mod lua;
 pub use lua::*;
@@ -19,8 +19,11 @@ pub use gathering::*;
 mod crafting;
 pub use crafting::*;
 
-mod instance_content;
-pub use instance_content::*;
+mod content;
+pub use content::*;
 
 mod special_shop;
 pub use special_shop::*;
+
+mod fate;
+pub use fate::*;

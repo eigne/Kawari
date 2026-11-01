@@ -1,14 +1,13 @@
 // ! The Moogle Mail Delivery system.
-use bstr::BString;
+use physis::sestring::SeString;
 
-use super::social::fetch_entries;
 use crate::{
     ItemInfoQuery, ToServer, ZoneConnection,
+    common::fetch_entries,
     inventory::{CrystalKind, CurrencyKind, Item},
 };
 use kawari::{
     common::{INVENTORY_ACTION_ACK_SHOP, LogMessageType},
-    constants::{MAIL_DELETE_RESULT, MAIL_SEND_RESULT, MAIL_TAKE_ATTACHMENTS_RESULT},
     ipc::zone::{
         ActorControlCategory, AttachedItemInfo, LetterPreview, LetterType, MAX_ATTACHMENTS,
         MAX_FRIEND_LETTERS, MAX_MAIL, MAX_MAIL_ATTACHMENTS_STORAGE, MAX_REWARD_LETTERS,
@@ -104,13 +103,13 @@ impl ZoneConnection {
 
     async fn send_letter_update(
         &mut self,
-        result: u32,
+        mail_action: u32,
         sender_content_id: u64,
         timestamp: u32,
         updated_items: [AttachedItemInfo; MAX_MAIL_ATTACHMENTS_STORAGE],
     ) {
         let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::LetterUpdate {
-            unk_result: result, // TODO: How are these result values calculated? They seem to change with every major patch?
+            mail_action,
             unk1: 0,
             sender_content_id,
             timestamp,
@@ -125,7 +124,8 @@ impl ZoneConnection {
         &mut self,
         recipient_content_id: u64,
         attached_items: [MailItemInfo; MAX_MAIL_ATTACHMENTS_STORAGE],
-        message: BString,
+        message: SeString,
+        send_opcode: u32,
     ) {
         let is_online;
         let recipient_info;
@@ -222,16 +222,16 @@ impl ZoneConnection {
                 items,
             );
 
-            recipient_info = db.find_character_ids(Some(recipient_content_id), None);
+            recipient_info = db.find_character(Some(recipient_content_id), None);
         }
 
         if need_to_send_inventory {
             self.send_inventory().await;
-            self.send_inventory_ack(u32::MAX, INVENTORY_ACTION_ACK_SHOP as u16)
+            self.send_inventory_ack(u32::MAX, INVENTORY_ACTION_ACK_SHOP, 0)
                 .await;
         }
 
-        self.send_letter_update(MAIL_SEND_RESULT as u32, 0, 0, items_taken_by_attachments)
+        self.send_letter_update(send_opcode, 0, 0, items_taken_by_attachments)
             .await;
 
         if is_online && let Some(recipient_info) = recipient_info {
@@ -258,7 +258,12 @@ impl ZoneConnection {
         }
     }
 
-    pub async fn delete_letter(&mut self, sender_content_id: u64, timestamp: u32) {
+    pub async fn delete_letter(
+        &mut self,
+        sender_content_id: u64,
+        timestamp: u32,
+        delete_opcode: u32,
+    ) {
         {
             let mut db = self.database.lock();
             db.remove_letter(
@@ -269,7 +274,7 @@ impl ZoneConnection {
         }
 
         self.send_letter_update(
-            MAIL_DELETE_RESULT as u32,
+            delete_opcode,
             sender_content_id,
             timestamp,
             [AttachedItemInfo::default(); MAX_MAIL_ATTACHMENTS_STORAGE],
@@ -279,7 +284,12 @@ impl ZoneConnection {
         self.send_mailbox_status().await;
     }
 
-    pub async fn take_attachments_from_letter(&mut self, sender_content_id: u64, timestamp: u32) {
+    pub async fn take_attachments_from_letter(
+        &mut self,
+        sender_content_id: u64,
+        timestamp: u32,
+        take_attachments_opcode: u32,
+    ) {
         let mut attachments;
         {
             let mut db = self.database.lock();
@@ -307,8 +317,8 @@ impl ZoneConnection {
             let mut item_taken = false;
 
             {
-                let mut gamedata = self.gamedata.lock();
-                item.stack_size = gamedata
+                let mut game_data = self.game_data.lock();
+                item.stack_size = game_data
                     .get_item_info(ItemInfoQuery::ById(item.item_id))
                     .unwrap()
                     .stack_size;
@@ -322,7 +332,7 @@ impl ZoneConnection {
                     .inventory
                     .currency
                     .get_item_for_id(currency_kind);
-                if slot.quantity + item.quantity <= item.stack_size {
+                if slot.quantity + item.quantity <= item.stack_size as i32 {
                     slot.quantity += item.quantity;
                     item_taken = true;
                 }
@@ -332,7 +342,7 @@ impl ZoneConnection {
                     .inventory
                     .crystals
                     .get_item_for_id(crystal_kind);
-                if slot.quantity + item.quantity <= item.stack_size {
+                if slot.quantity + item.quantity <= item.stack_size as i32 {
                     slot.quantity += item.quantity;
                     item_taken = true;
                 }
@@ -382,7 +392,7 @@ impl ZoneConnection {
 
         // Taking attachments can put items literally anywhere, so a full inventory sync is needed.
         self.send_inventory().await;
-        self.send_inventory_ack(u32::MAX, INVENTORY_ACTION_ACK_SHOP as u16)
+        self.send_inventory_ack(u32::MAX, INVENTORY_ACTION_ACK_SHOP, 0)
             .await;
 
         // If only some of the items could be taken, notify the client and then send the letter update.
@@ -403,7 +413,7 @@ impl ZoneConnection {
         }
 
         self.send_letter_update(
-            MAIL_TAKE_ATTACHMENTS_RESULT as u32,
+            take_attachments_opcode,
             sender_content_id,
             timestamp,
             taken_items,

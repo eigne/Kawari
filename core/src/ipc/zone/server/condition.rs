@@ -1,6 +1,6 @@
 use binrw::binrw;
-use strum::{FromRepr, IntoEnumIterator};
-use strum_macros::{Display, EnumIter, EnumString};
+use strum::IntoEnumIterator;
+use strum_macros::{Display, EnumIter, EnumString, FromRepr};
 
 use crate::common::value_to_flag_byte_index_value;
 
@@ -27,7 +27,6 @@ pub enum Condition {
     Occupied39 = 14,
     ExecutingCraftingAction = 15,
     PreparingToCraft = 16,
-    /// Also seen when the client starts watching a Duty Recorder replay?
     ExecutingGatheringAction = 17,
     Fishing = 18,
     Unknown44 = 19,
@@ -68,6 +67,7 @@ pub enum Condition {
     WaitingForTripleTriadMatch83 = 53,
     ParticipatingInCrossWorldPartyOrAlliance = 54,
     Unknown85 = 55,
+    /// Seen when the client starts watching a Duty Recorder replay.
     DutyRecorderPlayback = 56,
     Casting87 = 57,
     MountImmobile = 58,
@@ -104,7 +104,6 @@ impl mlua::FromLua for Condition {
 }
 
 #[binrw]
-#[brw(little)]
 #[derive(Default, Clone, Copy)]
 pub struct Conditions {
     #[brw(pad_after = 4)] // padding

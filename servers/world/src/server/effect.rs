@@ -7,7 +7,7 @@ use parking_lot::Mutex;
 
 use crate::{
     ClientId, FromServer, PlayerData, StatusEffects, ToServer,
-    lua::{KawariLua, KawariLuaState, LuaContent, LuaPlayer, LuaZone},
+    lua::{KawariLua, KawariLuaState, LuaPlayer, LuaZone},
     server::{
         WorldServer,
         instance::{Instance, QueuedTaskData},
@@ -99,7 +99,7 @@ pub fn send_effects_list(
         statuses,
         classjob_id: common_spawn.class_job,
         level: common_spawn.level,
-        unk1: common_spawn.level,
+        flags: common_spawn.level, // NOTE: seen this set while level synced, but zero otherwise?
         health_points: common_spawn.health_points,
         max_health_points: common_spawn.max_health_points,
         resource_points: common_spawn.resource_points,
@@ -305,8 +305,8 @@ pub fn remove_effect(
             status_effects: StatusEffects::default(),
             queued_tasks: Vec::new(),
             zone_data: LuaZone::default(),
-            content_data: LuaContent::default(),
             base_parameters: BaseParameters::default(),
+            current_level: 0,
         };
 
         let key = effect_id as u32;

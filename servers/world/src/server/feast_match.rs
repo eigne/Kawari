@@ -421,7 +421,7 @@ use super::{
 };
 use crate::FromServer;
 use kawari::{
-    common::{DirectorEvent, ObjectId, Position, SharedGroupTimelineState},
+    common::{ContentDirectorEvent, DirectorEvent, ObjectId, Position, SharedGroupTimelineState},
     ipc::zone::{ActorControlCategory, ObjectKind, SpawnObject},
 };
 use parking_lot::Mutex;
@@ -473,7 +473,7 @@ pub fn team_spawn(team: Team, slot: usize) -> (Position, f32) {
         Team::Claw => (58.0, -std::f32::consts::FRAC_PI_2),
     };
     (
-        Position(glam::Vec3::new(x, 0.5, (slot % 4) as f32 * 2.0 - 3.0)),
+        Position(glam::Vec3A::new(x, 0.5, (slot % 4) as f32 * 2.0 - 3.0)),
         rotation,
     )
 }
@@ -552,7 +552,7 @@ fn sync_jails(
                     entity_id: id,
                     base_id: JAIL_EOBJS[index % 2],
                     bind_layout_id: layout,
-                    position: Position(glam::Vec3::new(if west { -58.0 } else { 58.0 }, 0.25, 0.0)),
+                    position: Position(glam::Vec3A::new(if west { -58.0 } else { 58.0 }, 0.25, 0.0)),
                     rotation: if west { 0.0 } else { std::f32::consts::PI },
                     radius: 1.0,
                     not_targetable: true,
@@ -730,7 +730,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     runtime.rules.step(now, &inputs);
     if previous_phase != runtime.rules.phase
         && matches!(runtime.rules.phase, Phase::Active | Phase::SuddenDeath)
-        && let Some(director) = &instance.director
+        && let Some(director) = instance.directors.first()
     {
         // Keep native duty warnings on the authoritative match clock, including
         // the sudden-death extension, rather than the earlier entry timestamp.
@@ -742,9 +742,9 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
                     id,
                     FromServer::ActorControlSelf(ActorControlCategory::DirectorEvent {
                         handler_id: director.id,
-                        event: DirectorEvent::SetDutyTimeRemaining {
-                            arg1: remaining, arg2: 0, arg3: 0, arg4: 0,
-                        },
+                        event: DirectorEvent::ContentDirector(ContentDirectorEvent::SetDutyTimeRemaining {
+                            time_remaining: remaining,
+                        }),
                     }),
                     DestinationNetwork::ZoneClients,
                 );
@@ -790,7 +790,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
                     kind: ObjectKind::EventObj,
                     base_id: medal_prefab(pickup.medals),
                     entity_id: id,
-                    position: Position(glam::Vec3::from_array(pickup.position)),
+                    position: Position(glam::Vec3A::from_array(pickup.position)),
                     radius: 1.0,
                     not_targetable: true,
                     args1: SharedGroupTimelineState::TIMELINE_2.bits(),
@@ -802,7 +802,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         });
         // Slot 2 is dropmedal_off_a: the animated removal, including the native
         // placednpc_PvPpoint_depop sound. Its 50-frame timeline needs time to finish.
-        super::set_shared_group_timeline_state(instance, &mut network.lock(), actor, &[2]);
+        super::actor::set_shared_group_timeline_state(instance, &mut network.lock(), actor, &[2]);
         runtime.fading.insert(pickup.drop_id, (actor, now + 1.0));
     }
     let obsolete: Vec<_> = runtime
@@ -830,7 +830,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
                 Team::Claw => SharedGroupTimelineState::TIMELINE_5.bits(),
             },
             entity_id: id,
-            position: Position(glam::Vec3::from_array(drop.position)),
+            position: Position(glam::Vec3A::from_array(drop.position)),
             radius: 1.0,
             not_targetable: true,
             ..Default::default()
@@ -1288,7 +1288,7 @@ mod tests {
             .find_actor_mut(ObjectId(1))
             .unwrap()
             .get_common_spawn_mut()
-            .position = Position(glam::Vec3::ZERO);
+            .position = Position(glam::Vec3A::ZERO);
         tick(&mut instance, &network);
         assert_eq!(
             instance
@@ -1297,7 +1297,7 @@ mod tests {
                 .get_common_spawn()
                 .position
                 .0,
-            glam::Vec3::ZERO
+            glam::Vec3A::ZERO
         );
         instance.feast_match.as_mut().unwrap().rules.phase = Phase::Finished(None);
         command(&mut instance, &network, ObjectId(1), "restart");
@@ -1335,7 +1335,7 @@ mod tests {
                 .find_actor_mut(id)
                 .unwrap()
                 .get_common_spawn_mut()
-                .position = Position(glam::Vec3::ZERO);
+                .position = Position(glam::Vec3A::ZERO);
         }
         instance
             .find_actor_mut(ObjectId(1))

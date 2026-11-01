@@ -1,11 +1,10 @@
 //! All things object ID-related.
 
 use binrw::binrw;
-use serde::Deserialize;
-use strum::FromRepr;
+use serde_derive::Deserialize;
+use strum_macros::FromRepr;
 
 #[binrw]
-#[brw(little)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
 #[cfg_attr(
     feature = "server",
@@ -63,12 +62,12 @@ impl diesel::deserialize::FromSql<diesel::sql_types::BigInt, diesel::sqlite::Sql
     }
 }
 
-// This is unrelated to the ObjectKind struct as named by ClientStructs; it's used for ACT::SetTarget, ACT::Emote, and probably more.
-// Instead it correlates to the Type field in the GameObjectId client struct.
-// See https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/Game/Object/GameObject.cs#L230
+/// This is unrelated to the ObjectKind struct as named by ClientStructs; it's used for ACT::SetTarget, ACT::Emote, and probably more.
+/// Instead it correlates to the Type field in the GameObjectId client struct.
+/// See <https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/Game/Object/GameObject.cs#L230>
 #[binrw]
-#[repr(u32)]
-#[brw(repr = u32)]
+#[repr(u8)]
+#[brw(repr = u8)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, FromRepr)]
 pub enum ObjectTypeKind {
     /// Everything that has a proper entity/actor ID.
@@ -77,18 +76,19 @@ pub enum ObjectTypeKind {
     /// Orchestrions, static NPCs in towns, etc., and possibly more.
     EObjOrNpc = 1,
     /// Unclear when this is used, more research is needed.
-    /// ClientStructs describes it as "if (BaseId == 0 || (ObjectIndex >= 200 && ObjectIndex < 244)) ObjectId = ObjectIndex, Type = 2"
     Unknown = 2,
+    /// Maybe FATE related?
+    Unknown2 = 3,
     /// Player-summoned minions (not to be confused with chocobos or other bnpc pets), and possibly more.
     Minion = 4,
 }
 
 // See https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/Game/Object/GameObject.cs#L238
 #[binrw]
-#[brw(little)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ObjectTypeId {
     pub object_id: ObjectId,
+    #[brw(pad_after = 3)] // unused
     pub object_type: ObjectTypeKind,
 }
 
@@ -129,7 +129,7 @@ impl TryFrom<u64> for ObjectTypeId {
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         Ok(Self {
             object_id: ObjectId(value as u32),
-            object_type: ObjectTypeKind::from_repr((value >> 32) as u32).ok_or(())?,
+            object_type: ObjectTypeKind::from_repr((value >> 32) as u8).ok_or(())?,
         })
     }
 }
@@ -146,8 +146,6 @@ const INVALID_OBJECT_ID: ObjectId = ObjectId(0xE0000000);
 #[cfg(test)]
 mod tests {
     use crate::common::{ObjectId, ObjectTypeId, ObjectTypeKind};
-
-    // NOTE: `impl TryFrom<u64> for ObjectTypeId` is exercised in core/src/ipc/zone/client/client_trigger.rs unit tests.
 
     #[test]
     fn test_objecttypeid_into_u64() {

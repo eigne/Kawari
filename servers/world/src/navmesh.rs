@@ -1,16 +1,15 @@
 use std::{io::Cursor, ptr::null_mut};
 
 use binrw::{BinRead, BinWrite, binrw};
-use glam::Vec3;
+use glam::Vec3A;
 use recastnavigation_sys::{
     DT_SUCCESS, dtAllocNavMesh, dtAllocNavMeshQuery, dtNavMesh, dtNavMesh_addTile, dtNavMesh_init,
     dtNavMeshParams, dtNavMeshQuery, dtNavMeshQuery_findNearestPoly, dtNavMeshQuery_findPath,
-    dtNavMeshQuery_findStraightPath, dtNavMeshQuery_init, dtPolyRef, dtQueryFilter,
-    dtQueryFilter_dtQueryFilter,
+    dtNavMeshQuery_findRandomPointAroundCircle, dtNavMeshQuery_findStraightPath,
+    dtNavMeshQuery_init, dtPolyRef, dtQueryFilter, dtQueryFilter_dtQueryFilter,
 };
 
 #[binrw]
-#[brw(little)]
 #[derive(Default, Debug, Clone)]
 pub struct NavmeshParams {
     pub orig: [f32; 3],
@@ -22,7 +21,6 @@ pub struct NavmeshParams {
 
 /// Represents a navmesh tile for a zone.
 #[binrw]
-#[brw(little)]
 #[derive(Default, Debug, Clone)]
 pub struct NavmeshTile {
     #[br(temp)]
@@ -36,7 +34,6 @@ pub struct NavmeshTile {
 ///
 /// We reuse the .nvm file extension used by the retail server but these have no relations to ours.
 #[binrw]
-#[brw(little)]
 #[derive(Default, Debug, Clone)]
 pub struct Navmesh {
     /// The zone ID that the navmesh was generated with. Not guaranteed to be valid, it's only here for informative purposes in tools.
@@ -60,6 +57,10 @@ pub struct Navmesh {
 unsafe impl Send for Navmesh {}
 unsafe impl Sync for Navmesh {}
 
+unsafe extern "C" fn frand() -> f32 {
+    fastrand::f32()
+}
+
 impl Navmesh {
     /// Creates a new Navmesh.
     pub fn new(zone_id: u16, nav_mesh_params: NavmeshParams, tiles: Vec<NavmeshTile>) -> Self {
@@ -75,7 +76,7 @@ impl Navmesh {
     /// Reads an existing NVM file.
     pub fn from_existing(buffer: &[u8]) -> Option<Self> {
         let mut cursor = Cursor::new(buffer);
-        if let Ok(mut navmesh) = Self::read(&mut cursor) {
+        if let Ok(mut navmesh) = Self::read_le(&mut cursor) {
             navmesh.initialize();
             return Some(navmesh);
         }
@@ -130,7 +131,7 @@ impl Navmesh {
     }
 
     /// Calculates a path from `start_pos` to `end_pos`.
-    pub fn calculate_path(&self, start_pos: Vec3, end_pos: Vec3) -> Vec<Vec3> {
+    pub fn calculate_path(&self, start_pos: Vec3A, end_pos: Vec3A) -> Vec<Vec3A> {
         unsafe {
             let mut filter = dtQueryFilter {
                 m_areaCost: [1.0; 64],
@@ -156,7 +157,7 @@ impl Navmesh {
                 path.as_mut_ptr(),
                 &mut path_count,
                 128,
-            ); // TODO: error check
+            );
             if status != DT_SUCCESS {
                 tracing::warn!(
                     "Error in dtNavMeshQuery_findPath: {status} start poly: {start_poly} end poly: {end_poly}"
@@ -183,7 +184,7 @@ impl Navmesh {
 
             let mut path = Vec::new();
             for pos in straight_path[..straight_path_count as usize * 3].chunks(3) {
-                path.push(Vec3::from_slice(pos));
+                path.push(Vec3A::from_slice(pos));
             }
 
             path
@@ -192,9 +193,9 @@ impl Navmesh {
 
     fn get_polygon_at_location(
         query: *const dtNavMeshQuery,
-        position: Vec3,
+        position: Vec3A,
         filter: &dtQueryFilter,
-    ) -> (dtPolyRef, Vec3) {
+    ) -> (dtPolyRef, Vec3A) {
         let extents = [2.0, 4.0, 2.0];
 
         unsafe {
@@ -211,7 +212,41 @@ impl Navmesh {
                 ) == DT_SUCCESS
             );
 
-            (nearest_ref, Vec3::from_array(nearest_pt))
+            (nearest_ref, Vec3A::from_array(nearest_pt))
+        }
+    }
+
+    pub fn find_wander_position(&mut self, position: Vec3A) -> Vec3A {
+        unsafe {
+            let mut filter = dtQueryFilter {
+                m_areaCost: [0.0; 64],
+                m_includeFlags: 0xffff,
+                m_excludeFlags: 0,
+            };
+            dtQueryFilter_dtQueryFilter(&mut filter);
+
+            let (start_poly, _) =
+                Self::get_polygon_at_location(self.navmesh_query, position, &filter);
+
+            let max_radius = 5.0; // TODO: hardcoded
+
+            let mut random_ref = 0;
+            let mut random_pt = [0.0; 3];
+
+            assert!(
+                dtNavMeshQuery_findRandomPointAroundCircle(
+                    self.navmesh_query,
+                    start_poly,
+                    &position.x,
+                    max_radius,
+                    &filter,
+                    Some(frand),
+                    &mut random_ref,
+                    random_pt.as_mut_ptr()
+                ) == DT_SUCCESS
+            );
+
+            Vec3A::from_array(random_pt)
         }
     }
 

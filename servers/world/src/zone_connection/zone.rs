@@ -1,40 +1,35 @@
 //! All things zone related, such as changing the weather or warping.
 
 use crate::{
-    ObsfucationData, TeleportReason, ToServer, ZoneConnection,
-    inventory::BuyBackList,
-    lua::{LuaContent, LuaZone},
-    zone_connection::TeleportQuery,
+    ObsfucationData, TeleportReason, ToServer, ZoneConnection, inventory::BuyBackList,
+    lua::LuaZone, zone_connection::TeleportQuery,
 };
 use kawari::{
     common::{
-        FestivalId, HandlerId, HandlerType, HouseId, HouseUnit, HousingFlag, LandData, Position,
-        timestamp_secs,
+        FestivalId, HandlerId, HouseId, HouseUnit, HousingFlag, LandData, Position,
+        TerritoryIntendedUse, WarpType, timestamp_secs,
     },
-    config::get_config,
     constants::OBFUSCATION_ENABLED_MODE,
     ipc::zone::{
         ActorControlCategory, Condition, DutyFinderSetting, FurnitureList, House, HouseExterior,
-        HouseList, HouseStatus, HousingInteriorDetails, MapEffects, PlotSize, ServerZoneIpcData,
-        ServerZoneIpcSegment, WarpType, WeatherChange, ZoneInit, ZoneInitFlags,
+        HouseList, HouseStatus, HousingInteriorDetails, PlotSize, ServerZoneIpcData,
+        ServerZoneIpcSegment, WeatherChange, ZoneInit, ZoneInitFlags,
     },
     packet::{ConnectionState, PacketSegment, ScramblerKeyGenerator, SegmentData, SegmentType},
 };
-use physis::TerritoryIntendedUse;
 
 impl ZoneConnection {
     /// Attach the surviving legacy PvP director without changing the installed metadata.
     /// This is a compatibility probe, not native match-state synchronization.
     pub async fn feast_director_probe(&mut self, enabled: bool) {
         if self.player_data.volatile.zone_id != 745 { return; }
-        let id = HandlerId::new(HandlerType::InstanceContent, 40001);
+        let id = HandlerId::new(kawari::common::HandlerType::InstanceContent, 40001);
         if enabled {
             tracing::warn!("Legacy Feast director probe activation is disabled pending duty lifecycle integration");
             return;
-        } else if self.content_handler_id == id {
+        } else if self.content_handler_id == Some(id) {
             self.actor_control_self(ActorControlCategory::TerminateDirector { handler_id: id }).await;
-            self.content_handler_id = HandlerId::default();
-            self.current_instance_id = None;
+            self.content_handler_id = None;
         }
         // Existing zone-change cleanup terminates this content handler on leaving/respawn.
         tracing::info!(enabled, "Legacy Feast director compatibility probe");
@@ -46,7 +41,8 @@ impl ZoneConnection {
         new_zone_id: u16,
         new_position: Option<Position>,
         new_rotation: Option<f32>,
-        warp_type_info: Option<(WarpType, u8, u8, u8)>,
+        warp_type: WarpType,
+        loading_screen_vfx_id: u16,
     ) {
         self.teleport_reason = TeleportReason::NotSpecified;
         self.handle
@@ -56,7 +52,8 @@ impl ZoneConnection {
                 new_zone_id,
                 new_position,
                 new_rotation,
-                warp_type_info,
+                warp_type,
+                loading_screen_vfx_id,
             ))
             .await;
     }
@@ -69,12 +66,12 @@ impl ZoneConnection {
         weather_id: u16,
         exit_position: Position,
         exit_rotation: f32,
-        initial_login: bool,
-        director_vars: Option<ServerZoneIpcSegment>,
         lua_zone: &LuaZone,
-        lua_content: &mut LuaContent,
+        handler_id: Option<HandlerId>,
     ) {
         self.spawned_in = false;
+        self.fate_motivation_npcs.clear();
+        self.content_handler_id = handler_id;
 
         let bound_by_duty = content_finder_condition_id != 0;
 
@@ -128,10 +125,8 @@ impl ZoneConnection {
         // Clear the server's copy of the buyback list.
         self.player_data.buyback_list = BuyBackList::default();
 
-        let config = get_config();
-
         // Send obsfucation init
-        if config.world.enable_packet_obsfucation {
+        if self.config.enable_packet_obsfucation {
             let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::InitializeObfuscation {
                 unk_before: [0; 6],
                 obsfucation_mode: OBFUSCATION_ENABLED_MODE,
@@ -174,7 +169,7 @@ impl ZoneConnection {
                         ward_index: 0,
                         room_number: 1,
                         territory_type_id: 340,
-                        world_id: config.world.world_id,
+                        world_id: self.config.world_id,
                     },
                     flags: 19,
                     unk1: 0,
@@ -184,11 +179,11 @@ impl ZoneConnection {
         }
 
         // Send the list of available items if we're in an inn, since its only accessible via their beds.
-        if lua_zone.intended_use == TerritoryIntendedUse::Inn as u8 {
+        if lua_zone.intended_use == TerritoryIntendedUse::Inn {
             let display_ids;
             {
-                let mut gamedata = self.gamedata.lock();
-                display_ids = gamedata.get_latest_fittingshop_display_ids();
+                let mut game_data = self.game_data.lock();
+                display_ids = game_data.get_latest_fittingshop_display_ids();
             }
 
             let ipc =
@@ -196,14 +191,14 @@ impl ZoneConnection {
             self.send_ipc_self(ipc).await;
         }
 
-        let mut game_festival_ids = config.world.active_festivals.map(FestivalId);
+        let mut game_festival_ids = self.config.active_festivals.map(FestivalId);
         let mut game_festival_phases = [0; 8];
 
         // Set up ocean fishing
-        {
-            let mut gamedata = self.gamedata.lock();
+        if bound_by_duty {
+            let mut game_data = self.game_data.lock();
             if let Some(spots) =
-                gamedata.lookup_ikd_route_spots_via_content(content_finder_condition_id as u32)
+                game_data.lookup_ikd_route_spots_via_content(content_finder_condition_id as u32)
             {
                 // Special festivals used for ocean fishing.
                 game_festival_ids = [
@@ -232,10 +227,10 @@ impl ZoneConnection {
 
         // Init Zone
         {
-            let mut flags = if initial_login {
+            let mut flags = if self.initial_login {
                 ZoneInitFlags::INITIAL_LOGIN
             } else if bound_by_duty {
-                ZoneInitFlags::UNK1 | ZoneInitFlags::UNK3
+                ZoneInitFlags::INSTANCED_CONTENT | ZoneInitFlags::UNK5
             } else {
                 ZoneInitFlags::default()
             };
@@ -244,6 +239,11 @@ impl ZoneConnection {
                 flags |= ZoneInitFlags::ENABLE_FLYING;
             } else {
                 self.offered_teleport = None; // Discard any previously offered teleports once we're in a duty.
+
+                let mut game_data = self.game_data.lock();
+                if game_data.is_duty_recorder_allowed(content_finder_condition_id) {
+                    flags |= ZoneInitFlags::ENABLE_RECORD_READY_CHECK;
+                }
             }
 
             let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ZoneInit(ZoneInit {
@@ -253,7 +253,8 @@ impl ZoneConnection {
                 content_finder_condition_id,
                 game_festival_ids,
                 game_festival_phases,
-                ui_festival_ids: config.world.active_festivals.map(FestivalId),
+                ui_festival_ids: self.config.active_festivals.map(FestivalId),
+                unk1: 8.59375,
                 ..Default::default()
             }));
             self.send_ipc_self(ipc).await;
@@ -261,7 +262,7 @@ impl ZoneConnection {
 
         let level;
         {
-            let mut game_data = self.gamedata.lock();
+            let mut game_data = self.game_data.lock();
 
             level = self
                 .player_data
@@ -292,12 +293,12 @@ impl ZoneConnection {
             .await;
         }
 
-        if initial_login {
+        if self.initial_login {
             self.send_quest_information().await;
             self.send_crafting_gathering_information().await;
         }
 
-        if lua_zone.intended_use == TerritoryIntendedUse::HousingOutdoor as u8 {
+        if lua_zone.intended_use == TerritoryIntendedUse::HousingOutdoor {
             let mut houses = [House::default(); 30];
 
             // First, populate the houses in this ward. Note that for now, we treat every ward the same.
@@ -347,13 +348,12 @@ impl ZoneConnection {
                 ..Default::default()
             };
 
-            let config = get_config();
             self.send_ipc_self(ServerZoneIpcSegment::new(ServerZoneIpcData::HouseList(
                 HouseList {
                     land_id: 0,
                     ward: 0,
                     territory_type_id: lua_zone.zone_id,
-                    world_id: config.world.world_id,
+                    world_id: self.config.world_id,
                     subdivision: 257, // TODO: Figure out more about subdivisions
                     houses,
                 },
@@ -362,10 +362,10 @@ impl ZoneConnection {
 
             // Finally, populate the exterior furniture.
             // TODO: Actually send some real furniture, once we can do that!
-            for index in 0..8 {
+            for index in 0..15 {
                 self.send_ipc_self(ServerZoneIpcSegment::new(ServerZoneIpcData::FurnitureList(
                     FurnitureList {
-                        count: 8,
+                        count: 15,
                         index,
                         ..Default::default()
                     },
@@ -374,35 +374,37 @@ impl ZoneConnection {
             }
         }
 
-        if lua_zone.intended_use == TerritoryIntendedUse::HousingIndoor as u8 {
-            let config = get_config();
+        if lua_zone.intended_use == TerritoryIntendedUse::HousingIndoor {
             // Bare minimum stuff to make housing interiors load
             self.send_ipc_self(ServerZoneIpcSegment::new(
                 ServerZoneIpcData::HousingInteriorDetails(HousingInteriorDetails::default()),
             ))
             .await;
 
-            // The LandId is currently set so that plugins like HousingPos/Buildingway can plop stuff down
-            self.send_ipc_self(ServerZoneIpcSegment::new(ServerZoneIpcData::FurnitureList(
-                FurnitureList {
-                    id: HouseId {
-                        unit: HouseUnit {
-                            apartment_division_plot_index: 0,
-                            apartment_flag: true,
+            // TODO: Limit this by interior size once we have furniture persistence
+            for index in 0..6 {
+                // The LandId is currently set so that plugins like HousingPos/Buildingway can plop stuff down
+                self.send_ipc_self(ServerZoneIpcSegment::new(ServerZoneIpcData::FurnitureList(
+                    FurnitureList {
+                        id: HouseId {
+                            unit: HouseUnit {
+                                apartment_division_plot_index: 0,
+                                apartment_flag: true,
+                            },
+                            unk1: 0,
+                            room_number: 1,
+                            ward_index: 0,
+                            territory_type_id: 340,
+                            world_id: self.config.world_id,
                         },
-                        unk1: 0,
-                        room_number: 1,
-                        ward_index: 0,
-                        territory_type_id: 340,
-                        world_id: config.world.world_id,
+                        count: 6,
+                        index,
+                        unk2: 100, // Indoors
+                        ..Default::default()
                     },
-                    count: 1,
-                    index: 0,
-                    unk2: 100, // Indoors
-                    ..Default::default()
-                },
-            )))
-            .await;
+                )))
+                .await;
+            }
         }
 
         self.conditions
@@ -412,130 +414,18 @@ impl ZoneConnection {
 
         self.send_conditions().await;
 
-        // Terminate the old director if we're exiting an instance
-        if self.content_handler_id.0 != 0 && content_finder_condition_id == 0 {
-            self.actor_control_self(ActorControlCategory::TerminateDirector {
-                handler_id: self.content_handler_id,
-            })
-            .await;
-
-            self.content_handler_id = HandlerId::default();
-            self.current_instance_id = None;
-        }
-
         self.synced_level = None;
-
-        // Initialize director as needed
-        if let Some(intended_use) = TerritoryIntendedUse::from_repr(lua_zone.intended_use) {
-            if let Some(director_type) = HandlerType::from_intended_use(intended_use) {
-                let content_id = if bound_by_duty {
-                    let mut game_data = self.gamedata.lock();
-                    game_data
-                        .find_content_for_content_finder_id(content_finder_condition_id)
-                        .unwrap()
-                } else {
-                    // There is no content associated with FATE directors.
-                    if director_type.requires_content_id() {
-                        tracing::warn!(
-                            "Failed to find content ID for {content_finder_condition_id}?"
-                        );
-                    }
-                    0xFFFF
-                };
-
-                // TODO: this needs to be networked
-                let needs_sync = {
-                    if self
-                        .content_settings
-                        .unwrap_or_default()
-                        .contains(DutyFinderSetting::UNRESTRICTED_PARTY)
-                    {
-                        self.content_settings
-                            .unwrap_or_default()
-                            .contains(DutyFinderSetting::LEVEL_SYNC)
-                    } else {
-                        !self
-                            .content_settings
-                            .unwrap_or_default()
-                            .contains(DutyFinderSetting::EXPLORER_MODE)
-                    }
-                };
-
-                if needs_sync {
-                    let synced_level;
-                    let current_level;
-                    {
-                        let mut game_data = self.gamedata.lock();
-                        synced_level =
-                            game_data.find_content_synced_level(content_finder_condition_id);
-                        current_level = self.current_level(&game_data);
-                    }
-
-                    self.synced_level = None;
-                    if let Some(synced_level) = synced_level
-                        && current_level > synced_level as u16
-                    {
-                        self.synced_level = Some(synced_level);
-                    }
-                }
-
-                self.current_instance_id = Some(content_id);
-
-                let director_id = HandlerId::new(director_type, content_id);
-                tracing::info!("Initializing director {director_id}...");
-
-                {
-                    let mut game_data = self.gamedata.lock();
-                    lua_content.duration = game_data
-                        .find_content_time_limit(content_id)
-                        .unwrap_or_default()
-                        * 60;
-                    if content_finder_condition_id == 476 {
-                        // The native duty timer starts on entry. Feast's match
-                        // clock starts after its preparation period.
-                        lua_content.duration = crate::server::FEAST_DUTY_DURATION;
-                    }
-                }
-
-                let flags = if self
-                    .content_settings
-                    .unwrap_or_default()
-                    .contains(DutyFinderSetting::EXPLORER_MODE)
-                    && director_type.requires_content_id()
-                {
-                    1
-                } else {
-                    0
-                };
-
-                // A Feast respawn reloads the player, but the existing native
-                // director survives. Initializing it twice leaves a second CC
-                // HUD alive after the normal departure terminates the first.
-                if content_finder_condition_id != 476 || self.content_handler_id != director_id {
-                    self.actor_control_self(ActorControlCategory::InitDirector {
-                        handler_id: director_id,
-                        content_id,
-                        flags,
-                    })
-                    .await;
-                }
-
-                if director_type.requires_content_id() {
-                    self.content_handler_id = director_id;
-                }
-
-                self.director_vars = director_vars;
-            } else {
-                tracing::warn!("{intended_use} does not have a known director type yet?");
-            }
-        } else {
-            tracing::warn!("Unknown TerritoryIntendedUse: {}!", lua_zone.intended_use);
-        }
-
-        // Player Class Info
-        // NOTE: It's important it happens after we set our synced level!
         self.update_class_info().await;
         self.send_stats().await;
+
+        // Inform the server we're ready for director data
+        self.handle
+            .send(ToServer::ReadyDirectorData(
+                self.player_data.character.actor_id,
+            ))
+            .await;
+
+        self.initial_login = false;
     }
 
     pub async fn warp(&mut self, warp_id: u32) {
@@ -565,7 +455,7 @@ impl ZoneConnection {
             ))
             .await;
 
-        if self.party_id != 0 && !housing_aethernet && !taking_offered_teleport {
+        if self.can_offer_teleport() {
             let teleport_info = TeleportQuery {
                 aetheryte_id: aetheryte_id as u16,
             };
@@ -578,6 +468,8 @@ impl ZoneConnection {
                     teleport_info,
                 ))
                 .await;
+            // Reset it so we don't inadvertently share an invalid aetheryte (housing/city aethernet shard)
+            self.can_share_teleport = false;
         }
 
         if taking_offered_teleport {
@@ -588,7 +480,7 @@ impl ZoneConnection {
     pub async fn change_weather(&mut self, new_weather_id: u8) {
         let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::WeatherId(WeatherChange {
             weather_id: new_weather_id,
-            daytime_fade_length: 1.0,
+            fade_length: 1.0,
             ..Default::default()
         }));
         self.send_ipc_self(ipc).await;
@@ -602,9 +494,9 @@ impl ZoneConnection {
         self.send_ipc_self(ipc).await;
     }
 
-    pub async fn join_content(&mut self, id: u16) {
+    pub async fn join_content(&mut self, id: u16, settings: DutyFinderSetting) {
         if id == 476 {
-            let ready = self.gamedata.lock().feast_duty_metadata_ready();
+            let ready = self.game_data.lock().feast_duty_metadata_ready();
             if !ready {
                 self.send_notice("Feast duty metadata is incomplete; entry refused.").await;
                 return;
@@ -620,6 +512,7 @@ impl ZoneConnection {
                 self.id,
                 self.player_data.character.actor_id,
                 id,
+                settings,
             ))
             .await;
     }
@@ -631,7 +524,7 @@ impl ZoneConnection {
         // If the player isn't in a valid zone, or in instanced content (both crash the game) then we need to reset them.
         let should_reset;
         {
-            let mut game_data = self.gamedata.lock();
+            let mut game_data = self.game_data.lock();
             should_reset = !game_data.is_zone_valid(zone_id as u16)
                 || game_data.is_zone_associated_with_content(zone_id as u16);
         }
@@ -650,90 +543,6 @@ impl ZoneConnection {
         self.send_ipc_self(ServerZoneIpcSegment::new(
             ServerZoneIpcData::EorzeanTimeOffset { offset },
         ))
-        .await;
-    }
-
-    /// Returns the intended usage of the zone the player's currently in.
-    pub fn get_zone_intended_use(&self) -> TerritoryIntendedUse {
-        let mut gamedata = self.gamedata.lock();
-        gamedata
-            .get_intended_use(self.player_data.volatile.zone_id as u32)
-            .unwrap_or(TerritoryIntendedUse::Jail)
-    }
-
-    /// Returns true if the intended use is for housing, false otherwise.
-    pub fn in_housing_area(&self, intended_use: TerritoryIntendedUse) -> bool {
-        matches!(
-            intended_use,
-            TerritoryIntendedUse::HousingIndoor | TerritoryIntendedUse::HousingOutdoor
-        )
-    }
-
-    // TODO: probably shove this director setup into server state? we actually do very, very little here.
-    pub async fn setup_director(&mut self) {
-        // Initialize map effects to their default state.
-        // TODO: find a better place to do this?
-        let Some(instance_id) = self.current_instance_id else {
-            return;
-        };
-
-        let map_effects;
-        {
-            let mut game_data = self.gamedata.lock();
-            map_effects = game_data.get_map_effects(instance_id as u32)
-        }
-
-        if let Some(director_vars) = self.director_vars.take() {
-            self.send_ipc_self(director_vars).await;
-        } else {
-            // Send sensible default until this specific content is scripted...
-            self.send_ipc_self(ServerZoneIpcSegment::new(ServerZoneIpcData::DirectorVars {
-                handler_id: self.content_handler_id,
-                flag: 1,
-                branch: 0,
-                data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                unk1: 0,
-                unk2: 0,
-                unk3: 0,
-                unk4: 0,
-            }))
-            .await;
-        }
-
-        self.send_ipc_self(ServerZoneIpcSegment::new(ServerZoneIpcData::UnkDirector1 {
-            unk: [
-                0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 38, 0, 0, 0,
-            ],
-        }))
-        .await;
-
-        if let Some(map_effects) = map_effects {
-            let mut states = Vec::new();
-            for (i, layout_id) in map_effects.iter().enumerate() {
-                // A layout ID of zero means the effect should be skipped.
-                if *layout_id != 0 {
-                    states.resize(i + 1, 0);
-                    states[i] = 4; // 4 means to play it, I guess?
-                }
-            }
-
-            let ipc = MapEffects {
-                handler_id: self.content_handler_id,
-                unk_flag: 5,
-                states,
-                ..Default::default()
-            }
-            .package()
-            .unwrap();
-            self.send_ipc_self(ipc).await;
-        }
-
-        self.send_ipc_self(ServerZoneIpcSegment::new(ServerZoneIpcData::UnkDirector2 {
-            unk: [
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            ],
-        }))
         .await;
     }
 }

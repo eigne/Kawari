@@ -1,6 +1,7 @@
 //! Utility functions for managing unlock data and bitmasks.
 
 use crate::ZoneConnection;
+use icarus::{Adventure::AdventureSheet, AetherCurrent::AetherCurrentSheet};
 use kawari::{common::value_to_flag_byte_index_value, ipc::zone::ActorControlCategory};
 
 impl ZoneConnection {
@@ -15,7 +16,7 @@ impl ZoneConnection {
 
         if should_unlock {
             {
-                let mut game_data = self.gamedata.lock();
+                let mut game_data = self.game_data.lock();
                 item_id = game_data
                     .find_orchestrion_item_id(orchestrion_id)
                     .unwrap_or(0);
@@ -121,7 +122,7 @@ impl ZoneConnection {
         let should_unlock = self.player_data.unlock.adventures.toggle(adventure_id);
 
         self.actor_control_self(ActorControlCategory::ToggleAdventureUnlock {
-            id: adventure_id + 2162688,
+            id: adventure_id + AdventureSheet::STARTING_ROW,
             all_vistas_recorded,
             unlocked: should_unlock,
         })
@@ -155,7 +156,7 @@ impl ZoneConnection {
     pub async fn toggle_aether_current(&mut self, aether_current_id: u32) {
         let aether_current_set;
         {
-            let mut game_data = self.gamedata.lock();
+            let mut game_data = self.game_data.lock();
             aether_current_set = game_data.find_aether_current_set(aether_current_id as i32);
         }
 
@@ -164,14 +165,14 @@ impl ZoneConnection {
                 .player_data
                 .aether_current
                 .unlocked
-                .toggle(aether_current_id - 2818048);
+                .toggle(aether_current_id - AetherCurrentSheet::STARTING_ROW);
 
             if should_unlock {
                 let currents_needed_for_zone;
                 let screen_image_id;
 
                 {
-                    let mut game_data = self.gamedata.lock();
+                    let mut game_data = self.game_data.lock();
 
                     currents_needed_for_zone = game_data
                         .get_aether_currents_from_zone(aether_current_set_id)
@@ -185,11 +186,9 @@ impl ZoneConnection {
                 let mut zone_complete = true;
 
                 for current_needed in currents_needed_for_zone {
-                    let current_unlocked = self
-                        .player_data
-                        .aether_current
-                        .unlocked
-                        .contains((current_needed - 2818048) as u32);
+                    let current_unlocked = self.player_data.aether_current.unlocked.contains(
+                        (current_needed - AetherCurrentSheet::STARTING_ROW as i32) as u32,
+                    );
 
                     if !current_unlocked {
                         zone_complete = false;
@@ -237,7 +236,7 @@ impl ZoneConnection {
 
         let screen_image_id;
         {
-            let mut game_data = self.gamedata.lock();
+            let mut game_data = self.game_data.lock();
             screen_image_id = game_data
                 .get_screenimage_from_aether_current_comp_flg_set(aether_current_comp_flg_set_id)
                 .unwrap();

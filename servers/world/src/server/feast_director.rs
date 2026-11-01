@@ -14,7 +14,7 @@ pub const VERSION: u8 = 0xF1;
 /// Continuation records are consumed by the client module before the stock
 /// director sees them; only the summary belongs in native UnionData.
 pub fn send(instance: &Instance, rules: &Match, now: f64, network: &mut NetworkState) {
-    let Some(director) = &instance.director else { return };
+    let Some(director) = instance.directors.first() else { return };
     if director.id.0 != 0x80039c56 { return; }
     for (&actor, player) in &instance.actors {
         if !matches!(player, super::actor::NetworkedActor::Player { .. }) || !player.is_valid() { continue; }

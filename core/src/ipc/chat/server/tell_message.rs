@@ -1,10 +1,7 @@
 use binrw::binrw;
-use bstr::BString;
+use physis::sestring::SeString;
 
-use crate::common::{
-    CHAR_NAME_MAX_LENGTH, MESSAGE_MAX_LENGTH, read_sestring, read_string, write_sestring,
-    write_string,
-};
+use crate::common::{CHAR_NAME_MAX_LENGTH, MESSAGE_MAX_LENGTH, read_string, write_string};
 
 #[binrw]
 #[derive(Clone, Debug, Default)]
@@ -17,17 +14,15 @@ pub struct TellMessage {
     pub flags: u8,
 
     #[br(count = CHAR_NAME_MAX_LENGTH)]
-    #[bw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
+    #[brw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
     #[br(map = read_string)]
     #[bw(map = write_string)]
     pub sender_name: String,
 
     #[br(count = MESSAGE_MAX_LENGTH)]
-    #[bw(pad_size_to = MESSAGE_MAX_LENGTH)]
-    #[br(map = read_sestring)]
-    #[bw(map = write_sestring)]
+    #[brw(pad_size_to = MESSAGE_MAX_LENGTH)]
     #[brw(pad_after = 5)]
-    pub message: BString, // NOTE: This is a BString due to the fact that SEString macros can appear in its contents.
+    pub message: SeString,
 }
 
 #[binrw]
@@ -43,7 +38,7 @@ pub struct TellNotFoundError {
     pub recipient_world_id: u16,
     /// The recipient's name.
     #[br(count = CHAR_NAME_MAX_LENGTH)]
-    #[bw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
+    #[brw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
     #[br(map = read_string)]
     #[bw(map = write_string)]
     #[brw(pad_after = 2)]

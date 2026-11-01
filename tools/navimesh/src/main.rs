@@ -3,7 +3,7 @@ use std::{
     ptr::{null, null_mut},
 };
 
-use glam::{Affine3A, Vec3};
+use glam::{Affine3A, Vec3A};
 use icarus::RecastNavimesh::RecastNavimeshSheet;
 use icarus::TerritoryType::TerritoryTypeSheet;
 use kawari::config::get_config;
@@ -13,9 +13,8 @@ use physis::{
     layer::{Layer, LayerEntryData, ModelCollisionType, TriggerBoxShape},
     lgb::Lgb,
     lvb::Lvb,
-    pcb::{Pcb, Polygon, ResourceNode},
-    pcblist::{PcbList, PcbListEntry},
-    resource::{ResourceResolver, SqPackResource},
+    pcb::{ListEntry, Node, Pcb, Polygon},
+    resource::{ResourceResolver, SqPackResource, UnpackedResource},
     sgb::Sgb,
 };
 use recastnavigation_sys::{
@@ -36,10 +35,18 @@ fn main() {
 
     let config = get_config();
 
-    tracing::info!("Generating navmesh for zone {zone_id}, writing to {destination_path}!");
+    tracing::info!(
+        "Generating navmesh for zone {zone_id}, writing to {destination_path}, this will take a while!"
+    );
 
     let mut resolver = ResourceResolver::new();
-    resolver.add_source(SqPackResource::from_existing(&config.filesystem.game_path));
+    for path in &config.filesystem.additional_search_paths {
+        let unpacked_resource = UnpackedResource::from_existing(path);
+        resolver.add_source(unpacked_resource);
+    }
+    resolver.add_source(SqPackResource::from_existing(
+        &config.filesystem.game_path(),
+    ));
 
     let sheet = TerritoryTypeSheet::read_from(&mut resolver, Language::None).unwrap();
     let Some(row) = sheet.row(zone_id as u32) else {
@@ -79,12 +86,15 @@ fn main() {
 
     let scene = &lvb.sections[0];
 
-    let pcblist = resolver
-        .parsed::<PcbList>(&format!(
+    let Pcb::List(pcblist) = resolver
+        .parsed::<Pcb>(&format!(
             "{}/collision/list.pcb",
             scene.general.bg_path.value
         ))
-        .unwrap();
+        .unwrap()
+    else {
+        panic!("list.pcb isn't a list?!");
+    };
     min_x = min_x.min(pcblist.bounds.min[0]);
     min_z = min_z.min(pcblist.bounds.min[2]);
 
@@ -189,7 +199,6 @@ fn main() {
             }
         };
 
-        // TODO: i think we know which layer is specifically used for navmesh gen, better check that LVB
         for chunk in &lgb.chunks {
             for layer in &chunk.layers {
                 // Exclude festival objects which *usually* don't have collision, but this is to exclude non-Global festivals that include non-existent SGBs.
@@ -391,7 +400,7 @@ struct Tile {
 
 /// Walk each node, add it's collision model to the scene.
 fn walk_node(
-    node: &ResourceNode,
+    node: &Node,
     transform: &Affine3A,
     context: *mut rcContext,
     tiles: &[Tile],
@@ -417,7 +426,7 @@ fn walk_node(
         // transform the vertices on the CPU
         let mut tile_vertices: Vec<[f32; 3]> = Vec::new();
         for vertex in &node.vertices {
-            let transformed = transform.transform_point3(Vec3::from_slice(vertex));
+            let transformed = transform.transform_point3(Vec3A::from_slice(vertex).into());
             tile_vertices.push([transformed.x, transformed.y, transformed.z]);
         }
 
@@ -454,7 +463,7 @@ fn walk_node(
 }
 
 fn add_plate(
-    entry: &PcbListEntry,
+    entry: &ListEntry,
     tera_path: &str,
     sqpack_resource: &mut ResourceResolver,
     context: *mut rcContext,
@@ -463,16 +472,15 @@ fn add_plate(
     walkable_climb: i32,
 ) {
     let pcb_path = format!("{}/collision/tr{:04}.pcb", tera_path, entry.mesh_id,);
-    let mdl = sqpack_resource.parsed::<Pcb>(&pcb_path).unwrap();
+    let Ok(file) = sqpack_resource.parsed::<Pcb>(&pcb_path) else {
+        tracing::warn!("Failed to find {pcb_path}?! This may be a bug.");
+        return;
+    };
+    let Pcb::Mesh(mdl) = file else {
+        panic!("Mesh pcb isn't a mesh?!");
+    };
     let transform = Affine3A::default();
-    walk_node(
-        &mdl.root_node,
-        &transform,
-        context,
-        tiles,
-        max_slope,
-        walkable_climb,
-    );
+    walk_node(&mdl, &transform, context, tiles, max_slope, walkable_climb);
 }
 
 /// Walk each layer, add it's collision model to the scene.
@@ -493,12 +501,15 @@ fn walk_layer(
                 if !bg_part.collision_asset_path.value.is_empty()
                     && bg_part.collision_type == ModelCollisionType::Replace
                 {
-                    let pcb = resolver
+                    let Pcb::Mesh(pcb) = resolver
                         .parsed::<Pcb>(&bg_part.collision_asset_path.value)
-                        .unwrap();
+                        .unwrap()
+                    else {
+                        panic!("Mesh pcb isn't a mesh?!");
+                    };
 
                     walk_node(
-                        &pcb.root_node,
+                        &pcb,
                         &child_transform,
                         context,
                         tiles,
@@ -513,12 +524,15 @@ fn walk_layer(
                 }
 
                 if !collision_box.collision_asset_path.value.is_empty() {
-                    let pcb = resolver
+                    let Pcb::Mesh(pcb) = resolver
                         .parsed::<Pcb>(&collision_box.collision_asset_path.value)
-                        .unwrap();
+                        .unwrap()
+                    else {
+                        panic!("Mesh pcb isn't a mesh?!");
+                    };
 
                     walk_node(
-                        &pcb.root_node,
+                        &pcb,
                         &child_transform,
                         context,
                         tiles,
@@ -530,7 +544,7 @@ fn walk_layer(
                         TriggerBoxShape::None => unreachable!(),
                         TriggerBoxShape::Box => {
                             // TODO: It might be nice to have this as a helper somewhere?
-                            let pcb = Pcb::new_from_vertices(
+                            let Pcb::Mesh(mesh) = Pcb::new_from_vertices(
                                 &[
                                     [-1.0, -1.0, 1.0],
                                     [1.0, -1.0, 1.0],
@@ -591,10 +605,12 @@ fn walk_layer(
                                         material: 0,
                                     },
                                 ],
-                            );
+                            ) else {
+                                panic!("This can never happen!!");
+                            };
 
                             walk_node(
-                                &pcb.root_node,
+                                &mesh,
                                 &child_transform,
                                 context,
                                 tiles,

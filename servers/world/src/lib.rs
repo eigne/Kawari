@@ -8,11 +8,9 @@ use diesel::expression::AsExpression;
 use diesel::serialize;
 use diesel::sql_types::Text;
 use diesel::sqlite::Sqlite;
-use kawari::constants::CLASSJOB_ARRAY_SIZE;
+use kawari::constants::{CLASSJOB_ARRAY_SIZE, SHARED_FATES_SIZE};
 use serde::{Deserialize, Serialize};
-pub use zone_connection::{
-    ObsfucationData, PlayerData, TeleportReason, ZoneConnection, spawn_allocator::SpawnAllocator,
-};
+pub use zone_connection::{ObsfucationData, PlayerData, TeleportReason, ZoneConnection};
 
 mod database;
 pub use database::{Content, Unlock, WorldDatabase};
@@ -59,6 +57,9 @@ pub use client_select_data::{ClientSelectData, RemakeMode};
 
 mod events;
 pub use events::*;
+
+mod customize_data;
+pub use customize_data::*;
 
 use crate::zone_connection::PersistentQuest;
 
@@ -129,3 +130,21 @@ define_sql_array!(ActiveQuests, PersistentQuest);
 define_sql_array!(FavoriteAetherytes, u16);
 define_sql_array!(PartyMembers, i64, 8);
 define_sql_array!(GrandCompanyRanks, u8, 3);
+define_sql_array!(BuddyLevels, u8, 3);
+define_sql_array!(GlassesIds, u16, 2);
+define_sql_array!(SharedFates, u8, SHARED_FATES_SIZE);
+
+/// Helper for tests to initialize GameData, instead of each test creating its own.
+/// Please call `tracing_subscriber::fmt::try_init()` so this is printed in the CI log!
+#[cfg(test)]
+pub fn test_game_data() -> Option<&'static mut GameData> {
+    // Be able to skip these on the CI as we don't have game data there (yet)
+    if std::env::var("CI") == Ok("1".to_string()) {
+        tracing::warn!("Skipping test because it requires gamedata, and we're on the CI!");
+        return None;
+    }
+
+    static mut DEEP_THOUGHT: std::sync::LazyLock<GameData> =
+        std::sync::LazyLock::new(|| GameData::new());
+    unsafe { Some(&mut *DEEP_THOUGHT) }
+}

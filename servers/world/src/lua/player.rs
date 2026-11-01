@@ -2,39 +2,25 @@ use std::sync::Arc;
 
 use mlua::{LuaSerdeExt, UserData, UserDataFields, UserDataMethods, Value};
 use parking_lot::Mutex;
+use physis::savedata::chardat::CustomizeData;
 
 use crate::{
     GameData, PlayerData, RemakeMode, StatusEffects,
+    common::adjust_quest_id,
     inventory::{CrystalKind, CurrencyKind},
     zone_connection::BaseParameters,
 };
 use kawari::{
-    common::{HandlerId, ObjectTypeId, ObjectTypeKind, Position, adjust_quest_id},
+    common::{ObjectTypeId, ObjectTypeKind, Position},
     ipc::zone::{
         ActorControlCategory, ActorControlSelf, ActorSetPos, EventType, GrandCompany, OnlineStatus,
         SceneFlags, ServerNoticeFlags, ServerNoticeMessage, ServerZoneIpcData,
-        ServerZoneIpcSegment,
+        ServerZoneIpcSegment, WalkInEvent,
     },
     packet::PacketSegment,
 };
 
 use super::{LuaTask, LuaZone, QueueSegments, create_ipc_self};
-
-#[derive(Default, Clone, Copy)]
-pub struct LuaContent {
-    /// Duration in seconds.
-    pub duration: u16,
-    /// Duty finder settings. See ContentRegistrationFlags.
-    pub settings: u32,
-}
-
-impl UserData for LuaContent {
-    fn add_fields<F: UserDataFields<Self>>(fields: &mut F) {
-        fields.add_field_method_get("duration", |_, this| Ok(this.duration));
-
-        fields.add_field_method_get("settings", |_, this| Ok(this.settings));
-    }
-}
 
 #[derive(Default)]
 pub struct LuaPlayer {
@@ -42,9 +28,9 @@ pub struct LuaPlayer {
     pub queued_tasks: Vec<LuaTask>,
     pub zone_data: LuaZone,
     pub status_effects: StatusEffects,
-    pub content_data: LuaContent,
     // TODO: move this into PlayerData
     pub base_parameters: BaseParameters,
+    pub current_level: u8,
 }
 
 impl QueueSegments for LuaPlayer {
@@ -222,7 +208,7 @@ impl LuaPlayer {
         self.queued_tasks.push(LuaTask::ToggleOrchestrion { id });
     }
 
-    pub fn add_item(&mut self, id: u32, quantity: u32, send_client_update: bool) {
+    pub fn add_item(&mut self, id: u32, quantity: i32, send_client_update: bool) {
         self.queued_tasks.push(LuaTask::AddItem {
             id,
             quantity,
@@ -238,43 +224,18 @@ impl LuaPlayer {
         self.queued_tasks.push(LuaTask::UnlockAllContent {});
     }
 
-    fn do_solnine_teleporter(
-        &mut self,
-        event_id: u32,
-        path_id: u32,
-        unk2: u16,
-        unk3: u16,
-        speed: u16,
-        unk4: u16,
-        unk5: u32,
-    ) {
-        let packets_to_send = [
-            ServerZoneIpcSegment::new(ServerZoneIpcData::ActorControlSelf(ActorControlSelf {
-                category: ActorControlCategory::DisableEventPosRollback {
-                    handler_id: HandlerId(event_id),
-                },
-            })),
-            ServerZoneIpcSegment::new(ServerZoneIpcData::WalkInEvent {
+    fn walk_in_event(&mut self, path_id: u32, speed: u16, pop_range_id: u32) {
+        if let Some((position, rotation)) = self.zone_data.cached_pop_ranges.get(&pop_range_id) {
+            let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::WalkInEvent(WalkInEvent {
                 path_id,
-                unk2,
-                unk3,
+                rotation: *rotation,
                 speed,
-                constant: 1,
-                unk4,
-                unk5,
-            }),
-            ServerZoneIpcSegment::new(ServerZoneIpcData::ActorControlSelf(ActorControlSelf {
-                category: ActorControlCategory::MovementRelatedUnk {
-                    unk1: 1, // Sometimes the server sends 2 for this, but it's still completely unknown what it means.
-                },
-            })),
-            ServerZoneIpcSegment::new(ServerZoneIpcData::ActorControlSelf(ActorControlSelf {
-                category: ActorControlCategory::SetPetEntityId { unk1: 1 },
-            })),
-        ];
-
-        for ipc in packets_to_send {
+                position: *position,
+                ..Default::default()
+            }));
             create_ipc_self(self, ipc, self.player_data.character.actor_id);
+        } else {
+            tracing::warn!("Failed to find pop range {pop_range_id} for walk_in_event {path_id}!");
         }
     }
 
@@ -414,18 +375,6 @@ impl LuaPlayer {
         self.queued_tasks.push(LuaTask::SetMP { mp });
     }
 
-    fn set_race(&mut self, race: u8) {
-        self.queued_tasks.push(LuaTask::SetRace { race });
-    }
-
-    fn set_tribe(&mut self, tribe: u8) {
-        self.queued_tasks.push(LuaTask::SetTribe { tribe });
-    }
-
-    fn set_sex(&mut self, sex: u8) {
-        self.queued_tasks.push(LuaTask::SetSex { sex });
-    }
-
     fn start_talk_event(&mut self) {
         self.queued_tasks.push(LuaTask::StartTalkEvent {});
     }
@@ -436,11 +385,6 @@ impl LuaPlayer {
 
     fn finish_quest(&mut self, id: u32) {
         self.queued_tasks.push(LuaTask::FinishQuest { id });
-    }
-
-    pub fn commence_duty(&mut self, director_id: u32) {
-        self.queued_tasks
-            .push(LuaTask::CommenceDuty { director_id });
     }
 
     /// Returns the target DefaultTalk event for a given SwitchTalk event.
@@ -521,7 +465,7 @@ impl LuaPlayer {
         create_ipc_self(self, ipc, self.player_data.character.actor_id);
     }
 
-    fn abandon_content(&mut self) {
+    pub fn abandon_content(&mut self) {
         self.queued_tasks.push(LuaTask::AbandonContent {});
     }
 
@@ -600,6 +544,41 @@ impl LuaPlayer {
 
     fn finish_dyeing(&mut self) {
         self.queued_tasks.push(LuaTask::FinishDyeing {});
+    }
+
+    fn get_territory_fate_rank(&mut self, game_data: mlua::Value) -> Option<u8> {
+        let game_data = match game_data {
+            mlua::Value::UserData(ud) => ud.borrow::<Arc<Mutex<GameData>>>().unwrap().clone(),
+            _ => unreachable!(),
+        };
+
+        let mut game_data = game_data.lock();
+
+        if let Some(row) = game_data.get_fate_progress_ui_row(self.player_data.volatile.zone_id) {
+            let fate_count = self.player_data.quest.shared_fates.0[row as usize];
+            let rank = game_data.get_fate_rank(row, fate_count);
+            return rank;
+        }
+
+        None
+    }
+
+    fn set_customize(&mut self, customize: CustomizeData) {
+        self.queued_tasks.push(LuaTask::SetCustomize { customize });
+    }
+
+    fn has_trait(&self, game_data: mlua::Value, trait_id: u32) -> bool {
+        let game_data = match game_data {
+            mlua::Value::UserData(ud) => ud.borrow::<Arc<Mutex<GameData>>>().unwrap().clone(),
+            _ => unreachable!(),
+        };
+
+        let mut game_data = game_data.lock();
+        let (level, _quest) = game_data.get_trait_requirements(trait_id).unwrap();
+
+        // TODO: check quest requirements too
+
+        self.current_level >= level
     }
 }
 
@@ -740,7 +719,7 @@ impl UserData for LuaPlayer {
             this.toggle_orchestrion(id);
             Ok(())
         });
-        methods.add_method_mut("add_item", |_, this, (id, quantity): (u32, u32)| {
+        methods.add_method_mut("add_item", |_, this, (id, quantity): (u32, i32)| {
             // Can't think of any situations where we wouldn't want to force a client inventory update after using debug commands.
             this.add_item(id, quantity, true);
             Ok(())
@@ -773,19 +752,9 @@ impl UserData for LuaPlayer {
             Ok(())
         });
         methods.add_method_mut(
-            "do_solnine_teleporter",
-            |_,
-             this,
-             (event_id, path_id, unk2, unk3, speed, unk4, unk5): (
-                u32,
-                u32,
-                u16,
-                u16,
-                u16,
-                u16,
-                u32,
-            )| {
-                this.do_solnine_teleporter(event_id, path_id, unk2, unk3, speed, unk4, unk5);
+            "walk_in_event",
+            |_, this, (path_id, speed, pop_range_id): (u32, u16, u32)| {
+                this.walk_in_event(path_id, speed, pop_range_id);
                 Ok(())
             },
         );
@@ -911,18 +880,6 @@ impl UserData for LuaPlayer {
             this.set_mp(mp);
             Ok(())
         });
-        methods.add_method_mut("set_race", |_, this, race: u8| {
-            this.set_race(race);
-            Ok(())
-        });
-        methods.add_method_mut("set_tribe", |_, this, tribe: u8| {
-            this.set_tribe(tribe);
-            Ok(())
-        });
-        methods.add_method_mut("set_sex", |_, this, sex: u8| {
-            this.set_sex(sex);
-            Ok(())
-        });
         methods.add_method("get_effect", |_, this, effect_id: u16| {
             Ok(this.status_effects.get(effect_id))
         });
@@ -950,10 +907,6 @@ impl UserData for LuaPlayer {
         });
         methods.add_method_mut("has_seen_cutscene", |_, this, cutscene_id: u32| {
             Ok(this.player_data.unlock.cutscene_seen.contains(cutscene_id))
-        });
-        methods.add_method_mut("commence_duty", |_, this, director_id: u32| {
-            this.commence_duty(director_id);
-            Ok(())
         });
         methods.add_method_mut(
             "get_switch_talk_target",
@@ -1064,6 +1017,20 @@ impl UserData for LuaPlayer {
             this.finish_dyeing();
             Ok(())
         });
+        methods.add_method_mut("get_territory_fate_rank", |_, this, _: ()| {
+            this.finish_dyeing();
+            Ok(())
+        });
+        methods.add_method_mut("get_territory_fate_rank", |lua, this, _: ()| {
+            Ok(this.get_territory_fate_rank(lua.globals().get("GAME_DATA").unwrap()))
+        });
+        methods.add_method_mut("set_customize", |lua, this, customize: Value| {
+            this.set_customize(lua.from_value(customize).unwrap());
+            Ok(())
+        });
+        methods.add_method("has_trait", |lua, this, id: u32| {
+            Ok(this.has_trait(lua.globals().get("GAME_DATA").unwrap(), id))
+        });
     }
 
     fn add_fields<F: UserDataFields<Self>>(fields: &mut F) {
@@ -1073,7 +1040,6 @@ impl UserData for LuaPlayer {
                 object_type: ObjectTypeKind::None,
             })
         });
-
         fields.add_field_method_get("teleport_query", |_, this| {
             Ok(this.player_data.teleport_query.clone())
         });
@@ -1083,14 +1049,12 @@ impl UserData for LuaPlayer {
             Ok(this.player_data.inventory.clone())
         });
         fields.add_field_method_get("zone", |_, this| Ok(this.zone_data.clone()));
-        // Helper method to reduce the amount of typing for gil
         fields.add_field_method_get("gil", |_, this| {
             Ok(this.player_data.inventory.currency.gil.quantity)
         });
         fields.add_field_method_get("saw_inn_wakeup", |_, this| {
             Ok(this.player_data.saw_inn_wakeup)
         });
-        fields.add_field_method_get("content", |_, this| Ok(this.content_data));
         fields.add_field_method_get("parameters", |_, this| Ok(this.base_parameters.clone()));
         fields.add_field_method_get("rested_exp", |_, this| {
             Ok(this.player_data.classjob.rested_exp)
@@ -1099,5 +1063,9 @@ impl UserData for LuaPlayer {
             Ok(this.player_data.grand_company.active_company)
         });
         fields.add_field_method_get("city_state", |_, this| Ok(this.player_data.city_state));
+        fields.add_field_method_get("chara_make", |_, this| {
+            Ok(this.player_data.customize.chara_make.clone())
+        });
+        fields.add_field_method_get("level", |_, this| Ok(this.current_level));
     }
 }

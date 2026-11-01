@@ -4,7 +4,7 @@ use physis::blowfish::LobbyBlowfish;
 use tokio::net::TcpStream;
 
 use kawari::{
-    common::{GAME_SERVICE, MAX_CHARACTERS, MaxEx, ObjectId, WORLD_NAME},
+    common::{BasicServiceAccountData, GAME_SERVICE, MAX_CHARACTERS, ObjectId, WORLD_NAME},
     config::get_config,
     constants::SUPPORTED_EXPAC_VERSIONS,
     ipc::lobby::{
@@ -314,7 +314,7 @@ impl LobbyConnection {
             return;
         };
 
-        let entitled_expansion: MaxEx =
+        let entitled_expansion: BasicServiceAccountData =
             serde_json::from_str(&login_reply.body_mut().read_to_string().unwrap()).unwrap();
 
         // now send them the character list
@@ -776,8 +776,7 @@ mod tests {
 
     #[test]
     fn test_validate_client_version_string() {
-        // Uncomment if interested in seeing output from the test!
-        //tracing_subscriber::fmt::init();
+        let _ = tracing_subscriber::fmt::try_init();
 
         // These strings match 7.3h1 version checks, but they don't need to be updated for testing purposes.
         const BASE_STR: &str = "ffxiv_dx11.exe/50154824/60b27b131deebe9b2b7914012618293c85aff247";

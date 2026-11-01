@@ -1,14 +1,17 @@
 use binrw::binrw;
-use serde::{Deserialize, Serialize};
+use serde_derive::{Deserialize, Serialize};
 
 use crate::common::{read_string, write_string};
 
 #[binrw]
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct ServiceAccount {
+    /// Unique ID of this service account.
     pub id: u64,
+    /// Index into the service account list.
     pub index: u32,
-    #[bw(pad_size_to = 0x44)]
+    /// Name of the service account, usually "FINAL FANTASY XIV X" where X is the index + 1. The number is not included if you only have one service account.
+    #[brw(pad_size_to = 0x44)]
     #[br(count = 0x44)]
     #[br(map = read_string)]
     #[bw(map = write_string)]

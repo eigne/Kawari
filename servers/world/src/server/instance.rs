@@ -6,22 +6,28 @@ use std::{
 };
 
 use crate::{
-    ClientId, GameData, Navmesh, StatusEffects,
+    ClientId, FromServer, GameData, Navmesh, StatusEffects,
+    lua::KawariLua,
     server::{
+        WorldServer,
         action::cancel_action,
         actor::{NetworkedActor, NpcState},
         director::DirectorData,
-        network::NetworkState,
+        fate::{FateInstance, internally_start_fate},
+        network::{DestinationNetwork, NetworkState},
         zone::Zone,
     },
     zone_connection::{BaseParameters, TeleportQuery},
 };
 use kawari::{
-    common::{DistanceRange, ENTRANCE_CIRCLE_IDS, ObjectId, Position},
+    common::{
+        CharacterMode, DistanceRange, ENTRANCE_CIRCLE_IDS, FateState, HandlerId, HandlerType,
+        MAXIMUM_FATES, MOB_WANDER_TIME, ObjectId, Position,
+    },
     config::{Config, get_config},
     ipc::zone::{
-        ActionRequest, Conditions, ServerZoneIpcSegment, SpawnNpc, SpawnObject, SpawnPlayer,
-        SpawnTreasure,
+        ActionRequest, ActorControlCategory, Conditions, DutyFinderSetting, ServerZoneIpcSegment,
+        SpawnNpc, SpawnObject, SpawnPlayer, SpawnTreasure,
     },
 };
 use parking_lot::Mutex;
@@ -44,9 +50,6 @@ pub enum QueuedTaskData {
         /// Currently means if it has a cast bar.
         interruptible: bool,
     },
-    CastEnemyAction {
-        request: ActionRequest,
-    },
     LoseStatusEffect {
         effect_id: u16,
         effect_param: u16,
@@ -55,32 +58,31 @@ pub enum QueuedTaskData {
     /// Fade out a dead actor.
     DeadFadeOut {
         actor_id: ObjectId,
+        respawn_layout_id: Option<u32>,
     },
     /// Despawn a dead actor.
     DeadDespawn {
         actor_id: ObjectId,
+        respawn_layout_id: Option<u32>,
     },
     /// Complete an EventAction
-    CastEventAction {
-        target: ObjectId,
-    },
+    CastEventAction { target: ObjectId },
     /// Make a fish bite.
     FishBite,
     /// Seal a boss wall.
-    SealBossWall {
-        id: u32,
-        place_name: u32,
-    },
+    SealBossWall { id: u32, place_name: u32 },
     /// Generically send a packet segment, only used for `do_change_zone`. Don't abuse this as a generic task, you almost certainly want to create a new variant.
-    PacketSegment {
-        segment: ServerZoneIpcSegment,
-    },
+    PacketSegment { segment: ServerZoneIpcSegment },
     /// Used by directors since its tough to fit this into the director logic.
-    WarpToPopRange {
-        id: u32,
-    },
+    WarpToPopRange { id: u32 },
     /// Reset a player's action combo status.
     ResetCombo,
+    /// Respawn a new mob.
+    RespawnMob { layout_id: u32 },
+    /// Ends a FATE.
+    EndFate { fate_id: u32 },
+    /// Terminates a director.
+    TerminateDirector { handler_id: HandlerId },
     /// Finish an early native PvP return request after the Feast KO lock expires.
     FeastRespawn { homepoint: u32 },
 }
@@ -101,28 +103,54 @@ impl PartialEq for QueuedTask {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug, Default)]
 pub struct Instance {
+    /// List of spawned actors.
     pub actors: HashMap<ObjectId, NetworkedActor>,
+    /// The navmesh data.
     pub navmesh: Navmesh,
+    /// The zone data.
     pub zone: Zone,
+    /// The zone's current weather.
     pub weather_id: u16,
+    /// The content finder condition associated with this instance.
     pub content_finder_condition_id: u16,
+    /// The content ID for the content finder condition, if applicable.
+    pub content_id: u16,
     /// If Some, then this is the path of the navmesh we need to generate.
     pub generate_navmesh: NavmeshGenerationStep,
     /// List of tasks that has to be executed an arbitrary point in the future.
     pub queued_task: Vec<QueuedTask>,
-    /// Director for this instance.
-    pub director: Option<DirectorData>,
+    /// Current directors of this instance.
+    pub directors: Vec<DirectorData>,
+    /// Whether enemy AI is currently disabled.
     pub enemy_ai_disabled: bool,
     pub feast_whm: Option<super::feast::FeastWhiteMage>,
     pub feast_respawns: HashMap<ObjectId, Instant>,
     pub feast_match: Option<super::feast_match::Runtime>,
     pub feast_dummies: HashMap<ObjectId, super::feast_training::Dummy>,
+    /// Players whose native Feast director was already initialized.
+    pub feast_directors_sent: std::collections::HashSet<ObjectId>,
+    /// List of running/preparing FATEs.
+    pub fates: Vec<FateInstance>,
+    /// List of FATEs that are able to spawn.
+    pub candiate_fates: Vec<u32>,
+    /// The duty finder settings applied to this instance, if applicable.
+    pub content_settings: Option<DutyFinderSetting>,
+    /// The maximum synced level for this content, if applicable.
+    pub synced_level: Option<u8>,
+    /// How long this content lasts for, if applicable.
+    pub duration: Option<Duration>,
 }
 
 impl Instance {
-    pub fn new(id: u16, game_data: &mut GameData) -> Self {
+    pub fn new(
+        id: u16,
+        game_data: &mut GameData,
+        lua: &KawariLua,
+        explorer_mode: bool,
+        allow_special_fates: bool,
+    ) -> Self {
         let mut instance = Instance {
             zone: Zone::load(game_data, id),
             weather_id: game_data.get_weather(id as u32).unwrap_or_default() as u16,
@@ -159,14 +187,57 @@ impl Instance {
         }
 
         // Load initial event objects into instance
-        for (object, layer_name) in instance.zone.get_event_objects(game_data, false) {
+        for (object, layer_name) in instance.zone.get_event_objects(game_data, explorer_mode) {
             instance.insert_object(object.entity_id, object, layer_name);
         }
 
         // Load initial NPCs into instance
-        let config = get_config();
-        for npc in instance.zone.get_npcs(game_data) {
-            instance.insert_npc(ObjectId(fastrand::u32(..)), npc, &config);
+        if !explorer_mode {
+            let config = get_config();
+            for npc in instance.zone.get_npcs(game_data) {
+                instance.insert_npc(ObjectId(fastrand::u32(..)), npc, &config, game_data);
+            }
+        }
+
+        // Determine the starting set of FATEs
+        let available_fates: Vec<u32> = instance
+            .zone
+            .map_ranges
+            .iter()
+            .filter_map(|x| x.fate)
+            .collect();
+
+        // Filter all special event FATEs and chained ones for now.
+        instance.candiate_fates = available_fates
+            .iter()
+            .copied()
+            .filter(|fate| {
+                let (chain, special) = game_data.get_fate_chain_special(*fate).unwrap_or_default();
+                if !allow_special_fates && special {
+                    return false;
+                }
+                chain == 0
+            })
+            .collect();
+
+        if !instance.candiate_fates.is_empty() {
+            instance.directors.push(DirectorData {
+                id: HandlerId::new(HandlerType::Fate, 0xFFFF),
+                ..Default::default()
+            });
+        }
+        for fate_id in fastrand::choose_multiple(instance.candiate_fates.clone(), MAXIMUM_FATES) {
+            let should_start;
+            if let Some(fate) = FateInstance::new(fate_id, lua.clone(), game_data) {
+                should_start = fate.fate_state == FateState::Running;
+                instance.fates.push(fate);
+            } else {
+                should_start = false;
+            }
+            // TODO: meh i kind of hate that we do this. ideally we could read the faterule from the outside and determine how to start it. i dunno
+            if should_start {
+                internally_start_fate(&mut instance, fate_id);
+            }
         }
 
         instance
@@ -180,7 +251,13 @@ impl Instance {
         self.actors.get_mut(&id)
     }
 
-    pub fn insert_npc(&mut self, id: ObjectId, spawn: SpawnNpc, config: &Config) {
+    pub fn insert_npc(
+        &mut self,
+        id: ObjectId,
+        spawn: SpawnNpc,
+        config: &Config,
+        game_data: &mut GameData,
+    ) {
         // Load drop-ins
         let mut timeline = serde_json::from_str(
             &std::fs::read_to_string(config.filesystem.locate_timeline_file("Default.json"))
@@ -201,10 +278,11 @@ impl Instance {
         search_dirs.push("resources/timelines/".to_string());
 
         'outer: for search_dir in search_dirs {
-            for entry in std::fs::read_dir(search_dir)
-                .expect("Didn't find timelines directory?")
-                .flatten()
-            {
+            let Ok(search_dir) = std::fs::read_dir(search_dir) else {
+                continue;
+            };
+
+            for entry in search_dir.flatten() {
                 if !entry
                     .file_name()
                     .to_str()
@@ -221,6 +299,29 @@ impl Instance {
             }
         }
 
+        // TODO: does classjob/tribe even apply to NPCs?
+        let modifiers = game_data
+            .get_class_job_modifiers(spawn.common.class_job as u32)
+            .expect("Failed to read param grow");
+
+        let tribe_row = game_data
+            .get_tribe(spawn.common.look.tribe as u8)
+            .expect("Failed to read tribe");
+
+        let level = spawn.common.level;
+
+        let param_grow = game_data
+            .get_param_grow(level as u32)
+            .expect("Failed to read param grow");
+
+        let primary_stat = game_data
+            .get_job_primary_stat(spawn.common.class_job as u16)
+            .unwrap_or(1);
+
+        let mut parameters = BaseParameters::default();
+        parameters.perform_calculations(primary_stat, &tribe_row, &param_grow, &modifiers);
+        parameters.calculate_potencies(&param_grow, Some(&modifiers));
+
         self.actors.insert(
             id,
             NetworkedActor::Npc {
@@ -235,6 +336,10 @@ impl Instance {
                 newly_hated_actor: None,
                 currently_invulnerable: false,
                 status_effects: StatusEffects::default(),
+                last_wander_timestamp: Instant::now()
+                    + Duration::from_secs(fastrand::u64(0..MOB_WANDER_TIME.as_secs())),
+                parameters,
+                casting: false,
             },
         );
     }
@@ -252,7 +357,10 @@ impl Instance {
                 matches!(y, NetworkedActor::Player { .. })
                     || matches!(y, NetworkedActor::Npc { .. })
             })
-            .filter(|(_, y)| y.get_common_spawn().health_points > 0)
+            .filter(|(_, y)| {
+                y.get_common_spawn().health_points > 0
+                    && y.get_common_spawn().mode != CharacterMode::Dead
+            })
             .map(|(x, y)| {
                 (
                     *x,
@@ -283,6 +391,8 @@ impl Instance {
                 remove_cooldowns: false,
                 last_combo_action: 0,
                 combo_sequence: 0,
+                autoattack_target: None,
+                autoattack_timing: 0,
             },
         );
     }
@@ -327,8 +437,14 @@ impl Instance {
         self.queued_task.retain(|x| x != task);
 
         // Then actually do the work:
-        if let QueuedTaskData::CastAction { .. } = task.data {
-            cancel_action(network.clone(), task.from_id)
+        if let QueuedTaskData::CastAction { request, .. } = &task.data {
+            cancel_action(
+                network.clone(),
+                self,
+                task.from_id,
+                task.from_actor_id,
+                request.action_id,
+            )
         }
     }
 
@@ -351,6 +467,19 @@ impl Instance {
                 && object.layout_id == layout_id
             {
                 return Some(*id);
+            }
+        }
+
+        None
+    }
+
+    /// Returns the actor ID (if any) of the spawned BNpc by it's instance ID in the layout.
+    pub fn find_npc(&self, layout_id: u32) -> Option<(ObjectId, Position)> {
+        for (id, actor) in &self.actors {
+            if let NetworkedActor::Npc { spawn, .. } = actor
+                && spawn.common.layout_id == layout_id
+            {
+                return Some((*id, spawn.common.position));
             }
         }
 
@@ -431,5 +560,44 @@ impl Instance {
         }
 
         None
+    }
+
+    /// Returns the FATE instance for this ID.
+    pub fn find_fate_by_id_mut(&mut self, id: u32) -> Option<&mut FateInstance> {
+        self.fates.iter_mut().find(|x| x.fate_id == id)
+    }
+
+    /// Returns the main (content) handler ID.
+    /// For example, an instance with PublicContent and a FATE director would always return the PublicContent.
+    pub fn content_handler_id(&self) -> Option<HandlerId> {
+        self.directors
+            .iter()
+            .filter(|x| x.id.handler_type().is_content_director())
+            .map(|x| x.id)
+            .collect::<Vec<_>>()
+            .first()
+            .copied()
+    }
+}
+
+/// Removes the actor from this instance, and terminates the directors from the client.
+pub fn remove_actor_from_instance(
+    data: &mut WorldServer,
+    network: &mut NetworkState,
+    actor_id: ObjectId,
+) {
+    if let Some(current_instance) = data.find_actor_instance_mut(actor_id) {
+        network.remove_actor(current_instance, actor_id);
+
+        // Terminate any directors
+        for director in &current_instance.directors {
+            network.send_to_by_actor_id(
+                actor_id,
+                FromServer::ActorControlSelf(ActorControlCategory::TerminateDirector {
+                    handler_id: director.id,
+                }),
+                DestinationNetwork::ZoneClients,
+            );
+        }
     }
 }

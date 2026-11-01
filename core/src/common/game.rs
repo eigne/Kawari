@@ -4,13 +4,10 @@ use std::{collections::HashMap, io::Cursor, time::Duration};
 
 use binrw::{BinReaderExt, BinWrite, binrw};
 use bitflags::bitflags;
-use physis::TerritoryIntendedUse;
-use serde::{Deserialize, Serialize};
+use serde_derive::{Deserialize, Serialize};
 use strum_macros::{Display, EnumIter, FromRepr};
 
-use crate::{
-    constants::BASE_INVENTORY_ACTION, festivals::festival_name, ipc::zone::DutyFinderSetting,
-};
+use crate::{festivals::festival_name, ipc::zone::DutyFinderSetting, opcodes::ClientZoneIpcType};
 
 /// Maxmimum length of a character's name.
 pub const CHAR_NAME_MAX_LENGTH: usize = 32;
@@ -65,8 +62,8 @@ pub const DEAD_DESPAWN_TIME: Duration = Duration::from_secs(2);
 /// Maximum number of seconds until rested EXP is full. This is 7 days.
 pub const MAXIMUM_RESTED_EXP: i32 = 604800;
 
-/// Number of seconds between an enemy's auto attacks. No idea how close this is to retail.
-pub const ENEMY_AUTO_ATTACK_RATE: i64 = 3;
+/// Number of seconds betwee auto attacks. No idea how close this is to retail.
+pub const AUTO_ATTACK_RATE: i64 = 3;
 
 /// Used to check whether the striking dummy NPC should be invincible.
 pub const STRIKING_DUMMY_NAME_ID: u32 = 541;
@@ -83,6 +80,29 @@ pub const COMBO_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// In seconds. This controls the animation lock time for *all actions* for now.
 pub const ANIMATION_LOCK_TIME: f32 = 0.6;
+
+/// How long all FATEs should last.
+pub const FATE_TIME_LIMIT: Duration = Duration::from_mins(15);
+
+/// How many FATEs can be active at once in a instance of a zone.
+pub const MAXIMUM_FATES: usize = 5;
+
+/// How long until a normal mob respawns.
+pub const MOB_RESPAWN_TIME: Duration = Duration::from_mins(2);
+
+/// How long until a normal mob decides to move to a new location.
+pub const MOB_WANDER_TIME: Duration = Duration::from_secs(10);
+
+/// How many Shared FATEs are shown on each page.
+pub const TAB_SHARED_FATE_COUNT: usize = 6;
+
+/// Whether normal mobs should respawn for this zone.
+pub fn should_respawn_mobs(intended_use: TerritoryIntendedUse) -> bool {
+    matches!(
+        intended_use,
+        TerritoryIntendedUse::Overworld | TerritoryIntendedUse::OccultCrescent
+    )
+}
 
 #[binrw]
 #[brw(repr(u32))]
@@ -233,10 +253,9 @@ pub enum JumpState {
 #[derive(Debug, Clone, Copy, PartialEq, Display, EnumIter, FromRepr)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum HandlerType {
-    // Isn't a valid ID, it's just for our purposes.
+    /// This isn't a valid ID, it's just for our purposes.
     Invalid = 0,
 
-    // Regular events
     /// See Quest Excel sheet.
     Quest = 1,
     /// See Warp Excel sheet.
@@ -245,7 +264,7 @@ pub enum HandlerType {
     GatheringPoint = 3,
     /// See GilShop Excel sheet.
     Shop = 4,
-    /// See Aetheryte Excel sheet (event_id & 0xFFFF.)
+    /// See Aetheryte Excel sheet.
     Aetheryte = 5,
     /// See GuildleveAssignment Excel sheet.
     GuildLeveAssignment = 6,
@@ -263,9 +282,9 @@ pub enum HandlerType {
     CraftLeveClient = 14,
     /// Used for interactable dungeon objects.
     GimmickAccessor = 15,
-    /// See GimmickBill Excel sheet (event_id & 0xFFFF.)
+    /// See GimmickBill Excel sheet.
     GimmickBill = 16,
-    /// See GimmickRect Excel sheet (event_id & 0xFFFF.)
+    /// See GimmickRect Excel sheet.
     GimmickRect = 17,
     /// See ChocoboTaxiStand Excel sheet.
     ChocoboTaxiStand = 18,
@@ -303,15 +322,15 @@ pub enum HandlerType {
     DailyQuestSupply = 34,
     /// See TripleTriad Excel sheet.
     TripleTriad = 35,
-    /// See GoldSaucerArcadeMachine Excel sheet.
+    /// Used by the various arcade machines in the Gold Saucer. See GoldSaucerArcadeMachine Excel sheet.
     GoldSaucerArcadeMachine = 36,
-    /// Unknown purpose.
+    /// Used by the Mini Cactpot in the Gold Saucer.
     LotteryDaily = 37,
-    /// Unknown purpose.
+    /// Used by the Jumbo Cactpot in the Gold Saucer.
     LotteryWeekly = 38,
     /// Unknown purpose.
     RaceChocoboRegistrar = 39,
-    /// Used for certain Gold Saucer NPCs.
+    /// Used by certain Gold Saucer NPCs.
     GoldSaucerTalk = 41,
     /// See FccShop Excel sheet.
     FreeCompanyCreditShop = 42,
@@ -319,11 +338,11 @@ pub enum HandlerType {
     AetherCurrent = 43,
     /// See ContentEntry Excel sheet.
     ContentEntry = 44,
-    /// Unknown purpose.
+    /// Used by the Verminion Tables and the Tournament Recordkeeper.
     Verminion = 45,
     /// Unknown purpose.
     SkyIslandEntrance = 46,
-    /// See DpsChallengeOfficer Excel sheet.
+    /// Used by the Stone, Sky, Sea entrance NPC. See DpsChallengeOfficer Excel sheet.
     DpsChallengeOfficer = 47,
     /// Unknown purpose.
     BeginnerTrainingOfficer = 48,
@@ -335,47 +354,54 @@ pub enum HandlerType {
     LotteryExchangeShop = 52,
     /// See DisposalShop Excel sheet.
     DisposalShop = 53,
-    /// See PreHandler Excel sheet.
+    /// Checks for quest completion before handing off to the actual event. See PreHandler Excel sheet.
     PreHandler = 54,
     /// See Description Excel sheet.
     Description = 55,
-    /// Unknown purpose.
+    /// Used for Ishgardian Restoration.
     HwdDev = 56,
-    /// Unknown purpose.
+    /// Used for Desynthesis, Materia Extraction, and Aetherial Reduction.
     Materialize = 57,
     /// See InclusionShop Excel sheet.
     InclusionShop = 58,
     /// See CollectablesShop Excel sheet.
     CollectablesShop = 59,
-    /// Unknown purpose.
+    /// Used for Island Sanctuary's Pasture.
     MJIPasture = 60,
-    /// See EventPathMove Excel sheet.
+    /// Used for Argos in Mare Lamentorum. See EventPathMove Excel sheet.
     EventPathMove = 61,
-    /// Unknown purpose.
+    /// Used for Island Sanctuary Cropland. See ReactionEventObject sheet.
     ReactionEvent = 62,
     /// Used for the Solution Nine teleporter pads, for example. See EventGimmickPathMove Excel sheet.
     EventGimmickPathMove = 64,
     /// See EventMountGimmickPathMove Excel sheet.
     EventMountGimmickPathMove = 65,
 
-    // Directors
+    /// Used for battle Leves.
     BattleLeve = 0x8001,
+    /// Used for gathering Leves.
     GatheringLeve = 0x8002,
     /// Used for dungeons, including Deep Dungeons.
     InstanceContent = 0x8003,
+    /// Used for misc. large-scale content like Occult Crescent or Blunderville.
     PublicContent = 0x8004,
+    /// Used for solo battles in quests.
     QuestBattle = 0x8006,
+    /// Used for Grand Company Leves.
     CompanyLeve = 0x8007,
+    /// Used for treasure hunts.
     TreasureHunt = 0x8009,
     /// Used for the explorable Gold Saucer zones.
     GoldSaucer = 0x800A,
+    /// Used for Subaquatic Voyages.
     CompanyCraft = 0x800B,
+    /// Supposedly used in the early phases of the Diadem.
     SkyIsland = 0x800C,
     /// Used for Stone, Sky, Sea challenges.
     DpsChallenge = 0x800D,
     /// Used for content like Cosmisc Exploration.
     MassivePcContent = 0x800E,
-    /// Used in open world zones that have FATEs.
+    /// Used in zones that have FATEs.
     Fate = 0x801A,
 }
 
@@ -383,7 +409,6 @@ impl HandlerType {
     /// Determine the correct handler for use in this zone.
     pub fn from_intended_use(intended_use: TerritoryIntendedUse) -> Option<Self> {
         match intended_use {
-            TerritoryIntendedUse::OpenWorld => Some(Self::Fate),
             TerritoryIntendedUse::Dungeon => Some(Self::InstanceContent),
             TerritoryIntendedUse::VariantDungeon => Some(Self::InstanceContent),
             TerritoryIntendedUse::DeepDungeon => Some(Self::InstanceContent),
@@ -392,27 +417,84 @@ impl HandlerType {
             TerritoryIntendedUse::Raid2 => Some(Self::InstanceContent),
             TerritoryIntendedUse::ChaoticRaid => Some(Self::InstanceContent),
             TerritoryIntendedUse::CrystallineConflict => Some(Self::InstanceContent),
+            TerritoryIntendedUse::CrystallineConflictCustomMatch => Some(Self::InstanceContent),
             TerritoryIntendedUse::Frontline => Some(Self::InstanceContent),
             TerritoryIntendedUse::TripleTriadInvitationalParlor => Some(Self::InstanceContent),
             TerritoryIntendedUse::CriterionDungeon => Some(Self::InstanceContent),
-            TerritoryIntendedUse::SavageCriterionDungeon => Some(Self::InstanceContent),
+            TerritoryIntendedUse::CriterionDungeonSavage => Some(Self::InstanceContent),
             TerritoryIntendedUse::RivalWings => Some(Self::InstanceContent),
-            TerritoryIntendedUse::TreasureDungeon => Some(Self::InstanceContent),
+            TerritoryIntendedUse::TreasureMapInstance => Some(Self::InstanceContent),
             TerritoryIntendedUse::CosmicExploration => Some(Self::MassivePcContent),
-            TerritoryIntendedUse::OpenWorldInstanceBattle => Some(Self::QuestBattle),
+            TerritoryIntendedUse::PreEwOverworldQuestBattle => None,
             TerritoryIntendedUse::LeapOfFaith => Some(Self::PublicContent),
             TerritoryIntendedUse::GoldSaucer => Some(Self::GoldSaucer),
             TerritoryIntendedUse::OceanFishing => Some(Self::InstanceContent),
-            TerritoryIntendedUse::OccultCrescent => Some(Self::PublicContent), // TODO: Also initializes a FATE director but we can't do that currently!
+            TerritoryIntendedUse::OccultCrescent => Some(Self::PublicContent),
             TerritoryIntendedUse::Blunderville => Some(Self::PublicContent),
             TerritoryIntendedUse::TripleTriadBattleHall => Some(Self::PublicContent),
-            _ => None,
+            TerritoryIntendedUse::LordOfVerminion => Some(Self::GoldSaucer),
+            TerritoryIntendedUse::SeasonalInstancedArea => Some(Self::InstanceContent),
+            TerritoryIntendedUse::Town => None,
+            TerritoryIntendedUse::Overworld => None,
+            TerritoryIntendedUse::Inn => None,
+            TerritoryIntendedUse::MordionGaol => None,
+            TerritoryIntendedUse::OpeningArea => None,
+            TerritoryIntendedUse::BeforeTrialDung => None,
+            TerritoryIntendedUse::Unknown11 => None,
+            TerritoryIntendedUse::WaitingRoom => None,
+            TerritoryIntendedUse::HousingOutdoor => None,
+            TerritoryIntendedUse::HousingIndoor => None,
+            TerritoryIntendedUse::SoloOverworldInstances => None,
+            TerritoryIntendedUse::Raid1 => Some(Self::InstanceContent),
+            TerritoryIntendedUse::ChocoboSquareOld => None,
+            TerritoryIntendedUse::ChocoboRacing => Some(Self::InstanceContent),
+            TerritoryIntendedUse::Firmament => None,
+            TerritoryIntendedUse::SanctumOfTheTwelve => Some(Self::PublicContent),
+            TerritoryIntendedUse::OriginalStepsOfFaith => None,
+            TerritoryIntendedUse::ExploratoryMissions => Some(Self::PublicContent),
+            TerritoryIntendedUse::HallOfTheNovice => Some(Self::InstanceContent),
+            TerritoryIntendedUse::SoloDuty => None,
+            TerritoryIntendedUse::GrandCompanyBarracks => None,
+            TerritoryIntendedUse::Seasonal => None,
+            TerritoryIntendedUse::HuntingGrounds => Some(Self::PublicContent),
+            TerritoryIntendedUse::Seasonal2 => None,
+            TerritoryIntendedUse::Eureka => Some(Self::PublicContent),
+            TerritoryIntendedUse::Unknown42 => None,
+            TerritoryIntendedUse::TheCalamityRetold => Some(Self::PublicContent),
+            TerritoryIntendedUse::MaskedCarnival => Some(Self::InstanceContent),
+            TerritoryIntendedUse::Diadem => Some(Self::PublicContent),
+            TerritoryIntendedUse::Bozja => Some(Self::PublicContent),
+            TerritoryIntendedUse::IslandSanctuary => Some(Self::PublicContent),
+            TerritoryIntendedUse::TripleTriadOpenTournament => Some(Self::InstanceContent),
+            TerritoryIntendedUse::DelubrumReginae => Some(Self::InstanceContent),
+            TerritoryIntendedUse::DelubrumReginaeSavage => Some(Self::InstanceContent),
+            TerritoryIntendedUse::EndwalkerMsqSoloOverworld => None,
+            TerritoryIntendedUse::Unknown55 => None,
+            TerritoryIntendedUse::Elysion => None,
+            TerritoryIntendedUse::CrucibleOfTheUnbroken => Some(Self::InstanceContent),
+            TerritoryIntendedUse::Seasonal3 => Some(Self::InstanceContent),
+            TerritoryIntendedUse::AirForceOne => Some(Self::InstanceContent), // This plays completely client-side, we don't actually do anything here
+            TerritoryIntendedUse::KeyboundBrawler => Some(Self::InstanceContent),
+            TerritoryIntendedUse::Unknown66 => None,
         }
     }
 
-    /// Whether this handler type needs a ContentFinderCondition to function.
-    pub fn requires_content_id(&self) -> bool {
-        !matches!(self, HandlerType::Fate | HandlerType::GoldSaucer)
+    /// If this HandlerType is a descendant of the ContentDirector class in the client.
+    /// Only useful for determining the correct DirectorEvent and DirectorTrigger really.
+    pub fn is_content_director(&self) -> bool {
+        matches!(
+            self,
+            HandlerType::InstanceContent | HandlerType::PublicContent
+        )
+    }
+
+    /// If this HandlerType is a descendant of the LeveDirector class in the client.
+    /// Only useful for determining the correct DirectorEvent and DirectorTrigger really.
+    pub fn is_leve_director(&self) -> bool {
+        matches!(
+            self,
+            HandlerType::BattleLeve | HandlerType::GatheringLeve | HandlerType::CompanyLeve
+        )
     }
 }
 
@@ -425,7 +507,6 @@ impl mlua::IntoLua for HandlerType {
 
 /// Helper type that can discerns the type and ID of a handler. This could be an event or a director.
 #[binrw]
-#[brw(little)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct HandlerId(pub u32);
 
@@ -518,7 +599,6 @@ impl diesel::deserialize::FromSql<diesel::sql_types::Integer, diesel::sqlite::Sq
 
 // NOTE: When adding a new container type, make sure to add it to InventoryIterator!
 #[binrw]
-#[brw(little)]
 #[brw(repr = u16)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Display, Deserialize, Serialize)]
 pub enum ContainerType {
@@ -645,45 +725,91 @@ impl ContainerType {
 #[repr(u32)]
 pub enum ItemOperationKind {
     /// The operation opcode/type when the server wants the client to create a storage. Seen during login to create the HandIn storage.
-    CreateStorage = BASE_INVENTORY_ACTION,
+    CreateStorage = ClientZoneIpcType::get_opcode(&ClientZoneIpcType::ItemOperation) as u32 + 1,
+    /// Dummy placeholder.
+    Unk1,
+    /// Dummy placeholder.
+    Unk2,
+    /// Dummy placeholder.
+    Unk3,
     /// The operation opcode/type when an item is created in the inventory. Seen during currency shop transactions, and likely elsewhere.
-    Create = BASE_INVENTORY_ACTION + 4,
+    Create,
     /// The operation opcode/type when updating the inventory. Seen during all shop transactions when updating currency, and elsewhere.
-    Update = BASE_INVENTORY_ACTION + 5,
+    Update,
     /// The operation opcode/type when discarding an item from the inventory. Seen when discarding an item from the inventory, and during gilshop sell transactions.
-    Discard = BASE_INVENTORY_ACTION + 6,
+    Discard,
     #[default]
     /// The operation opcode/type when moving an item to an emtpy slot in the inventory.
-    Move = BASE_INVENTORY_ACTION + 7,
+    Move,
     /// The operation opcode/type when moving an item to a slot occupied by another in the inventory.
-    Exchange = BASE_INVENTORY_ACTION + 8,
+    Exchange,
     /// The operation opcode/type when splitting stacks of identical items.
-    SplitStack = BASE_INVENTORY_ACTION + 9,
+    SplitStack,
+    /// Seen during trading. TODO: probably wrong
+    UnkTrading1,
     /// The operation opcode/type when combining stacks of identical items.
-    CombineStack = BASE_INVENTORY_ACTION + 11,
+    CombineStack,
+    Unk5,
+    Unk6,
+    Unk7,
+    Unk8,
+    Unk9,
+    Unk10,
     /// The operation opcode/type when the server wants the client to equip the mannequin (character sheet/try on preview model?). Seen during login and probably elsewhere.
-    EquipMannequin = BASE_INVENTORY_ACTION + 18,
+    EquipMannequin,
+    /// Seen while discarding. TODO: probably wrong
+    UnkDiscard = 0x90,
+    /// Seen during trading. TODO: probably wrong
+    UnkTrading2 = 256,
+    /// Seen while equipping gearsets. TODO: probably wrong
+    UnkGearSetEquipped = 567,
 }
 
 /// Useful pre-defined log messages. Feel free to add any ones we need. Index into the LogMessage Excel sheet.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LogMessageType {
-    #[default]
-    Default = 0,
-    PlayerAlreadyFriend = 0x138, // That player is already a friend or has been sent a request. TODO: unclear if this one is sent by the server or the client keeps track of that itself
-    PlayerAlreadyInAnotherParty = 0x146, // That player is already in another party.
-    UnableToAcceptLSInvite = 0x1DD, // Unable to accept linkshell invite.
-    ItemBought = 0x697,
-    ItemSold = 0x698,
-    ItemBoughtBack = 0x699,
-    UnableToPerformPlayerOffline = 0x1617, // Unable to perform that action. That player is offline.
-    CWLSIsFull = 0x242B, // Unable to add new members. Cross-world linkshell roster is full.
-    UnableToInviteToCWLS = 0x242D, // Unable to invite to cross-world linkshell.
-    PlayerAlreadyInYourCWLS = 0x242E, // Player is already a cross-world linkshell member.
-    PlayerInTooManyCWLSes = 0x242F, // The person you have invited cannot join any more cross-world linkshells.
-    UnableToAcceptAttachmentInventoryFull = 0x17B, // Unable to accept attachment. Inventory is full.
-    FurnitureMovedToStoreroom = 0xD9F,             // The <item name> was moved to your storeroom.
-    FurnitureMovedToInventory = 0xDA0,             // The <item name> was moved to your inventory.
+    /// "That player is already a friend or has been sent a request."
+    PlayerAlreadyFriend = 312,
+    /// "That player is already in another party."
+    PlayerAlreadyInAnotherParty = 326,
+    /// "Unable to accept attachment. Inventory is full."
+    UnableToAcceptAttachmentInventoryFull = 379,
+    /// "Unable to accept linkshell invite."
+    UnableToAcceptLSInvite = 477,
+    /// "\[Something\] line \[something else\]."
+    FishingCastLine = 1110,
+    /// "Nothing bites. The bait you are using may not be suited to this location."
+    FishingNoBite = 1127,
+    /// "You purchase \[item\] for \[amount\] gil."
+    ItemBought = 1687,
+    /// "You sell \[item\] for \[amount\] gil."
+    ItemSold = 1688,
+    /// "You buy back \[item\] for \[amount\] gil."
+    ItemBoughtBack = 1689,
+    /// "\[Location\] will be sealed off in \[time\]!"
+    BossRoomSealing = 2012,
+    /// "\[Location\] is sealed off!"
+    BossRoomSealed = 2013,
+    /// "\[Location\] is no longer sealed!"
+    BossRoomUnsealed = 2014,
+    /// "Unable to add new members. Cross-world linkshell roster is full."
+    CWLSIsFull = 9259,
+    /// "Unable to invite to cross-world linkshell."
+    UnableToInviteToCWLS = 9261,
+    /// "Player is already a cross-world linkshell member."
+    PlayerAlreadyInYourCWLS = 9262,
+    /// "The person you have invited cannot join any more cross-world linkshells."
+    PlayerInTooManyCWLSes = 9263,
+    /// "The \[item name\] was moved to your storeroom."
+    FurnitureMovedToStoreroom = 3487,
+    /// "The \[item name\] was moved to your inventory."
+    FurnitureMovedToInventory = 3488,
+    /// "You cannot create any more Fellowshiops."
+    UnableToCreateMoreFellowships = 5603,
+    /// "You cannot join any more Fellowships."
+    UnableToJoinMoreFellowships = 5630,
+    /// "Unable to perform that action. That player is offline."
+    UnableToPerformPlayerOffline = 5655,
 }
 
 /// Names for rows in the Excel sheet of the same name.
@@ -712,11 +838,10 @@ pub enum InstanceContentType {
     VariantDungeon = 19,
     CriterionDungeon = 20,
     AdvancedVariantDungeon = 21,
-    Unk22 = 22,
-    Unk23 = 23,
+    CrucibleOfTheUnbroken = 22,
+    KeyboundBrawler = 23,
 }
 
-// TODO: see if this can be extrapolated from game data
 const AETHER_CURRENT_COMP_FLG_SET_TO_SCREENIMAGE: [(u32, u32); 31] = [
     // Heavensward
     (1, 328), // Coerthas Western Highlands
@@ -761,7 +886,6 @@ pub fn get_aether_current_comp_flg_set_to_screenimage() -> HashMap<u32, u32> {
     HashMap::from(AETHER_CURRENT_COMP_FLG_SET_TO_SCREENIMAGE)
 }
 
-// TODO: At some point we need to come up with a better name for this. It mostly controls animation state, actually.
 #[binrw]
 #[derive(Clone, Copy, Eq, PartialEq, Default)]
 pub struct EventState(u8);
@@ -782,11 +906,15 @@ impl std::fmt::Debug for EventState {
     }
 }
 
-// TODO: should we include the param here?
 #[binrw]
-#[brw(little)]
+#[repr(u8)]
 #[brw(repr = u8)]
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, FromRepr)]
+#[cfg_attr(
+    feature = "server",
+    derive(diesel::expression::AsExpression, diesel::deserialize::FromSqlRow)
+)]
+#[cfg_attr(feature = "server", diesel(sql_type = diesel::sql_types::Integer))]
 pub enum CharacterMode {
     /// Has no effect, never used.
     None = 0,
@@ -825,11 +953,34 @@ pub enum CharacterMode {
     Performance = 16,
 }
 
+#[cfg(feature = "server")]
+impl diesel::serialize::ToSql<diesel::sql_types::Integer, diesel::sqlite::Sqlite>
+    for CharacterMode
+{
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut diesel::serialize::Output<'b, '_, diesel::sqlite::Sqlite>,
+    ) -> diesel::serialize::Result {
+        out.set_value(*self as i32);
+        Ok(diesel::serialize::IsNull::No)
+    }
+}
+
+#[cfg(feature = "server")]
+impl diesel::deserialize::FromSql<diesel::sql_types::Integer, diesel::sqlite::Sqlite>
+    for CharacterMode
+{
+    fn from_sql(
+        mut integer: <diesel::sqlite::Sqlite as diesel::backend::Backend>::RawValue<'_>,
+    ) -> diesel::deserialize::Result<Self> {
+        Ok(CharacterMode::from_repr(integer.read_integer() as u8).unwrap_or_default())
+    }
+}
+
 #[binrw]
 #[derive(Clone, Copy, Eq, PartialEq, Default)]
 pub struct PlayerStateFlags1(u8);
 
-// TODO: upstream the flags that FFXIVClientStructs doesn't have
 bitflags! {
     impl PlayerStateFlags1: u8 {
         /// If this player isn't a novice. If not set, considered a New Adventurer.
@@ -1051,15 +1202,45 @@ impl std::fmt::Debug for DeepDungeonRoomFlag {
 
 /// See <https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/Game/Fate/FateContext.cs>.
 #[binrw]
-#[brw(little)]
 #[brw(repr = u32)]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum FateState {
+    #[default]
+    Unk0 = 0,
+    Unk1 = 1,
+    Unk2 = 2,
+    /// Used for FATEs that need you to talk to a motivation NPC to begin.
     Preparing = 3,
+    /// The FATE is running - has a circle and stuff.
     Running = 4,
     Ending = 5,
+    Unk6 = 6,
     Ended = 7,
     Failed = 8,
+    Unk9 = 9,
+    /// Seen while moving from Ended. Maybe for despawn?
+    Unk10 = 10,
+}
+
+/// Names for the Rule column in the FATE sheet.
+#[binrw]
+#[repr(u8)]
+#[brw(repr = u8)]
+#[derive(Debug, Clone, Copy, PartialEq, FromRepr, Default)]
+pub enum FateRule {
+    /// Used for FATEs that are no longer in the game, and ones never implemented.
+    #[default]
+    Invalid = 0,
+    Unk1 = 1,
+    /// Gathering items to bring back to the motivation NPC.
+    Gathering = 2,
+    Unk3 = 3,
+    Unk4 = 4,
+    Unk5 = 5,
+    Unk6 = 6,
+    Unk7 = 7,
+    Unk8 = 8,
+    Unk9 = 9,
 }
 
 /// This is basically a bitflag of what timelines should be playing.
@@ -1125,7 +1306,8 @@ pub struct CrestData {
 pub fn is_private_area(intended_use: TerritoryIntendedUse) -> bool {
     // TODO: Maybe this exists on the Excel sheet?
     intended_use == TerritoryIntendedUse::Inn
-        || intended_use == TerritoryIntendedUse::FreeCompanyGarrison
+        || intended_use == TerritoryIntendedUse::GrandCompanyBarracks
+        || intended_use == TerritoryIntendedUse::SoloOverworldInstances
 }
 
 /// Returns the internal housing row used for certain sheets.
@@ -1167,8 +1349,8 @@ impl std::fmt::Debug for HousingFlag {
     }
 }
 
+/// Helper newtype that can display the name of known festivals.
 #[binrw]
-#[brw(little)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct FestivalId(pub u16);
 
@@ -1193,7 +1375,6 @@ pub struct WeaponModelId {
 
 impl From<u64> for WeaponModelId {
     fn from(value: u64) -> Self {
-        // TODO: unsure if there's a beter way to do this, maybe if im not lazy to write bitwise ops
         let mut cursor = Cursor::new(value.to_le_bytes());
         cursor.read_le().unwrap_or_default()
     }
@@ -1218,7 +1399,6 @@ pub struct LegacyEquipmentModelId {
 
 impl From<u32> for LegacyEquipmentModelId {
     fn from(value: u32) -> Self {
-        // TODO: unsure if there's a beter way to do this, maybe if im not lazy to write bitwise ops
         let mut cursor = Cursor::new(value.to_le_bytes());
         cursor.read_le().unwrap_or_default()
     }
@@ -1250,6 +1430,338 @@ impl std::fmt::Debug for QuestSpecialFlags {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         bitflags::parser::to_writer(self, f)
     }
+}
+
+/// See <https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/Game/UI/WarpInfo.cs>.
+#[binrw]
+#[brw(repr = u8)]
+#[derive(Debug, Clone, Copy, Default)]
+pub enum WarpType {
+    /// Instantaneously change to this position.
+    #[default]
+    None = 0,
+    /// `WARP_TYPE_NORMAL` from Lua.
+    Normal = 1,
+    /// Unknown, needs a better name but fades out the screen.
+    Unk2 = 2,
+    Translate = 3,
+    Teleport = 4,
+    Unk5 = 5,
+    Unk6 = 6,
+    Return = 7,
+    Resurrection = 8,
+    /// `WARP_TYPE_RENTAL_CHOCOBO` from Lua.
+    RentalChocobo = 9,
+    /// `WARP_TYPE_CHOCOBO_TAXI` from Lua.
+    ChocoboTaxi = 10,
+    Unk11 = 11,
+    EnterInstanceContent = 12,
+    LeaveInstanceContent = 13,
+    Unk14 = 14,
+    /// `WARP_TYPE_TOWN_TRANSLATE` from Lua.
+    TownTranslate = 15,
+    Unk16 = 16,
+    Login = 17,
+    Unk18 = 18,
+    Unk19 = 19,
+    HousingTeleport = 20,
+    Unk21 = 21,
+    Unk22 = 22,
+    Unk23 = 23,
+    Unk24 = 24,
+    /// Seen during Mt Gulg, assuming it applies to all instanced content.
+    Event = 25,
+    Dive = 26,
+    WorldTransfer = 27,
+    Unk28 = 28,
+    Unk29 = 29,
+    Unk30 = 30,
+}
+
+/// Corresponds to the PublicContentType Excel sheet.
+#[binrw]
+#[repr(u8)]
+#[brw(repr = u8)]
+#[derive(Debug, Clone, Copy, Default, FromRepr, PartialEq)]
+pub enum PublicContentType {
+    #[default]
+    Invalid = 0,
+    WeddingCeremony = 1,
+    TripleTriadBattleHall = 2,
+    Eureka = 3,
+    TheCalamityRetold = 4,
+    LeapOfFaith = 5,
+    Diadem = 6,
+    Bozja = 7,
+    DelebrumReginae = 8,
+    IslandSanctuary = 9,
+    Blunderville = 10,
+    OccultCrescent = 11,
+}
+
+// Corresponds to the ActionCategory Excel sheet.
+#[binrw]
+#[repr(u8)]
+#[brw(repr = u8)]
+#[derive(Debug, Clone, Copy, Default, FromRepr, PartialEq)]
+pub enum ActionCategory {
+    #[default]
+    Invalid = 0,
+    AutoAttack = 1,
+    /// Cast time is influenced by the Spell Speed stat.
+    Spell = 2,
+    /// Cast time is influenced by the Skill Speed stat.
+    Weaponskill = 3,
+    Ability = 4,
+    Item = 5,
+    DoLAbility = 6,
+    DoHAbility = 7,
+    Event = 8,
+    LimitBreak9 = 9,
+    System10 = 10,
+    System11 = 11,
+    Special = 13,
+    ItemManipulation = 14,
+    LimitBreak15 = 15,
+    Unknown16 = 16,
+    Artillery = 17,
+    Unknown18 = 18,
+}
+
+/// Returns true if the intended use is for housing, false otherwise.
+pub fn in_housing_area(intended_use: TerritoryIntendedUse) -> bool {
+    matches!(
+        intended_use,
+        TerritoryIntendedUse::HousingIndoor | TerritoryIntendedUse::HousingOutdoor
+    )
+}
+
+/// List of known GimmickAccessor types.
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, FromRepr)]
+pub enum GimmickAccessorType {
+    /// Used for things like Tiny Keys in ARR dungeons. Doesn't use any parameters.
+    Interactable = 1,
+    /// Opens a prompt with text from Param0, and optionally something in Param1 like a pop range.
+    InfalliblePrompt = 2,
+    /// Opens a prompt with text from Param0, and Param1 contains the log message if the check fails. One example is not having the correct key for a door.
+    FalliblePrompt = 3,
+    /// Used by things like the Inconspicuous Switch and Unnatural Ripples in Sastasha. Param0 is a LogMessage meant to be used for failure/inactivity/etc.
+    Message = 4,
+    /// Used for generic shortcuts (like the one for teleporting to bossrooms) as well as ones that go to specific locations. Poprange is in Param1, an optional LogMessage is in Param2 and an unknown parameter in Param3.
+    Shortcut = 5,
+    /// Used for exits. An optional PopRange is in Param1, and an unknown parameter in Param2.
+    DutyExit = 6,
+    /// Used by the Warden in The Sunken Temple of Qarn.
+    Unknown7 = 7,
+    /// Used by the stone pedestal in The Sunken Temple of Qarn.
+    Unknown8 = 8,
+    /// Used by the rusty winch in The Sil'dihn Subterrane and more.
+    Unknown9 = 9,
+    /// Guessing this is used when exiting deep dungeons, based on the text.
+    DeepDungeonExit = 10,
+    /// Makes the player follow a client path, such as the Balloons in the Strayborough Deadwalk. Param0 is unknown, Param1 is the ClientPath and Param2 is a PopRange.
+    GimmickPath = 11,
+    /// Some kind of teleportation. Used by the teleportation sigil in Occult Crescent: South Horn. Param0 is unknown, Param1 is a PopRange.
+    Unknown12 = 12,
+    /// Used for hangar terminals in Rival Wings.
+    HangarTerminal = 13,
+    /// Used by the exit in Leap of Faith.
+    LeapOfFaithExit = 14,
+    /// Used in PublicContent like Occult Crescent, uses all parameters.
+    Unknown16 = 16,
+    /// Only displays text, used for flavor. Param0 is an index into GimmickTalk.
+    Talk = 17,
+    /// Doesn't appear to be used.
+    Unknown18 = 18,
+    /// Only used by the fallen ring in Zadnor. Param0 is unknown.
+    Unknown19 = 19,
+    Unknown20 = 20,
+    Unknown21 = 21,
+    Unknown22 = 22,
+    Unknown23 = 23,
+    Unknown24 = 24,
+    Unknown25 = 25,
+}
+
+/// List of known trigger kinds used by GimmickRect.
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, FromRepr, PartialEq)]
+pub enum GimmickRectTriggerType {
+    Unknown0 = 0,
+    /// Seen in Sastasha for triggering the final boss' cutscene.
+    Cutscene = 1,
+    Unknown3 = 3,
+    Unknown4 = 4,
+    Unknown5 = 5,
+    /// Seen in Sycrus Tower, used to fake going into a separate zone.
+    FakeExit = 6,
+    Unknown7 = 7,
+    /// Seen in the Gold Saucer for its jumping pads.
+    Jump = 8,
+    Unknown9 = 9,
+    Unknown10 = 10,
+    Unknown11 = 11,
+    Unknown12 = 12,
+    /// 90% sure this is used for Duty Support/Trust NPCs talking. You can see this in the entrance of Sastasha,
+    /// where it has an EventRange placed which suspiciously lines up with when the NPCs yell.
+    FaithTalk = 13,
+    Unknown14 = 14,
+    Unknown15 = 15,
+    Unknown16 = 16,
+    Unknown17 = 17,
+    /// Obviously not only used for this, but seen in The Merchants Tale.
+    VVDRouteTrigger = 18,
+    Unknown19 = 19,
+    Unknown20 = 20,
+    Unknown21 = 21,
+    Unknown22 = 22,
+    Unknown23 = 23,
+    Unknown24 = 24,
+    Unknown25 = 25,
+}
+
+/// Names for the rows of the Excel sheet of the same name.
+///
+/// Based off of <https://github.com/aers/FFXIVClientStructs/blob/main/FFXIVClientStructs/FFXIV/Client/Enums/TerritoryIntendedUse.cs>.
+#[repr(u8)]
+#[derive(FromRepr, Display, Clone, Copy, PartialEq, Debug, Default, Deserialize, Serialize)]
+pub enum TerritoryIntendedUse {
+    /// Towns such as Limsa Lominsa.
+    #[default]
+    Town = 0,
+    /// Open world zones such as everything out of towns.
+    Overworld = 1,
+    /// Inn rooms.
+    Inn = 2,
+    /// Dungeon zones and other misc duties like Air Force One.
+    Dungeon = 3,
+    /// Variant dungeons like The Sil'dihn Subterrane.
+    VariantDungeon = 4,
+    /// Jail zones like Mordion Gaol.
+    MordionGaol = 5,
+    /// Copies of Towns that are only during the opening.
+    OpeningArea = 6,
+    /// Rarely seen "lobby zones", such as the Phantom Village for Occult Crescent.
+    BeforeTrialDung = 7,
+    /// Zones used in Alliance Raids.
+    AllianceRaid = 8,
+    /// Used for (pre-Endwalker?) quest battles.
+    PreEwOverworldQuestBattle = 9,
+    /// Trial battles.
+    Trial = 10,
+    /// Currently unused.
+    Unknown11 = 11,
+    /// Used in some raids, unclear what for though?
+    WaitingRoom = 12,
+    /// Outdoor housing zones like the Mist.
+    HousingOutdoor = 13,
+    /// Indoor housing zones.
+    HousingIndoor = 14,
+    /// Used for zones such as the Command Room (ARR) or the Unmoored Isle (DT) where you shouldn't see other players.
+    SoloOverworldInstances = 15,
+    /// Raids with trash mobs in the beginning. Can revive self, but won't be able to re-enter ongoing battles.
+    Raid1 = 16,
+    /// Raids with boss arena. Unable to self-revive. Seen in at least AAC Heavyweight M1 (Savage).
+    Raid2 = 17,
+    /// Zones used for Frontline PvP.
+    Frontline = 18,
+    /// Now unused.
+    ChocoboSquareOld = 19,
+    /// Chocobo Racing zones.
+    ChocoboRacing = 20,
+    /// Used for the only Ishgard Restoration zone, the Firamament.
+    Firmament = 21,
+    /// The Sanctum of the Twelve zone used for weddings.
+    SanctumOfTheTwelve = 22,
+    /// Gold Saucer zones.
+    GoldSaucer = 23,
+    /// Now unused.
+    OriginalStepsOfFaith = 24,
+    /// Used by the Lord of Verminion minigame.
+    LordOfVerminion = 25,
+    /// Used by the Diadem.
+    ExploratoryMissions = 26,
+    /// Used for the Hall of Novice tutorials.
+    HallOfTheNovice = 27,
+    /// Zones used for Crystalline Conflict PvP.
+    CrystallineConflict = 28,
+    /// Used for events like Solo Duties.
+    SoloDuty = 29,
+    /// The barracks zones of grand companies.
+    GrandCompanyBarracks = 30,
+    /// Zones used for Deep Dugeons, e.g. Palace of the Dead.
+    DeepDungeon = 31,
+    /// Used for zones only accessible seasonally, like Starlight Halls.
+    Seasonal = 32,
+    /// Treasure dungeons like Vault Oneiron.
+    TreasureMapInstance = 33,
+    /// Used for zones like the Haunted Manor and the Patisserie.
+    SeasonalInstancedArea = 34,
+    /// Used by the Triple Triad Battlehall duty.
+    TripleTriadBattleHall = 35,
+    /// Used for raids like The Cloud of Darkness (Chaotic).
+    ChaoticRaid = 36,
+    /// Used for Crystalline Conflict Custom Matches.
+    CrystallineConflictCustomMatch = 37,
+    /// Diadem
+    HuntingGrounds = 38,
+    /// Used in Rival Wings content.
+    RivalWings = 39,
+    /// Mordion Gaol (The Rising 2017), Frondale's Home for Friendless Foundlings, Starlight Stalls.
+    Seasonal2 = 40,
+    /// Eureka zones.
+    Eureka = 41,
+    /// ???
+    Unknown42 = 42,
+    /// ???
+    TheCalamityRetold = 43,
+    /// Leap of Faith zones.
+    LeapOfFaith = 44,
+    /// Used for the Blue Mage The Masked Carnivale.
+    MaskedCarnival = 45,
+    /// Zones used for Ocean Fishing.
+    OceanFishing = 46,
+    /// Diadem zones.
+    Diadem = 47,
+    /// Bozja zones.
+    Bozja = 48,
+    /// Island Sanctuary zones.
+    IslandSanctuary = 49,
+    /// Used in the Triple Triad Open Tournament duty.
+    TripleTriadOpenTournament = 50,
+    /// Used in the Triple Triad Invitational Parlor duty.
+    TripleTriadInvitationalParlor = 51,
+    /// Used by the Delubrum Reginae duty.
+    DelubrumReginae = 52,
+    /// Used by the Delubrum Reginae (Savage) duty.
+    DelubrumReginaeSavage = 53,
+    /// Propylaion and Ultima Thule
+    EndwalkerMsqSoloOverworld = 54,
+    /// Currently unused.
+    Unknown55 = 55,
+    /// Instanced area for the Omicron Allied Society quests.
+    Elysion = 56,
+    /// Criterion Dungeon zones.
+    CriterionDungeon = 57,
+    /// Savage Criterion Dungeon zones.
+    CriterionDungeonSavage = 58,
+    /// Bean containment zones.
+    Blunderville = 59,
+    /// Cosmic Exploration zones.
+    CosmicExploration = 60,
+    /// Occult Crescent zones.
+    OccultCrescent = 61,
+    /// Used for Beastmaster's Crucible boards.
+    CrucibleOfTheUnbroken = 62,
+    /// Lilyswim (Hatching-tide 2026)
+    Seasonal3 = 63,
+    /// Used by the Air Force One minigame.
+    AirForceOne = 64,
+    /// Used by the Keybound Brawler minigame.
+    KeyboundBrawler = 65,
+    /// Currently unused.
+    Unknown66 = 66,
 }
 
 #[cfg(test)]

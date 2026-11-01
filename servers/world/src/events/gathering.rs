@@ -53,7 +53,7 @@ impl EventHandler for GatheringEventHandler {
             SceneFlags::NO_DEFAULT_CAMERA,
             vec![
                 0,
-                event.id & 0xFFFF,
+                event.id.event_id(),
                 2147485320,
                 u32::from_le_bytes([self.count, 0, self.count, 0]), // first: count, second: ??, third: remaining count, fourth: ??
                 24,
@@ -132,8 +132,8 @@ impl EventHandler for GatheringEventHandler {
         // TODO: store this on begin gather
         let items;
         {
-            let mut gamedata = connection.gamedata.lock();
-            items = gamedata.get_gathering_point_items(event.id & 0xFFFF);
+            let mut game_data = connection.game_data.lock();
+            items = game_data.get_gathering_point_items(event.id.event_id());
         }
 
         if results[2] == 2 {
@@ -146,10 +146,10 @@ impl EventHandler for GatheringEventHandler {
 
             // Add item to their inventory
             {
-                let mut gamedata = connection.gamedata.lock();
+                let mut game_data = connection.game_data.lock();
 
                 if let Some(item_info) =
-                    gamedata.get_item_info(ItemInfoQuery::ById(gather_item_id as u32))
+                    game_data.get_item_info(ItemInfoQuery::ById(gather_item_id as u32))
                 {
                     connection
                         .player_data
@@ -216,7 +216,7 @@ impl EventHandler for GatheringEventHandler {
 
         let mut params = vec![
             7,
-            event.id & 0xFFFF,
+            event.id.event_id(),
             2147485320,
             u32::from_le_bytes([self.count, 0, self.count, 0]), // first: count, second: ??, third: remaining count, fourth: ??
         ];

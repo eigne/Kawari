@@ -4,23 +4,23 @@ use parking_lot::Mutex;
 use tokio::net::TcpStream;
 
 use super::common::ClientId;
-use crate::{ServerHandle, ToServer, WorldDatabase, database::Character};
+use crate::{ServerHandle, ToServer, WorldDatabase, common::roll_die, database::Character};
 use kawari::{
     common::{ObjectId, timestamp_secs},
     config::WorldConfig,
     ipc::{
         chat::{
-            CWLinkshellMessage, ChatChannel, ChatChannelType, ClientChatIpcSegment, PartyMessage,
-            SendCWLinkshellMessage, SendPartyMessage, SendTellMessage, ServerChatIpcData,
-            ServerChatIpcSegment, TellMessage, TellNotFoundError,
+            CWLinkshellMessage, ChatChannel, ChatChannelType, ChatDiceRollData, ChatDiceRollResult,
+            ClientChatIpcSegment, PartyMessage, SendCWLinkshellMessage, SendPartyMessage,
+            SendTellMessage, ServerChatIpcData, ServerChatIpcSegment, TellMessage,
+            TellNotFoundError,
         },
         zone::{CrossworldLinkshellEx, OnlineStatus},
     },
     opcodes::ServerChatIpcType,
     packet::{
-        CompressionType, ConnectionState, ConnectionType, IpcSegmentHeader, PacketSegment,
-        SegmentData, SegmentType, ServerIpcSegmentHeader, parse_packet, send_keep_alive,
-        send_packet,
+        ConnectionState, ConnectionType, IpcSegmentHeader, PacketSegment, SegmentData, SegmentType,
+        ServerIpcSegmentHeader, parse_packet, send_keep_alive, send_packet,
     },
 };
 
@@ -87,11 +87,7 @@ impl ChatConnection {
             &mut self.socket,
             &mut self.state,
             ConnectionType::Chat,
-            if self.config.enable_packet_compression {
-                CompressionType::Oodle
-            } else {
-                CompressionType::Uncompressed
-            },
+            self.config.compression(),
             &[segment],
         ))
         .await;
@@ -112,7 +108,7 @@ impl ChatConnection {
                 &mut self.socket,
                 &mut self.state,
                 ConnectionType::Chat,
-                CompressionType::Oodle,
+                self.config.compression(),
                 &[response],
             )
             .await;
@@ -132,7 +128,7 @@ impl ChatConnection {
                 &mut self.socket,
                 &mut self.state,
                 ConnectionType::Chat,
-                CompressionType::Oodle,
+                self.config.compression(),
                 &[response],
             )
             .await;
@@ -154,7 +150,7 @@ impl ChatConnection {
                 &mut self.socket,
                 &mut self.state,
                 ConnectionType::Chat,
-                CompressionType::Oodle,
+                self.config.compression(),
                 &[response],
             )
             .await;
@@ -184,7 +180,7 @@ impl ChatConnection {
 
             // Tells only give us the recipient's name which isn't very helpful, so we need further info.
             if let Some(recipient_id) =
-                db.find_character_ids(None, Some(tell_data.recipient_name.clone()))
+                db.find_character(None, Some(tell_data.recipient_name.clone()))
             {
                 recipient_ids = recipient_id;
                 let mask = db.determine_online_status_mask(recipient_ids.content_id);
@@ -332,6 +328,53 @@ impl ChatConnection {
                 self.chatchannels.cwls[index].channel_number = shell.ids.linkshell_id as u32;
             }
         }
+    }
+
+    pub async fn send_dice_roll(&mut self, roll_data: ChatDiceRollData) {
+        let (num_sides, roll_result) = roll_die(roll_data.num_sides);
+
+        let result = ChatDiceRollResult {
+            community_id: roll_data.community_id,
+            account_id: self.player_data.account_id,
+            content_id: self.player_data.content_id,
+            roll_result,
+            num_sides,
+            world_id: self.config.world_id,
+            unk1: roll_data.unk2,
+            unk2: roll_data.unk1,
+            character_name: self.player_data.name.clone(),
+        };
+
+        self.handle
+            .send(ToServer::ChatDiceRoll(self.player_data.actor_id, result))
+            .await;
+    }
+
+    pub async fn dice_roll_received(
+        &mut self,
+        from_actor_id: ObjectId,
+        result: ChatDiceRollResult,
+    ) {
+        if result.community_id.channel_type == ChatChannelType::CWLinkshell
+            && !self.chatchannels.cwls.contains(&result.community_id)
+        {
+            tracing::error!(
+                "cwls_message_received: We received a dice roll not destined for one of our linkshells, what happened? Discarding result. The destination linkshell was {:#?}",
+                result.community_id
+            );
+            return;
+        } else if result.community_id.channel_type == ChatChannelType::Party
+            && result.community_id.channel_number != self.chatchannels.party.channel_number
+        {
+            tracing::error!(
+                "cwls_message_received: We received a dice roll not destined for our party, what happened? Discarding result. The destination party was {:#?}",
+                result.community_id
+            );
+            return;
+        }
+
+        let ipc = ServerChatIpcSegment::new(ServerChatIpcData::ChatDiceRollResult(result));
+        self.send_ipc_from(from_actor_id, ipc).await;
     }
 
     pub async fn set_party_chatchannel(&mut self, party_channel_number: u32) {

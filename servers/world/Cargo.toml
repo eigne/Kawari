@@ -28,7 +28,7 @@ fastrand = { workspace = true }
 ureq = { workspace = true }
 diesel = { workspace = true }
 diesel_migrations = { workspace = true }
+# Bundled SQLite, so this crate also links on its own (e.g. cargo test -p kawari-world on Windows).
 libsqlite3-sys = { workspace = true }
 async-trait = { workspace = true }
-bstr = { workspace = true }
 glam = { workspace = true }

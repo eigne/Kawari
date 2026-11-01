@@ -8,7 +8,10 @@ use diesel::{
 };
 use icarus::{ClassJob::ClassJobSheet, Race::RaceSheet};
 use kawari::{
-    common::{ContainerType, ItemOperationKind, LegacyEquipmentModelId, WeaponModelId},
+    common::{
+        ContainerType, ItemOperationKind, LegacyEquipmentModelId, TerritoryIntendedUse,
+        WeaponModelId,
+    },
     config::get_config,
     ipc::zone::ItemInfo,
 };
@@ -41,8 +44,6 @@ mod crystals;
 pub use crystals::{CrystalKind, CrystalsStorage};
 
 use crate::{GameData, ItemInfoQuery};
-
-use physis::TerritoryIntendedUse;
 
 const MAX_NORMAL_STORAGE: usize = 35;
 pub const MAX_LARGE_STORAGE: usize = 50;
@@ -258,8 +259,10 @@ impl Inventory {
                 if let Some(dst_item) =
                     self.get_item_mut(action.dst_storage_id, action.dst_container_index)
                 {
-                    // TODO: We ought to check the max stack size for a given item id and disallow overflow
-                    dst_item.quantity += src_item.quantity;
+                    dst_item.quantity = dst_item
+                        .quantity
+                        .saturating_add(src_item.quantity)
+                        .min(dst_item.stack_size as i32);
                 }
             }
             ItemOperationKind::SplitStack => {
@@ -274,10 +277,10 @@ impl Inventory {
                         );
                         return;
                     };
-                    if original_item.quantity >= action.dst_stack {
-                        original_item.quantity -= action.dst_stack;
+                    if original_item.quantity >= action.dst_stack as i32 {
+                        original_item.quantity -= action.dst_stack as i32;
                         src_item = *original_item;
-                        src_item.quantity = action.dst_stack
+                        src_item.quantity = action.dst_stack as i32
                     } else {
                         tracing::warn!(
                             "Client sent a bogus split amount: {}! Rejecting item operation!",
@@ -348,7 +351,7 @@ impl Inventory {
             for page in &mut self.pages {
                 for (slot_index, slot) in page.slots.iter_mut().enumerate() {
                     if slot.item_id == item.item_id
-                        && slot.quantity + item.quantity <= item.stack_size
+                        && slot.quantity + item.quantity <= item.stack_size as i32
                     {
                         slot.quantity += item.quantity;
                         return Some(ItemInfo {

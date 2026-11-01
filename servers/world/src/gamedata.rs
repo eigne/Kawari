@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use icarus::Action::ActionSheet;
@@ -14,18 +14,24 @@ use icarus::ContentDirectorManagedSG::ContentDirectorManagedSGSheet;
 use icarus::ContentFinderCondition::ContentFinderConditionSheet;
 use icarus::CraftAction::CraftActionSheet;
 use icarus::CustomTalk::CustomTalkSheet;
+use icarus::DawnContent::DawnContentSheet;
 use icarus::ENpcBase::ENpcBaseSheet;
 use icarus::EObj::EObjSheet;
 use icarus::Emote::EmoteSheet;
 use icarus::EquipSlotCategory::EquipSlotCategorySheet;
+use icarus::Fate::FateSheet;
+use icarus::FateProgressUI::FateProgressUISheet;
 use icarus::FateShop::FateShopSheet;
 use icarus::FittingShopCategoryItem::FittingShopCategoryItemSheet;
+use icarus::GFATE::{GFATERow, GFATESheet};
 use icarus::GatheringItem::GatheringItemSheet;
 use icarus::GatheringItemLevelConvertTable::GatheringItemLevelConvertTableSheet;
 use icarus::GatheringPoint::GatheringPointSheet;
 use icarus::GatheringPointBase::GatheringPointBaseSheet;
 use icarus::GilShopItem::GilShopItemSheet;
+use icarus::GimmickAccessor::GimmickAccessorSheet;
 use icarus::GimmickRect::{GimmickRectRow, GimmickRectSheet};
+use icarus::GoldSaucerContent::GoldSaucerContentSheet;
 use icarus::HalloweenNpcSelect::HalloweenNpcSelectSheet;
 use icarus::HousingAethernet::HousingAethernetSheet;
 use icarus::HousingLandSet::{HousingLandSetSheet, LandSetElement};
@@ -42,26 +48,32 @@ use icarus::Opening::OpeningSheet;
 use icarus::ParamGrow::{ParamGrowRow, ParamGrowSheet};
 use icarus::PlaceName::PlaceNameSheet;
 use icarus::PreHandler::PreHandlerSheet;
+use icarus::PublicContent::PublicContentSheet;
 use icarus::Quest::QuestSheet;
 use icarus::Recipe::RecipeSheet;
 use icarus::SpecialShop::SpecialShopSheet;
 use icarus::SwitchTalkVariation::{SwitchTalkVariationRow, SwitchTalkVariationSheet};
 use icarus::TerritoryType::TerritoryTypeSheet;
 use icarus::TopicSelect::TopicSelectSheet;
+use icarus::Trait::TraitSheet;
+use icarus::Tribe::TribeRow;
 use icarus::WarpLogic::WarpLogicSheet;
 use icarus::WeatherRate::WeatherRateSheet;
 use icarus::{Tribe::TribeSheet, Warp::WarpSheet};
 use kawari::ipc::zone::{CommonSpawn, DamageElement, PlotSize};
+use physis::Language;
 use physis::equipment::EquipSlotCategory;
 use physis::race::{Gender, Race, Tribe};
 use physis::resource::{Resource, ResourceResolver, SqPackResource, UnpackedResource};
 use physis::savedata::chardat::CustomizeData;
-use physis::{Language, TerritoryIntendedUse};
 
-use kawari::common::{InstanceContentType, get_aether_current_comp_flg_set_to_screenimage};
+use kawari::common::{
+    ActionCategory, FateRule, GimmickAccessorType, InstanceContentType, PublicContentType,
+    TerritoryIntendedUse, get_aether_current_comp_flg_set_to_screenimage,
+};
 use kawari::common::{LegacyEquipmentModelId, WeaponModelId, timestamp_secs};
 use kawari::config::get_config;
-use strum::FromRepr;
+use strum_macros::FromRepr;
 
 /// Convenient methods built on top of Physis to access data relevant to the server
 #[derive(Clone)]
@@ -99,22 +111,23 @@ pub struct GameData {
     pub gathering_point_base_sheet: GatheringPointBaseSheet,
     pub gathering_item_sheet: GatheringItemSheet,
     pub gathering_item_level_convert_table_sheet: GatheringItemLevelConvertTableSheet,
+    pub public_content_sheet: PublicContentSheet,
+    pub fate_sheet: FateSheet,
+    pub dawn_content_sheet: DawnContentSheet,
+    pub fate_progress_ui_sheet: FateProgressUISheet,
+    pub gold_saucer_content_sheet: GoldSaucerContentSheet,
+    pub gimmick_accessor_sheet: GimmickAccessorSheet,
+    pub trait_sheet: TraitSheet,
+    pub gfate_sheet: GFATESheet,
+
+    pub gimmick_rect_lookup: HashMap<u32, u32>,
+    pub fate_event_range_lookup: HashMap<u32, u32>,
 }
 
 impl Default for GameData {
     fn default() -> Self {
         Self::new()
     }
-}
-
-#[derive(Debug)]
-pub struct Attributes {
-    pub strength: i8,
-    pub dexterity: i8,
-    pub vitality: i8,
-    pub intelligence: i8,
-    pub mind: i8,
-    pub piety: i8,
 }
 
 /// Struct detailing various information about an item, pulled from the Items sheet.
@@ -205,6 +218,7 @@ impl Modifiers {
     }
 }
 
+/// Helper enum for picking duties from roulettes.
 #[repr(u8)]
 #[derive(FromRepr)]
 pub enum Roulette {
@@ -235,22 +249,10 @@ impl GameData {
     pub fn new() -> Self {
         let config = get_config();
 
-        let mut sqpack_resource = SqPackResourceSpy::from(
-            SqPackResource::from_existing(&config.filesystem.game_path),
+        let sqpack_resource = SqPackResourceSpy::from(
+            SqPackResource::from_existing(&config.filesystem.game_path()),
             &config.filesystem.unpack_path,
         );
-
-        if sqpack_resource.sqpack_resource.repositories.is_empty() {
-            tracing::warn!(
-                "You have an empty game directory ({:?}). This may be a configuration issue, you may want to read the usage documentation.",
-                config.filesystem.game_path
-            );
-        }
-
-        // We preload all index files, because the cost for not doing this can be high.
-        // For example: someone travels to a new zone (that wasn't previously loaded), so the server has to basically halt to read a bunch of index files from disk.
-        // Index files are small and will take up very little memory, so this is a no-brainer optimization.
-        sqpack_resource.sqpack_resource.preload_index_files();
 
         let mut resource_resolver = ResourceResolver::new();
         for path in config.filesystem.additional_search_paths {
@@ -361,6 +363,39 @@ impl GameData {
             GatheringItemLevelConvertTableSheet::read_from(&mut resource_resolver, Language::None)
                 .unwrap();
 
+        let public_content_sheet =
+            PublicContentSheet::read_from(&mut resource_resolver, config.world.language()).unwrap();
+
+        let fate_sheet =
+            FateSheet::read_from(&mut resource_resolver, config.world.language()).unwrap();
+
+        let dawn_content_sheet =
+            DawnContentSheet::read_from(&mut resource_resolver, Language::None).unwrap();
+
+        let fate_progress_ui_sheet =
+            FateProgressUISheet::read_from(&mut resource_resolver, Language::None).unwrap();
+
+        let gold_saucer_content_sheet =
+            GoldSaucerContentSheet::read_from(&mut resource_resolver, Language::None).unwrap();
+
+        let gimmick_accessor_sheet =
+            GimmickAccessorSheet::read_from(&mut resource_resolver, Language::None).unwrap();
+
+        let trait_sheet =
+            TraitSheet::read_from(&mut resource_resolver, config.world.language()).unwrap();
+
+        let gfate_sheet = GFATESheet::read_from(&mut resource_resolver, Language::None).unwrap();
+
+        let mut gimmick_rect_lookup = HashMap::new();
+        for (id, row) in gimmick_rect_sheet.into_iter().flatten_subrows() {
+            gimmick_rect_lookup.insert(row.LayoutID, id);
+        }
+
+        let mut fate_event_range_lookup = HashMap::new();
+        for (id, row) in fate_sheet.into_iter().flatten_subrows() {
+            fate_event_range_lookup.insert(row.Location, id);
+        }
+
         Self {
             resource: resource_resolver,
             item_sheet,
@@ -393,6 +428,16 @@ impl GameData {
             gathering_point_base_sheet,
             gathering_item_sheet,
             gathering_item_level_convert_table_sheet,
+            public_content_sheet,
+            fate_sheet,
+            gimmick_rect_lookup,
+            fate_event_range_lookup,
+            dawn_content_sheet,
+            fate_progress_ui_sheet,
+            gold_saucer_content_sheet,
+            gimmick_accessor_sheet,
+            trait_sheet,
+            gfate_sheet,
         }
     }
 
@@ -402,17 +447,8 @@ impl GameData {
         Some(row.StartingTown)
     }
 
-    pub fn get_racial_base_attributes(&mut self, tribe_id: u8) -> Option<Attributes> {
-        let row = self.tribe_sheet.row(tribe_id as u32)?;
-
-        Some(Attributes {
-            strength: row.STR,
-            dexterity: row.DEX,
-            vitality: row.VIT,
-            intelligence: row.INT,
-            mind: row.MND,
-            piety: row.PIE,
-        })
+    pub fn get_tribe(&mut self, tribe_id: u8) -> Option<TribeRow> {
+        self.tribe_sheet.row(tribe_id as u32)
     }
 
     /// Gets various information from the Item sheet.
@@ -429,6 +465,7 @@ impl GameData {
                 for (id, row) in self.item_sheet.into_iter().flatten_subrows() {
                     if row
                         .Name
+                        .to_string() // Item names do not use SeString features
                         .to_lowercase()
                         .contains(&query_item_name.to_lowercase())
                     {
@@ -442,7 +479,7 @@ impl GameData {
         if let Some((matched_row, item_id)) = result {
             let item_info = ItemRow {
                 id: item_id,
-                name: matched_row.Name,
+                name: matched_row.Name.to_string(), // Item names do not use SeString features
                 price_mid: matched_row.PriceMid,
                 price_low: matched_row.PriceLow,
                 equip_category: EquipSlotCategory::from_repr(matched_row.EquipSlotCategory)
@@ -506,7 +543,7 @@ impl GameData {
             WarpLogicSheet::read_from(&mut self.resource, config.world.language()).unwrap();
         let warp_logic_row = warp_logic_sheet.row(warp_logic_id as u32).unwrap();
 
-        warp_logic_row.WarpName
+        warp_logic_row.WarpName.to_string() // This shouldn't use SeString features
     }
 
     pub fn get_aetheryte(
@@ -521,8 +558,15 @@ impl GameData {
                 AetheryteSheet::read_from(&mut self.resource, config.world.language()).ok()?;
             let row = sheet.row(aetheryte_id)?;
 
-            // TODO: just look in the level sheet?
-            let pop_range_id = row.Level[0];
+            // Pick a random pop range to stop people from spawning in the same position
+            let locations: Vec<u32> = row
+                .Level
+                .to_vec()
+                .iter()
+                .filter(|x| **x != 0)
+                .copied()
+                .collect();
+            let pop_range_id = fastrand::choice(locations).unwrap();
             let zone_id = row.Territory;
 
             Some((pop_range_id, zone_id))
@@ -531,7 +575,6 @@ impl GameData {
                 HousingAethernetSheet::read_from(&mut self.resource, Language::None).ok()?;
             let row = sheet.row(aetheryte_id)?;
 
-            // TODO: just look in the level sheet?
             // Note that the HousingAethernet sheet's Level column isn't an array.
             let pop_range_id = row.Level;
             let zone_id = row.TerritoryType;
@@ -555,14 +598,14 @@ impl GameData {
 
         let offset = match which {
             TerritoryNameKind::Internal => {
-                return Some(row.Name);
+                return Some(row.Name.to_string()); // This shouldn't use use SeString features
             }
             TerritoryNameKind::Region => row.PlaceNameRegion,
             TerritoryNameKind::Place => row.PlaceName,
         };
 
         let row = self.place_name_sheet.row(offset as u32)?;
-        Some(row.Name)
+        Some(row.Name.to_string()) // This shouldn't use use SeString features
     }
 
     /// Turn an equip slot category id into a slot for the equipped inventory
@@ -653,14 +696,17 @@ impl GameData {
         })
     }
 
-    pub fn get_casttime(&mut self, action_id: u32) -> Option<u16> {
+    /// Returns the cast time in milliseconds.
+    pub fn get_casttime(&mut self, action_id: u32) -> Option<(ActionCategory, u32)> {
         let row = self.action_sheet.row(action_id)?;
 
-        Some(row.Cast100ms)
+        Some((
+            ActionCategory::from_repr(row.ActionCategory)?,
+            row.Cast100ms as u32 * 100,
+        ))
     }
 
     /// Calculates the current weather at the current time
-    // TODO: instead allow targetting a specific time to calculate forcecasts
     pub fn get_weather_rate(&mut self, weather_rate_id: u32) -> Option<i32> {
         let row = self.weather_rate_sheet.row(weather_rate_id)?;
 
@@ -730,6 +776,13 @@ impl GameData {
         let row = self.classjob_sheet.row(classjob_id as u32)?;
 
         Some(row.JobIndex)
+    }
+
+    /// Gets the primary stat for a given class.
+    pub fn get_job_primary_stat(&mut self, classjob_id: u16) -> Option<u8> {
+        let row = self.classjob_sheet.row(classjob_id as u32)?;
+
+        Some(row.PrimaryStat)
     }
 
     /// Gets the item and its cost from the specified shop.
@@ -918,7 +971,7 @@ impl GameData {
     pub fn get_custom_talk_name(&mut self, custom_talk_id: u32) -> String {
         let row = self.custom_talk_sheet.row(custom_talk_id).unwrap();
 
-        row.Name
+        row.Name.to_string() // This shouldn't use use SeString features
     }
 
     /// Returns the internal script name for this Opening event.
@@ -926,7 +979,7 @@ impl GameData {
         let sheet = OpeningSheet::read_from(&mut self.resource, Language::None).unwrap();
         let row = sheet.row(opening_id).unwrap();
 
-        row.Name
+        row.Name.to_string() // This shouldn't use use SeString features
     }
 
     /// Returns data useful for performing item actions.
@@ -985,7 +1038,7 @@ impl GameData {
     pub fn get_quest_name(&mut self, quest_id: u32) -> String {
         let row = self.quest_sheet.row(quest_id).unwrap();
 
-        row.Id
+        row.Id.to_string() // This shouldn't use use SeString features
     }
 
     /// Returns the target event of a TopicSelect event.
@@ -1022,7 +1075,7 @@ impl GameData {
             .content_finder_condition_sheet
             .row(content_finder_row_id as u32)?;
 
-        Some(content_finder_row.ShortCode)
+        Some(content_finder_row.ShortCode.to_string()) // This shouldn't use use SeString features
     }
 
     /// The restored Feast duty must agree across all three sheets before entry.
@@ -1038,32 +1091,37 @@ impl GameData {
         };
         cfc.Content == 40022
             && cfc.TerritoryType == 745
-            && cfc.ShortCode == "l1p2"
+            && cfc.ShortCode.to_string() == "l1p2"
             && cfc.ContentLinkType == 1
             && content.InstanceContentType == 5
             && content.ContentFinderCondition == 476
             && content.TimeLimitmin > 0
             && territory.ContentFinderCondition == 476
             && territory.TerritoryIntendedUse == 28
-            && territory.Name == "l1p2"
+            && territory.Name.to_string() == "l1p2"
     }
 
-    /// Returns the DefaultTalk for a given FateShop and rank.
-    pub fn get_fate_default_talk(&mut self, fate_shop_id: u32, rank: u8) -> u32 {
+    /// Returns the DefaultTalk for a given FateShop and index.
+    pub fn get_fate_default_talk(&mut self, fate_shop_id: u32, index: u8) -> u32 {
         let sheet = FateShopSheet::read_from(&mut self.resource, Language::None).unwrap();
         let row = sheet.row(fate_shop_id).unwrap();
 
-        row.DefaultTalk[rank as usize]
+        row.DefaultTalk[index as usize]
+    }
+
+    /// Returns the SpecialShop for a given FateShop and rank.
+    pub fn get_fate_special_shop(&mut self, fate_shop_id: u32, index: u8) -> u32 {
+        let sheet = FateShopSheet::read_from(&mut self.resource, Language::None).unwrap();
+        let row = sheet.row(fate_shop_id).unwrap();
+
+        row.SpecialShop[index as usize]
     }
 
     /// Returns the pop type for this EObj.
     pub fn get_eobj_extra_data(&mut self, eobj_id: u32) -> (u8, bool) {
         let row = self.eobj_sheet.row(eobj_id).unwrap();
 
-        (
-            row.PopType,
-            row.EyeCollision, // TODO: Will be renamed to Targetable in the future
-        )
+        (row.PopType, row.Targetable)
     }
 
     /// Returns the InstanceContent for a given ContentFinderCondition id.
@@ -1076,6 +1134,16 @@ impl GameData {
             .row(content_finder_row_id as u32)?;
 
         Some(content_finder_row.Content)
+    }
+
+    /// Checks if the duty recorder is allowed for this content.
+    pub fn is_duty_recorder_allowed(&mut self, content_finder_row_id: u16) -> bool {
+        let content_finder_row = self
+            .content_finder_condition_sheet
+            .row(content_finder_row_id as u32)
+            .unwrap();
+
+        content_finder_row.DutyRecorderAllowed
     }
 
     /// Returns the time limit in minutes for a given InstanceContent id.
@@ -1092,14 +1160,10 @@ impl GameData {
         self.gimmick_rect_sheet.row(gimmick_rect_id)
     }
 
-    // TODO: this can be quite expensive, any way we can speed it up?
     /// Returns information about a specific GimmickRect based on the layout id.
     pub fn lookup_gimmick_rect(&mut self, layout_id: u32) -> Option<GimmickRectRow> {
         self.gimmick_rect_sheet
-            .into_iter()
-            .flatten_subrows()
-            .map(|(_, row)| row)
-            .find(|row| row.LayoutID == layout_id)
+            .row(*self.gimmick_rect_lookup.get(&layout_id)?)
     }
 
     /// Returns the data associated with this EObj.
@@ -1506,6 +1570,7 @@ impl GameData {
         for (id, row) in sheet.into_iter().flatten_subrows() {
             if row
                 .Singular
+                .to_string() // This shouldn't use use SeString features
                 .to_lowercase()
                 .contains(&mount_name.to_lowercase())
             {
@@ -1606,7 +1671,7 @@ impl GameData {
     }
 
     /// Returns a piece of furniture's catalog id from its item id. In this context, "catalog id" means the low 12 bits of the furniture's row number on the HousingFurniture/HousingYardObject sheet, which is what we send to the client when placing furniture.
-    pub fn get_furniture_catalog_id(&mut self, item_id: u32) -> Option<u16> {
+    pub fn get_furniture_item_id(&mut self, item_id: u32) -> Option<u16> {
         // First, we need the item's AdditionalData column to point us to where we need to look on the HousingFurniture sheet.
         let row = self.item_sheet.row(item_id)?;
         let item_ui_category = row.ItemUICategory;
@@ -1661,6 +1726,120 @@ impl GameData {
             .map(|x| x.0)
             .unwrap_or_default()
     }
+
+    /// Returns the pop range ID for this public content, if one is defined.
+    pub fn find_public_content_pop_range(&mut self, id: u32) -> Option<u32> {
+        Some(self.public_content_sheet.row(id)?.LGBPopRange).filter(|x| *x != 0)
+    }
+
+    /// Returns the type of PublicContent this is.
+    pub fn find_public_content_type(&mut self, id: u32) -> Option<PublicContentType> {
+        PublicContentType::from_repr(self.public_content_sheet.row(id)?.Type)
+    }
+
+    /// Returns the max level for a FATE.
+    pub fn get_fate_max_level(&mut self, id: u32) -> Option<u8> {
+        let row = self.fate_sheet.row(id)?;
+        Some(row.ClassJobLevelMax)
+    }
+
+    /// Returns the max level for a FATE
+    pub fn find_fate_by_event_range(&mut self, id: u32) -> Option<u32> {
+        self.fate_event_range_lookup.get(&id).copied()
+    }
+
+    /// Returns the FateRule for a FATE.
+    pub fn get_fate_rule(&mut self, id: u32) -> Option<FateRule> {
+        let row = self.fate_sheet.row(id)?;
+        FateRule::from_repr(row.Rule)
+    }
+
+    /// Returns the list of ContentFinderCondition IDs in DawnContent.
+    pub fn list_dawn_content_content_finder_conditions(&mut self) -> Vec<(u32, u32)> {
+        self.dawn_content_sheet
+            .into_iter()
+            .flatten_subrows()
+            .map(|x| (x.0, x.1.Content))
+            .skip(1) // Don't consider the first empty row
+            .collect()
+    }
+
+    /// Returns the ContentFinderCondition for this DawnContent.
+    pub fn get_dawn_content_cfc_id(&mut self, id: u32) -> Option<u32> {
+        Some(self.dawn_content_sheet.row(id)?.Content)
+    }
+
+    /// Returns the FateChain and special content information for this FATE.
+    pub fn get_fate_chain_special(&mut self, id: u32) -> Option<(u32, bool)> {
+        let row = self.fate_sheet.row(id)?;
+        // TODO: Unknown8 seems to be a marker for special fates, despite there being another column for that?!
+        Some((row.FATEChain, row.Unknown8))
+    }
+
+    /// Returns the FateProgressUI row for a given TerritoryType ID, if available.
+    pub fn get_fate_progress_ui_row(&mut self, territorytype_id: i32) -> Option<u32> {
+        self.fate_progress_ui_sheet
+            .into_iter()
+            .flatten_subrows()
+            .find(|x| x.1.Location == territorytype_id)
+            .map(|x| x.0)
+    }
+
+    /// Returns the maximum number of FATEs needed for this FateProgressUI row.
+    pub fn get_fate_progress_maximum_count(&mut self, row: u32) -> Option<u8> {
+        let row = self.fate_progress_ui_sheet.row(row)?;
+        Some(row.ReqFatesToRank2 + row.ReqFatesToRank3 + row.ReqFatesToRank4)
+    }
+
+    /// Determines the current FATE rank based on the FateProgressUI row and number of FATEs completed.
+    pub fn get_fate_rank(&mut self, row: u32, count: u8) -> Option<u8> {
+        let row = self.fate_progress_ui_sheet.row(row)?;
+        if count > row.ReqFatesToRank4 {
+            return Some(4);
+        }
+        if count > row.ReqFatesToRank3 {
+            return Some(3);
+        }
+        if count > row.ReqFatesToRank2 {
+            return Some(2);
+        }
+        if count > 0 {
+            return Some(1);
+        }
+        Some(0)
+    }
+
+    /// Returns the ContentFinderCondition for a given GoldSaucerContent.
+    pub fn lookup_gold_saucer_content(&mut self, id: u32) -> u32 {
+        let row = self.gold_saucer_content_sheet.row(id).unwrap();
+
+        row.ContentFinderCondition as u32
+    }
+
+    /// Returns information about a GimmickAccessor.
+    pub fn lookup_gimmick_accessor(
+        &mut self,
+        id: u32,
+    ) -> Option<(GimmickAccessorType, u32, u32, u32)> {
+        let row = self.gimmick_accessor_sheet.row(id)?;
+        Some((
+            GimmickAccessorType::from_repr(row.Param0)?, // TODO: Rename to Type upstream
+            row.Param1,                                  // TODO: Rename to Param0
+            row.Param2,                                  // TODO: Rename to Param1
+            row.Type,                                    // TODO: Rename to Param2
+        ))
+    }
+
+    /// Look up the requirements for a given Trait.
+    pub fn get_trait_requirements(&mut self, id: u32) -> Option<(u8, u32)> {
+        let row = self.trait_sheet.row(id)?;
+        Some((row.Level, row.Quest))
+    }
+
+    /// Returns this GATE's information.
+    pub fn get_gate(&mut self, id: u32) -> Option<GFATERow> {
+        self.gfate_sheet.row(id)
+    }
 }
 
 impl mlua::UserData for GameData {
@@ -1669,7 +1848,7 @@ impl mlua::UserData for GameData {
             Ok(if this.feast_duty_metadata_ready() {
                 "duty"
             } else if this.territory_type_sheet.row(745).is_some_and(|row| {
-                row.Name == "l1p2" && row.TerritoryIntendedUse == 1 && row.ContentFinderCondition == 0
+                row.Name.to_string() == "l1p2" && row.TerritoryIntendedUse == 1 && row.ContentFinderCondition == 0
             }) {
                 "exploration"
             } else {
@@ -1690,8 +1869,14 @@ impl mlua::UserData for GameData {
         );
         methods.add_method_mut(
             "get_fate_default_talk",
-            |_, this, (fate_shop_id, rank): (u32, u8)| {
-                Ok(this.get_fate_default_talk(fate_shop_id, rank))
+            |_, this, (fate_shop_id, index): (u32, u8)| {
+                Ok(this.get_fate_default_talk(fate_shop_id, index))
+            },
+        );
+        methods.add_method_mut(
+            "get_fate_special_shop",
+            |_, this, (fate_shop_id, index): (u32, u8)| {
+                Ok(this.get_fate_special_shop(fate_shop_id, index))
             },
         );
         methods.add_method_mut("lookup_ikd_route_content", |_, this, id: u32| {
@@ -1699,6 +1884,9 @@ impl mlua::UserData for GameData {
         });
         methods.add_method_mut("find_eobj_base_id", |_, this, id: u32| {
             Ok(this.find_eobj_base_id(id))
+        });
+        methods.add_method_mut("lookup_gold_saucer_content", |_, this, id: u32| {
+            Ok(this.lookup_gold_saucer_content(id))
         });
     }
 }

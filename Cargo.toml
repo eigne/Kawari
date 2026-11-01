@@ -6,7 +6,6 @@ members = [
     # Servers
     "servers/admin",
     "servers/frontier",
-    "servers/launcher",
     "servers/lobby",
     "servers/login",
     "servers/patch",
@@ -20,11 +19,11 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "7.51.2"
+version = "7.57.1"
 edition = "2024"
 
 [workspace.lints.clippy]
-disallowed-types = "deny" # See clippy.toml
+disallowed_types = "deny" # See clippy.toml
 large_enum_variant = "allow" # This is just how we use enums
 redundant_locals = "allow" # Too many false positives right now
 too_many_arguments = "allow" # Not productive to fix at the moment
@@ -38,70 +37,68 @@ panic = "abort"
 
 [workspace.dependencies]
 # Used to read game data
-physis = { git = "https://github.com/redstrate/physis", features = ["glam"], default-features = false }
+physis = { git = "https://github.com/redstrate/physis", features = ["glam", "serde"], default-features = false }
 
 # Serialization used everywhere
-serde = { version = "1.0", features = ["derive"], default-features = false }
+serde = { version = "1.0", features = ["std"], default-features = false }
+serde_derive = { version = "1.0", default-features = false }
 serde_json = { version = "1.0", features = ["std", "preserve_order"], default-features = false }
 serde-xml-rs = { version = "0.8", default-features = false }
 serde_yaml_ng = { version = "0.10", default-features = false }
 
 # Logging
-tracing = { version = "0.1", default-features = false }
-tracing-subscriber = { version = "0.3", features = ["fmt", "ansi"], default-features = false }
+tracing = { version = "0.1", features = ["std"], default-features = false }
+tracing-subscriber = { version = "0.3", features = ["std", "fmt", "ansi"], default-features = false }
 
-# Used for inthe web servers
+# Used for the web servers
 axum = { version = "0.8", features = ["json", "tokio", "http1", "form", "query", "multipart"], default-features = false }
 axum-extra = { version = "0.12", features = ["cookie"], default-features = false }
 
 # Async runtime
-tokio = { version = "1.53", features = ["macros", "rt", "rt-multi-thread", "io-util", "process", "net"], default-features = false }
+tokio = { version = "1.54", features = ["macros", "rt", "rt-multi-thread", "io-util", "process", "net"], default-features = false }
 
 # Used for all kinds of RNG
-fastrand = { version = "2.4", features = ["std"], default-features = false }
+fastrand = { version = "2.5", features = ["std", "std"], default-features = false }
 
 # HTML templates used in the web servers
-minijinja = { version = "2.21", features = ["serde", "loader", "multi_template"], default-features = false }
+minijinja = { version = "3.0", features = ["serde", "multi_template"], default-features = false }
 
 # For server-side scripting
-mlua = { version = "0.12", features = ["lua54", "vendored", "send", "async", "serialize", "userdata-wrappers"], default-features = false }
+mlua = { version = "0.12", features = ["lua54", "vendored", "send", "async", "userdata-wrappers", "serde"], default-features = false }
 
 # For character backup decompression
-zip = { version = "8.6", features = ["deflate", "lzma", "bzip2"], default-features = false }
+zip = { version = "9.1", features = ["deflate", "lzma", "bzip2"], default-features = false }
 
 # For inter-server HTTP communication
-ureq = { version = "3.3", default-features = false }
+ureq = { version = "3.5", default-features = false }
 
 # For serving static files on our websites
 tower-http = { version = "0.7", features = ["fs", "cors"], default-features = false }
 
 # For obtaining SHA1 hashes of game components
-sha1_smol = { version = "1.0", default-features = false }
+sha1_smol = { version = "1.0", features = ["std"], default-features = false }
 
 # For navimesh generation
 recastnavigation-sys = { git = "https://github.com/redstrate/recastnavigation-rs-sys", features = ["recast", "detour"], default-features = false }
 
 # Used as our sync primitive (that's also compatible with mlua)
-parking_lot = { version = "0.12",  default-features = false }
+parking_lot = { version = "0.12", default-features = false }
 
 # For c-style bitflags
-bitflags = { version = "2.13", default-features = false }
+bitflags = { version = "2.13", features = ["std"], default-features = false }
 
 # Doing cool stuff with enums Rust doesn't have built-in
-strum = { version = "0.28", default-features = false }
+strum = { version = "0.28", features = ["std"], default-features = false }
 strum_macros = { version = "0.28", default-features = false }
 
 # Serialization of packets and other data
 binrw = { version = "0.15", features = ["std"], default-features = false }
 
-# Used to more cleanly handle SEStrings
-bstr = { version = "1.13" }
-
 # Reading Excel sheet data
-icarus = { git = "https://github.com/redstrate/Icarus", branch = "ver/2026.04.21.0000.0000", features = ["Warp", "Tribe", "ClassJob", "TerritoryType", "Race", "Aetheryte", "EquipSlotCategory", "Action", "WeatherRate", "PlaceName", "GilShopItem", "InstanceContent", "ContentFinderCondition", "BNpcBase", "Mount", "AetherCurrentCompFlgSet", "WarpLogic", "Item", "AetherCurrentCompFlgSet", "CustomTalk", "Opening", "ItemAction", "PreHandler", "SwitchTalkVariation", "HalloweenNpcSelect", "Quest", "TopicSelect", "ParamGrow", "FateShop", "EObj", "GimmickRect", "SpecialShop", "BaseParam", "ContentDirectorManagedSG", "FittingShopCategoryItem", "RecastNavimesh", "AetheryteSystemDefine", "GatheringPoint", "GatheringPointBase", "BNpcCustomize", "Recipe", "CraftAction", "GatheringItem", "OnlineStatus", "ItemLevel", "HousingAethernet", "Emote", "Battalion", "NpcYell", "HousingLandSet", "NpcEquip", "HousingFurniture", "ENpcBase", "IKDRoute", "GatheringItemLevelConvertTable"], default-features = false }
+icarus = { git = "https://github.com/redstrate/icarus", branch = "ver/2026.09.01.0000.0000", features = ["Warp", "Tribe", "ClassJob", "TerritoryType", "Race", "Aetheryte", "EquipSlotCategory", "Action", "WeatherRate", "PlaceName", "GilShopItem", "InstanceContent", "ContentFinderCondition", "BNpcBase", "Mount", "AetherCurrentCompFlgSet", "WarpLogic", "Item", "AetherCurrentCompFlgSet", "CustomTalk", "Opening", "ItemAction", "PreHandler", "SwitchTalkVariation", "HalloweenNpcSelect", "Quest", "TopicSelect", "ParamGrow", "FateShop", "EObj", "GimmickRect", "SpecialShop", "BaseParam", "ContentDirectorManagedSG", "FittingShopCategoryItem", "RecastNavimesh", "AetheryteSystemDefine", "GatheringPoint", "GatheringPointBase", "BNpcCustomize", "Recipe", "CraftAction", "GatheringItem", "OnlineStatus", "ItemLevel", "HousingAethernet", "Emote", "Battalion", "NpcYell", "HousingLandSet", "NpcEquip", "HousingFurniture", "ENpcBase", "IKDRoute", "GatheringItemLevelConvertTable", "PublicContent", "Fate", "Adventure", "AetherCurrent", "DawnContent", "FateProgressUI", "GoldSaucerContent", "GimmickAccessor", "Trait", "GFATE"], default-features = false }
 
 # Used in encryption of lobby packets
-md5 = { version = "0.8", default-features = false }
+md5 = { version = "0.8", features = ["std"], default-features = false }
 
 # Used for our databases
 diesel = { version = "2.3", features = ["sqlite", "returning_clauses_for_sqlite_3_35", "serde_json", "32-column-tables"], default-features = false }
@@ -116,7 +113,10 @@ libsqlite3-sys = { version = "*", features = ["bundled"], default-features = fal
 async-trait = { version = "0.1", default-features = false }
 
 # 3D math primitives
-glam = { version = "0.33", features = ["std"], default-features = false }
+glam = { version = "0.34", features = ["std"], default-features = false }
 
 # For Windows ANSI support
-nu-ansi-term = "0.50"
+nu-ansi-term = { version = "0.50", features = ["std"], default-features = false }
+
+# Dependency of serde-xml-rs, needed to access EmitterConfig.
+xml = { version = "1.4", default-features = false }

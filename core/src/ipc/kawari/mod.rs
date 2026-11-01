@@ -20,12 +20,12 @@ pub type CustomIpcSegment =
 pub enum CustomIpcData {
     RequestCreateCharacter {
         service_account_id: u64,
-        #[bw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
+        #[brw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
         #[br(count = CHAR_NAME_MAX_LENGTH)]
         #[br(map = read_string)]
         #[bw(map = write_string)]
         name: String,
-        #[bw(pad_size_to = 1024)]
+        #[brw(pad_size_to = 1024)]
         #[br(count = 1024)]
         #[br(map = read_string)]
         #[bw(map = write_string)]
@@ -42,7 +42,7 @@ pub enum CustomIpcData {
         actor_id: ObjectId,
     },
     CheckNameIsAvailable {
-        #[bw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
+        #[brw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
         #[br(count = CHAR_NAME_MAX_LENGTH)]
         #[br(map = read_string)]
         #[bw(map = write_string)]
@@ -71,7 +71,7 @@ pub enum CustomIpcData {
     },
     ImportCharacter {
         service_account_id: u64,
-        #[bw(pad_size_to = 128)]
+        #[brw(pad_size_to = 128)]
         #[br(count = 128)]
         #[br(map = read_string)]
         #[bw(map = write_string)]
@@ -79,7 +79,7 @@ pub enum CustomIpcData {
     },
     RemakeCharacter {
         content_id: u64,
-        #[bw(pad_size_to = 1024)]
+        #[brw(pad_size_to = 1024)]
         #[br(count = 1024)]
         #[br(map = read_string)]
         #[bw(map = write_string)]
@@ -89,7 +89,7 @@ pub enum CustomIpcData {
         content_id: u64,
     },
     CharacterImported {
-        #[bw(pad_size_to = 128)]
+        #[brw(pad_size_to = 128)]
         #[br(count = 128)]
         #[br(map = read_string)]
         #[bw(map = write_string)]
@@ -98,13 +98,17 @@ pub enum CustomIpcData {
     DeleteServiceAccount {
         service_account_id: u64,
     },
-    RequestFullCharacterList {},
+    RequestFullCharacterList,
     FullCharacterListResponse {
-        #[bw(pad_size_to = 1024)]
+        #[brw(pad_size_to = 1024)]
         #[br(count = 1024)]
         #[br(map = read_string)]
         #[bw(map = write_string)]
         json: String,
+    },
+    ReloadFestivals,
+    SpawnBattleNpc {
+        bnpc_base_id: u32,
     },
 }
 

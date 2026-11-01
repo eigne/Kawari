@@ -2,7 +2,7 @@ use diesel::prelude::*;
 
 use super::{Character, WorldDatabase, models, schema};
 use crate::{
-    CharaMake, ClassLevels, ClientSelectData, GameData, GrandCompanyRanks, PlayerData, RemakeMode,
+    CharaMake, ClassLevels, ClientSelectData, GameData, GlassesIds, PlayerData, RemakeMode,
     inventory::Inventory,
 };
 use kawari::{
@@ -14,16 +14,15 @@ use kawari::{
     ipc::{
         lobby::{CharacterDetails, CharacterFlag},
         zone::{
-            GameMasterRank, GrandCompany as IpcGrandCompany, OnlineStatus, ServerZoneIpcData,
-            ServerZoneIpcSegment, SocialListUILanguages,
+            GameMasterRank, OnlineStatus, ServerZoneIpcData, ServerZoneIpcSegment,
+            SocialListUILanguages,
         },
     },
 };
 
 impl WorldDatabase {
     /// Returns a row from the Character table, searching either with a content id or a character's name. When sending tells, the ChatConnection is only given a name from the game client, so it needs to pull data in this fashion.
-    // TODO: What's a better name for this function?
-    pub fn find_character_ids(
+    pub fn find_character(
         &mut self,
         for_content_id: Option<u64>,
         for_name: Option<String>,
@@ -139,11 +138,14 @@ impl WorldDatabase {
                 .select(GrandCompany::as_select())
                 .first(&mut self.connection)
                 .unwrap();
+            let buddy = Buddy::belonging_to(&found_character)
+                .select(Buddy::as_select())
+                .first(&mut self.connection)
+                .unwrap();
 
             player_data = PlayerData {
                 character: found_character,
                 classjob,
-                subrace: customize.chara_make.customize.tribe as u8,
                 volatile,
                 inventory: inventory.contents,
                 unlock,
@@ -156,6 +158,9 @@ impl WorldDatabase {
                 mentor,
                 search_info,
                 grand_company,
+                buddy,
+                equipped_glasses_ids: inventory.equipped_glasses_ids.0.try_into().unwrap(),
+                customize,
                 ..Default::default()
             };
         }
@@ -177,6 +182,7 @@ impl WorldDatabase {
         let inventory = Inventory {
             content_id: data.character.content_id,
             contents: data.inventory.clone(),
+            equipped_glasses_ids: GlassesIds(data.equipped_glasses_ids.to_vec()),
         };
         inventory
             .save_changes::<Inventory>(&mut self.connection)
@@ -204,6 +210,14 @@ impl WorldDatabase {
 
         data.grand_company
             .save_changes::<GrandCompany>(&mut self.connection)
+            .unwrap();
+    }
+
+    pub fn commit_customize(&mut self, data: &PlayerData) {
+        use models::*;
+
+        data.customize
+            .save_changes::<Customize>(&mut self.connection)
             .unwrap();
     }
 
@@ -241,6 +255,10 @@ impl WorldDatabase {
         data.grand_company
             .save_changes::<GrandCompany>(&mut self.connection)
             .unwrap();
+        data.buddy
+            .save_changes::<Buddy>(&mut self.connection)
+            .unwrap();
+        self.commit_customize(data);
     }
 
     pub fn get_character_list(
@@ -307,8 +325,17 @@ impl WorldDatabase {
                     .legacy_model_ids(game_data)
                     .map(|x| x.into())
                     .to_vec(),
-                equip_stain: [0; 10].to_vec(),
-                glasses: [0; 2].to_vec(),
+                equip_stain: inventory
+                    .contents
+                    .second_model_stain_ids()
+                    .map(|x| x.into())
+                    .to_vec(),
+                glasses: inventory
+                    .equipped_glasses_ids
+                    .0
+                    .iter()
+                    .map(|x| (*x).into())
+                    .collect(),
                 remake_mode: RemakeMode::from_repr(customize.remake_mode).unwrap(),
                 remake_minutes_remaining: 0,
                 voice_id: customize.chara_make.voice_id,
@@ -367,11 +394,29 @@ impl WorldDatabase {
             classjob_levels.0[index as usize] = 1; // inital level
         }
 
+        // The first character will get the highest GM privileges to not
+        // make running Kawari locally a pain. Subsequent characters (even
+        // on the same account) are normal users until they're promoted.
+        let is_first_character;
+        {
+            use schema::character::dsl::*;
+
+            is_first_character = character
+                .count()
+                .first::<i64>(&mut self.connection)
+                .unwrap_or_default()
+                == 0
+        }
+
         let character = Character {
             content_id: content_id as i64,
             service_account_id: service_account_id as i64,
             actor_id,
-            gm_rank: GameMasterRank::Debug,
+            gm_rank: if is_first_character {
+                GameMasterRank::Debug
+            } else {
+                GameMasterRank::NormalUser
+            },
             name: name.to_string(),
             ..Default::default()
         };
@@ -435,6 +480,7 @@ impl WorldDatabase {
         let inventory = Inventory {
             content_id: content_id as i64,
             contents: inventory,
+            ..Default::default()
         };
         diesel::insert_into(schema::inventory::table)
             .values(inventory)
@@ -499,11 +545,18 @@ impl WorldDatabase {
             .unwrap();
         let grand_company = GrandCompany {
             content_id: content_id as i64,
-            active_company: IpcGrandCompany::None,
-            company_ranks: GrandCompanyRanks::default(),
+            ..Default::default()
         };
         diesel::insert_into(schema::grand_company::table)
             .values(grand_company)
+            .execute(&mut self.connection)
+            .unwrap();
+        let buddy = Buddy {
+            content_id: content_id as i64,
+            ..Default::default()
+        };
+        diesel::insert_into(schema::buddy::table)
+            .values(buddy)
             .execute(&mut self.connection)
             .unwrap();
 
@@ -628,6 +681,13 @@ impl WorldDatabase {
                 .unwrap();
         }
 
+        {
+            use schema::buddy::dsl::*;
+            diesel::delete(buddy.filter(content_id.eq(for_content_id as i64)))
+                .execute(&mut self.connection)
+                .unwrap();
+        }
+
         // Since linkshell management is a little more complex than just deleting all rows with this content id, we do it the slightly slower way. We want orphaned linkshells with zero members to auto-disband.
         // TODO: Implement the ToServer protocol for CustomIpcConnection so we can notify the global server about this character's departures from their linkshells
         if let Some(linkshells) = self.find_linkshells(for_content_id as i64) {
@@ -664,40 +724,6 @@ impl WorldDatabase {
             .unwrap();
     }
 
-    /// Sets the chara make JSON for a character
-    pub fn set_chara_make(&mut self, for_content_id: u64, chara_make_json: &str) {
-        use schema::customize::dsl::*;
-
-        diesel::update(customize.filter(content_id.eq(for_content_id as i64)))
-            .set(chara_make.eq(chara_make_json))
-            .execute(&mut self.connection)
-            .unwrap();
-    }
-
-    /// Gets the chara make for a character
-    pub fn get_chara_make(&mut self, for_content_id: u64) -> CharaMake {
-        use schema::customize::dsl::*;
-
-        CharaMake::from_json(
-            &customize
-                .filter(content_id.eq(for_content_id as i64))
-                .select(chara_make)
-                .first::<String>(&mut self.connection)
-                .unwrap(),
-        )
-    }
-
-    /// Gets the city state for a character
-    pub fn get_city_state(&mut self, for_content_id: u64) -> u8 {
-        use schema::customize::dsl::*;
-
-        customize
-            .filter(content_id.eq(for_content_id as i64))
-            .select(city_state)
-            .first::<i32>(&mut self.connection)
-            .unwrap() as u8
-    }
-
     /// Deletes all character associated with the service account.
     pub fn delete_characters(&mut self, for_service_account_id: u64) {
         use schema::character::dsl::*;
@@ -724,6 +750,8 @@ impl WorldDatabase {
                 .map(|x| BasicCharacterData {
                     content_id: x.content_id as u64,
                     name: x.name.clone(),
+                    gm_rank: x.gm_rank.to_string(),
+                    service_account_id: x.service_account_id as u64,
                 })
                 .collect();
 
@@ -871,26 +899,37 @@ impl WorldDatabase {
             banner_frame: 2,
             title: volatile.title as u16,
             decorations: [78, 18, 8, 28, 339],
-            glasses_ids: [0, 0],
+            glasses_ids: inventory.equipped_glasses_ids.0.try_into().unwrap(),
             unk16: 0,
             unk18: 0,
             item_ids: [
-                inventory.contents.equipped.main_hand.item_id,
-                inventory.contents.equipped.off_hand.item_id,
-                inventory.contents.equipped.head.item_id,
-                inventory.contents.equipped.body.item_id,
-                inventory.contents.equipped.hands.item_id,
-                inventory.contents.equipped.legs.item_id,
-                inventory.contents.equipped.feet.item_id,
-                inventory.contents.equipped.ears.item_id,
-                inventory.contents.equipped.neck.item_id,
-                inventory.contents.equipped.wrists.item_id,
-                inventory.contents.equipped.right_ring.item_id,
-                inventory.contents.equipped.left_ring.item_id,
+                inventory.contents.equipped.main_hand.apparent_id(),
+                inventory.contents.equipped.off_hand.apparent_id(),
+                inventory.contents.equipped.head.apparent_id(),
+                inventory.contents.equipped.body.apparent_id(),
+                inventory.contents.equipped.hands.apparent_id(),
+                inventory.contents.equipped.legs.apparent_id(),
+                inventory.contents.equipped.feet.apparent_id(),
+                inventory.contents.equipped.ears.apparent_id(),
+                inventory.contents.equipped.neck.apparent_id(),
+                inventory.contents.equipped.wrists.apparent_id(),
+                inventory.contents.equipped.right_ring.apparent_id(),
+                inventory.contents.equipped.left_ring.apparent_id(),
             ],
             timestamp: timestamp_secs(),
             comment: search_info.comment.clone(),
             name: for_character.name.clone(),
         })
+    }
+
+    /// Sets the chara make JSON for a character.
+    /// This is only useful for our custom IPC connection. You probably want to use commit_customize.
+    pub fn set_chara_make(&mut self, for_content_id: u64, chara_make_json: &str) {
+        use schema::customize::dsl::*;
+
+        diesel::update(customize.filter(content_id.eq(for_content_id as i64)))
+            .set(chara_make.eq(chara_make_json))
+            .execute(&mut self.connection)
+            .unwrap();
     }
 }

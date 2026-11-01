@@ -1,6 +1,5 @@
-use glam::{Affine3A, EulerRot, Vec3};
+use glam::{Affine3A, EulerRot, Vec3A};
 use parking_lot::Mutex;
-use physis::TerritoryIntendedUse;
 use std::{
     collections::HashMap,
     env::consts::EXE_SUFFIX,
@@ -11,18 +10,22 @@ use std::{
 use tokio::sync::mpsc::Receiver;
 
 use crate::{
-    GameData, Navmesh, SpawnAllocator,
+    GameData, Navmesh,
     lua::KawariLua,
     server::{
-        action::{
-            execute_action, execute_enemy_action, handle_action_messages, kill_actor,
-            update_actor_hp_mp,
+        action::{execute_action, handle_action_messages},
+        actor::{
+            NetworkedActor, NpcState, kill_actor, set_character_mode, set_player_minion,
+            spawn_custom_bnpc, update_actor_hp_mp,
         },
-        actor::{NetworkedActor, NpcState},
         chat::handle_chat_messages,
-        director::{DirectorData, director_tick, handle_director_messages},
+        director::{
+            DirectorData, director_tick, handle_director_messages, handle_director_trigger,
+            send_director_vars,
+        },
         effect::{handle_effect_messages, remove_effect, send_effects_list},
-        instance::{Instance, NavmeshGenerationStep, QueuedTaskData},
+        fate::{ended_fate, fate_tick, start_fate, start_next_fate, unk10_fate},
+        instance::{Instance, NavmeshGenerationStep, QueuedTaskData, remove_actor_from_instance},
         linkshell::handle_linkshell_messages,
         network::{DestinationNetwork, NetworkState},
         party::{
@@ -31,6 +34,7 @@ use crate::{
             update_party_waymarks,
         },
         social::handle_social_messages,
+        spawn_allocator::SpawnAllocator,
         zone::{
             MapGimmick, change_zone_to_player, change_zone_warp_to_entrance,
             change_zone_warp_to_pop_range, handle_zone_messages,
@@ -39,14 +43,16 @@ use crate::{
 };
 use kawari::{
     common::{
-        CharacterMode, DEAD_DESPAWN_TIME, EventState, HandlerId, HandlerType, MAX_SPAWNED_ACTORS,
-        MAX_SPAWNED_OBJECTS, ObjectId, ObjectTypeId, ObjectTypeKind, Position,
-        SharedGroupTimelineState, determine_initial_pop_range, euler_to_direction, is_private_area,
+        AUTO_ATTACK_RATE, CharacterMode, DEAD_DESPAWN_TIME, HandlerId, HandlerType,
+        MAX_SPAWNED_ACTORS, MAX_SPAWNED_OBJECTS, MOB_RESPAWN_TIME, ObjectId, ObjectTypeId,
+        ObjectTypeKind, Position, WarpType, determine_initial_pop_range, euler_to_direction,
+        is_private_area,
     },
     config::get_config,
     ipc::zone::{
-        ActorControlCategory, ClientTriggerCommand, Condition, Conditions, EnmityList, Hater,
-        HaterList, PlayerEnmity, ServerZoneIpcData, ServerZoneIpcSegment, WarpType, WaymarkPreset,
+        ActionRequest, ActionType, ActorControlCategory, ClientTriggerCommand, ClientTriggerTarget,
+        Condition, Conditions, DutyFinderSetting, EnmityList, Hater, HaterList, PlayerEnmity,
+        PrepareZoning, PrepareZoningFlag, ServerZoneIpcData, ServerZoneIpcSegment, WaymarkPreset,
     },
 };
 
@@ -68,8 +74,10 @@ mod linkshell;
 mod network;
 mod party;
 pub use party::{Party, PartyMember};
+mod fate;
 mod npc_behavior;
 mod social;
+mod spawn_allocator;
 mod zone;
 
 #[derive(Default, Debug, Clone)]
@@ -95,7 +103,12 @@ struct WorldServer {
 
 impl WorldServer {
     /// Ensures an instance exists, and creates one if not found.
-    fn ensure_exists(&mut self, zone_id: u16, game_data: &mut GameData) -> &mut Instance {
+    fn ensure_exists(
+        &mut self,
+        zone_id: u16,
+        game_data: &mut GameData,
+        lua: &KawariLua,
+    ) -> &mut Instance {
         let is_public_instance;
         if let Some(intended_use) = game_data.get_intended_use(zone_id as u32) {
             is_public_instance = !is_private_area(intended_use);
@@ -111,7 +124,8 @@ impl WorldServer {
                 .any(|x| x.zone.id == zone_id && x.content_finder_condition_id == 0)
             {
                 tracing::info!("Creating new public instance for zone {zone_id}!");
-                self.instances.push(Instance::new(zone_id, game_data));
+                self.instances
+                    .push(Instance::new(zone_id, game_data, lua, false, false));
             }
 
             self.instances
@@ -120,7 +134,8 @@ impl WorldServer {
                 .unwrap()
         } else {
             tracing::info!("Creating new private instance for zone {zone_id}!");
-            self.instances.push(Instance::new(zone_id, game_data));
+            self.instances
+                .push(Instance::new(zone_id, game_data, lua, false, false));
             self.instances.last_mut().unwrap()
         }
     }
@@ -143,73 +158,92 @@ impl WorldServer {
         &mut self,
         zone_id: u16,
         content_finder_condition: u16,
+        content_settings: DutyFinderSetting,
         game_data: &mut GameData,
+        lua: &KawariLua,
     ) -> Option<&mut Instance> {
-        let mut instance = Instance::new(zone_id, game_data);
+        tracing::info!(
+            "Creating new instance for content {content_finder_condition} (zone {zone_id})!"
+        );
+
+        let mut instance = Instance::new(
+            zone_id,
+            game_data,
+            lua,
+            content_settings.contains(DutyFinderSetting::EXPLORER_MODE),
+            true, // Needed for Occult Crescent I guess
+        );
         instance.content_finder_condition_id = content_finder_condition;
 
-        // TODO: This duplicates a lot of code with ZoneConnection::handle_zone_change :-(
-        let intended_use = TerritoryIntendedUse::from_repr(instance.zone.intended_use).unwrap();
-        let Some(director_type) = HandlerType::from_intended_use(intended_use) else {
-            panic!("Unknown director for {intended_use}!");
-        };
-        let content_id = game_data
-            .find_content_for_content_finder_id(content_finder_condition)
-            .unwrap();
+        if let Some(director_type) = HandlerType::from_intended_use(instance.zone.intended_use) {
+            instance.content_id = game_data
+                .find_content_for_content_finder_id(instance.content_finder_condition_id)
+                .unwrap();
+            instance.duration = Some(Duration::from_mins(
+                game_data
+                    .find_content_time_limit(instance.content_id)
+                    .unwrap_or_default() as u64,
+            ));
+            if content_finder_condition == 476 {
+                // The native duty timer starts on entry. Feast's match clock
+                // starts after its preparation period.
+                instance.duration = Some(Duration::from_secs(FEAST_DUTY_DURATION as u64));
+            }
 
-        let id = HandlerId::new(director_type, content_id);
+            let id = HandlerId::new(director_type, instance.content_id);
 
-        // Setup Lua state for our director
-        let lua = KawariLua::new();
+            // Setup Lua state for our director
+            let lua = KawariLua::new();
 
-        // Find the script for this content
-        let content_short_name = game_data
-            .get_content_short_name(content_finder_condition)
-            .unwrap();
-        let file_name = get_config()
-            .filesystem
-            .locate_script_file(&format!("content/{content_short_name}.lua"));
+            // Find the script for this content
+            let content_short_name = game_data
+                .get_content_short_name(content_finder_condition)
+                .unwrap();
+            let file_name = get_config()
+                .filesystem
+                .locate_script_file(&format!("content/{content_short_name}.lua"));
 
-        let result = std::fs::read(&file_name);
-        if let Err(err) = result {
-            tracing::warn!(
-                "Failed to load {}: {:?} instance content won't be scripted!",
-                file_name,
-                err
-            );
-        } else {
-            let file = result.unwrap();
+            let mut director = DirectorData {
+                id,
+                ..Default::default()
+            };
 
-            if let Err(err) = lua
-                .0
-                .load(file)
-                .set_name("@".to_string() + &file_name)
-                .exec()
-            {
+            let result = std::fs::read(&file_name);
+            if let Err(err) = result {
                 tracing::warn!(
-                    "Syntax error in {}: {:?} instance content won't be scripted!",
+                    "Failed to load {}: {:?} instance content won't be scripted!",
                     file_name,
                     err
                 );
             } else {
-                let mut director = DirectorData {
-                    id,
-                    flag: 0,
-                    data: [0; 10],
-                    lua,
-                    tasks: Vec::new(),
-                    bosses: HashMap::new(),
-                    shortcut_poprange_id: None,
-                };
+                let file = result.unwrap();
 
-                // Call into the onSetup function before returning, as we need the flag to be initialized before any players change zones.
-                director.setup();
+                if let Err(err) = lua
+                    .0
+                    .load(file)
+                    .set_name("@".to_string() + &file_name)
+                    .exec()
+                {
+                    tracing::warn!(
+                        "Syntax error in {}: {:?} instance content won't be scripted!",
+                        file_name,
+                        err
+                    );
+                } else {
+                    director.lua = lua;
 
-                instance.director = Some(director);
+                    // Call into the onSetup function before returning, as we need the flag to be initialized before any players change zones.
+                    director.setup();
+                }
             }
-        }
 
-        // TODO: init director even if script isn't found
+            instance.directors.push(director);
+        } else {
+            tracing::warn!(
+                "No director created for TerritoryIntendedUse {}! If this is unexpected, please report it.",
+                instance.zone.intended_use
+            );
+        }
 
         // Ensure we have the entrance set correctly
         let entrance_id = game_data
@@ -220,6 +254,21 @@ impl WorldServer {
                 range.entrance = true;
                 break;
             }
+        }
+
+        instance.content_settings = Some(content_settings);
+
+        // Set up level sync
+        let needs_sync = {
+            if content_settings.contains(DutyFinderSetting::UNRESTRICTED_PARTY) {
+                content_settings.contains(DutyFinderSetting::LEVEL_SYNC)
+            } else {
+                !content_settings.contains(DutyFinderSetting::EXPLORER_MODE)
+            }
+        };
+        if needs_sync {
+            instance.synced_level =
+                game_data.find_content_synced_level(instance.content_finder_condition_id);
         }
 
         self.instances.push(instance);
@@ -244,7 +293,10 @@ impl WorldServer {
     /// Removes instances without players in them, which wastes resources.
     fn cleanup_dead_instances(&mut self) {
         self.instances.retain(|instance| {
-            instance
+            matches!(
+                instance.generate_navmesh,
+                NavmeshGenerationStep::None | NavmeshGenerationStep::Needed(..)
+            ) && instance
                 .actors
                 .iter()
                 .any(|x| matches!(x.1, NetworkedActor::Player { .. }))
@@ -252,128 +304,11 @@ impl WorldServer {
     }
 }
 
-// TODO: move elsewhere...
-fn set_player_minion(
-    data: &mut WorldServer,
-    network: &mut NetworkState,
-    minion_id: u32,
-    from_actor_id: ObjectId,
-) {
-    // Update our common spawn to reflect the new minion
-    let Some(instance) = data.find_actor_instance_mut(from_actor_id) else {
-        return;
-    };
-
-    let Some(actor) = instance.find_actor_mut(from_actor_id) else {
-        return;
-    };
-
-    let NetworkedActor::Player { spawn, .. } = actor else {
-        return;
-    };
-
-    spawn.common.active_minion = minion_id as u16;
-
-    network.send_ac_in_range_inclusive(
-        data,
-        from_actor_id,
-        ActorControlCategory::MinionSpawnControl { minion_id },
-    );
-}
-
-fn set_character_mode(
-    instance: &mut Instance,
-    network: &mut NetworkState,
-    from_actor_id: ObjectId,
-    mode: CharacterMode,
-    mode_arg: u8,
-) {
-    // Update internal data model for new spawns
-    {
-        let Some(actor) = instance.find_actor_mut(from_actor_id) else {
-            return;
-        };
-
-        // Skip if this mode is already set.
-        if actor.get_common_spawn().mode == mode && actor.get_common_spawn().mode_arg == mode_arg {
-            return;
-        }
-
-        actor.get_common_spawn_mut().mode = mode;
-        actor.get_common_spawn_mut().mode_arg = mode_arg;
-    }
-
-    // Inform actors
-    network.send_ac_in_range_inclusive_instance(
-        instance,
-        from_actor_id,
-        ActorControlCategory::SetMode {
-            mode,
-            mode_arg: mode_arg as u32,
-        },
-    );
-}
-
-fn set_shared_group_timeline_state(
-    instance: &mut Instance,
-    network: &mut NetworkState,
-    from_actor_id: ObjectId,
-    timelines: &[u32],
-) {
-    let mut state = SharedGroupTimelineState::empty();
-    for timeline in timelines {
-        state.toggle(match timeline {
-            1 => SharedGroupTimelineState::TIMELINE_1,
-            2 => SharedGroupTimelineState::TIMELINE_2,
-            3 => SharedGroupTimelineState::TIMELINE_3,
-            4 => SharedGroupTimelineState::TIMELINE_4,
-            5 => SharedGroupTimelineState::TIMELINE_5,
-            6 => SharedGroupTimelineState::TIMELINE_6,
-            7 => SharedGroupTimelineState::TIMELINE_7,
-            8 => SharedGroupTimelineState::TIMELINE_8,
-            9 => SharedGroupTimelineState::TIMELINE_9,
-            10 => SharedGroupTimelineState::TIMELINE_10,
-            11 => SharedGroupTimelineState::TIMELINE_11,
-            12 => SharedGroupTimelineState::TIMELINE_12,
-            13 => SharedGroupTimelineState::TIMELINE_13,
-            14 => SharedGroupTimelineState::TIMELINE_14,
-            15 => SharedGroupTimelineState::TIMELINE_15,
-            16 => SharedGroupTimelineState::TIMELINE_16,
-            _ => unimplemented!(),
-        });
-    }
-
-    // Update internal data model for new spawns
-    {
-        let Some(actor) = instance.find_actor_mut(from_actor_id) else {
-            return;
-        };
-
-        let NetworkedActor::Object { object, .. } = actor else {
-            return;
-        };
-
-        object.args1 = state.bits();
-    }
-
-    // Inform actors
-    network.send_ac_in_range_inclusive_instance(
-        instance,
-        from_actor_id,
-        ActorControlCategory::SetSharedGroupTimelineState {
-            state,
-            arg2: 0,
-            object_type: 0,
-            layout_id: 0,
-        },
-    );
-}
-
 fn server_logic_tick(
     data: Arc<Mutex<WorldServer>>,
     network: Arc<Mutex<NetworkState>>,
+    game_data: Arc<Mutex<GameData>>,
     lua: Arc<Mutex<KawariLua>>,
-    gamedata: Arc<Mutex<GameData>>,
 ) {
     let mut actors_to_update_hp_mp = Vec::new();
     let mut actors_to_fake_zone_jump = Vec::new();
@@ -397,17 +332,12 @@ fn server_logic_tick(
             feast::tick(instance, &network);
             feast_training::tick(instance, &network);
             let mut haters = HashMap::new();
-            npc_behavior::npc_behavior(
-                network.clone(),
-                lua.clone(),
-                gamedata.clone(),
-                instance,
-                &mut haters,
-            );
+            npc_behavior::npc_behavior(network.clone(), game_data.clone(), instance, &mut haters);
 
             let mut actors_now_gimmick_jumping = Vec::new();
             let mut actors_now_inside_instance_exits = Vec::new();
             let mut actors_now_outside_instance_entrances = Vec::new();
+            let mut actors_autoattacking = Vec::new();
 
             // Player area stuffs
             for (id, actor) in &instance.actors {
@@ -416,6 +346,8 @@ fn server_logic_tick(
                     conditions,
                     executing_gimmick_jump,
                     inside_instance_exit: inside_instance_entrance,
+                    autoattack_target,
+                    autoattack_timing,
                     ..
                 } = actor
                 else {
@@ -472,6 +404,16 @@ fn server_logic_tick(
                     continue;
                 };
 
+                // TODO: find a better place for this
+                if autoattack_target.is_some() {
+                    // Schedule any pending auto-attacks:
+                    let should_auto_attack =
+                        (*autoattack_timing % (AUTO_ATTACK_RATE + 1)) == AUTO_ATTACK_RATE;
+                    if should_auto_attack {
+                        actors_autoattacking.push(*id);
+                    }
+                }
+
                 // Check for overlapping map ranges
                 let overlapping_ranges =
                     instance.zone.get_overlapping_map_ranges(actor.position().0);
@@ -480,7 +422,7 @@ fn server_logic_tick(
                 // We're on the 10 second mark, and you're in a sanctuary...
                 if in_sanctuary && rested_exp_counter == 0 {
                     // Update rested EXP! (This means it only has a ten second granularity, but who cares?)
-                    let msg = FromServer::IncrementRestedExp();
+                    let msg = FromServer::IncrementRestedExp;
                     if handle.send(msg).is_err() {
                         // TODO: remove as needed
                         //self.to_remove.push(id);
@@ -494,8 +436,8 @@ fn server_logic_tick(
                     for range in &overlapping_ranges {
                         if let Some(gimmick) = &range.gimmick {
                             match gimmick {
-                                MapGimmick::Generic {} => {
-                                    if let Some(director) = &mut instance.director {
+                                MapGimmick::Generic => {
+                                    if let Some(director) = &mut instance.directors.first_mut() {
                                         director.on_gimmick_rect(range.instance_id);
                                     }
                                 }
@@ -600,11 +542,12 @@ fn server_logic_tick(
                     let a_position = a.1.position();
                     let b_position = b.1.position();
 
-                    let a_distance = Vec3::distance(actor.position().0, a_position.0);
-                    let b_distance = Vec3::distance(actor.position().0, b_position.0);
+                    let a_distance = Vec3A::distance(actor.position().0, a_position.0);
+                    let b_distance = Vec3A::distance(actor.position().0, b_position.0);
 
                     a_distance.total_cmp(&b_distance)
                 });
+                let mut aoe_actors_to_evaluate = Vec::new();
                 for (other_id, other_actor) in actors_by_distance {
                     // We're always in our own view
                     if *id == *other_id {
@@ -675,7 +618,87 @@ fn server_logic_tick(
                     } else {
                         unreachable!();
                     }
+
+                    if still_in
+                        && let NetworkedActor::Npc { state, .. } = other_actor
+                        && *state == NpcState::AoeTest
+                    {
+                        aoe_actors_to_evaluate.push(*other_id);
+                    }
                 }
+
+                // Process AoEs (currently only test actors) and a cone at that
+                for aoe_actor_id in &aoe_actors_to_evaluate {
+                    let Some(aoe_actor) = instance.find_actor(*aoe_actor_id) else {
+                        continue;
+                    };
+
+                    let our_position = actor.position().0;
+                    let their_position = aoe_actor.position().0;
+                    let their_rotation = aoe_actor.rotation();
+
+                    let max_cone_distance = 12.0;
+                    let max_cone_angle = 60.0;
+
+                    let mut pass =
+                        Vec3A::distance(our_position, their_position) < max_cone_distance;
+
+                    let direction_to_target = their_position - our_position;
+                    let forward = Vec3A::new(0.0, 0.0, -1.0).rotate_y(their_rotation);
+                    let cone_angle =
+                        Vec3A::angle_between(forward, direction_to_target).to_degrees();
+                    if pass && cone_angle > max_cone_angle {
+                        pass = false;
+                    }
+
+                    let lockon_id = if pass {
+                        136 // green checkmark
+                    } else {
+                        137 // red cross
+                    };
+
+                    let msg = FromServer::ActorControlSelf(ActorControlCategory::ShowLockonVfx {
+                        id: lockon_id,
+                        target: handle.actor_id,
+                    });
+                    if handle.send(msg).is_err() {
+                        // TODO: remove as needed
+                        //self.to_remove.push(id);
+                    }
+                }
+            }
+
+            // Process any auto-attacks
+            for actor in &actors_autoattacking {
+                let Some(NetworkedActor::Player {
+                    autoattack_target,
+                    spawn,
+                    ..
+                }) = instance.find_actor_mut(*actor)
+                else {
+                    continue;
+                };
+
+                let request = ActionRequest {
+                    action_id: 7, // TODO: Unsure if this is actually the correct player auto-attack
+                    action_type: ActionType::Action,
+                    rotation1: spawn.common.rotation,
+                    target: ObjectTypeId {
+                        object_id: autoattack_target.unwrap(),
+                        object_type: ObjectTypeKind::EObjOrNpc,
+                    },
+                    ..Default::default()
+                };
+
+                instance.insert_task(
+                    ClientId::default(),
+                    *actor,
+                    Duration::from_secs_f32(0.0),
+                    QueuedTaskData::CastAction {
+                        request: request.clone(),
+                        interruptible: false,
+                    },
+                );
             }
 
             // Set players as gimmick jumping, as the client does *not* send position updates during it.
@@ -718,9 +741,17 @@ fn server_logic_tick(
 
             // NOTE: I know this isn't retail accurate
             for (id, actor) in &mut instance.actors {
-                if let NetworkedActor::Player { spawn, .. } = actor {
+                if let NetworkedActor::Player {
+                    spawn,
+                    autoattack_timing,
+                    ..
+                } = actor
+                {
                     let in_combat = haters.contains_key(id);
                     let is_dead = spawn.common.health_points == 0;
+
+                    // TODO: find a better place for this
+                    *autoattack_timing += 1;
 
                     // Don't heal people who are in combat or dead, please.
                     if in_combat
@@ -805,7 +836,8 @@ fn server_logic_tick(
             }
 
             // Process any director tasks for this instance.
-            director_tick(network.clone(), instance);
+            director_tick(network.clone(), instance, game_data.clone());
+            fate_tick(network.clone(), instance, game_data.clone());
         }
         // Ensure the rested EXP counter only happens every 10 seconds.
         data.rested_exp_counter += 1;
@@ -827,21 +859,21 @@ fn server_logic_tick(
     }
 
     for (id, exit_pop_range_id) in actors_to_fake_zone_jump {
-        let mut game_data = gamedata.lock();
+        let mut game_data = game_data.lock();
         let mut data = data.lock();
         let mut network = network.lock();
+        let lua = lua.lock();
         let from_id = network.find_by_actor(id).unwrap();
         change_zone_warp_to_pop_range(
             &mut data,
             &mut network,
             &mut game_data,
+            &lua,
             None, // None here means that we don't want to change their current instance
             exit_pop_range_id,
             id,
             from_id,
             WarpType::Event,
-            0,
-            0,
             0,
         );
     }
@@ -885,8 +917,8 @@ pub async fn server_main_loop(
                 server_logic_tick(
                     data.clone(),
                     network.clone(),
-                    lua.clone(),
                     game_data.clone(),
+                    lua.clone(),
                 );
 
                 // Execute list of queued tasks
@@ -897,13 +929,13 @@ pub async fn server_main_loop(
                     {
                         let mut data = data.lock();
                         for (i, instance) in data.instances.iter_mut().enumerate() {
-                            for task in &instance.queued_task {
-                                if task.point <= Instant::now() {
-                                    tasks_to_execute.push((i, task.clone()));
-                                }
+                            for task in &instance
+                                .queued_task
+                                .extract_if(.., |x| x.point <= Instant::now())
+                                .collect::<Vec<_>>()
+                            {
+                                tasks_to_execute.push((i, task.clone()));
                             }
-                            // Keep all tasks that happen in the future.
-                            instance.queued_task.retain(|x| x.point > Instant::now());
                         }
                     }
 
@@ -919,18 +951,6 @@ pub async fn server_main_loop(
                                     task.from_actor_id,
                                     request.clone(),
                                 );
-                            }
-                            QueuedTaskData::CastEnemyAction { request, .. } => {
-                                let mut data = data.lock();
-                                if let Some(instance) = data.instances.get_mut(*instance_index) {
-                                    execute_enemy_action(
-                                        network.clone(),
-                                        instance,
-                                        lua.clone(),
-                                        task.from_actor_id,
-                                        request.clone(),
-                                    );
-                                }
                             }
                             QueuedTaskData::LoseStatusEffect {
                                 effect_id,
@@ -948,14 +968,17 @@ pub async fn server_main_loop(
                                     *effect_source_actor_id,
                                 );
                             }
-                            QueuedTaskData::DeadFadeOut { actor_id } => {
+                            QueuedTaskData::DeadFadeOut {
+                                actor_id,
+                                respawn_layout_id,
+                            } => {
                                 let mut data = data.lock();
                                 let mut network = network.lock();
                                 if let Some(instance) = data.instances.get_mut(*instance_index) {
                                     network.send_ac_in_range_instance(
                                         instance,
                                         *actor_id,
-                                        ActorControlCategory::DeadFadeOut {},
+                                        ActorControlCategory::DeadFadeOut,
                                     );
 
                                     instance.insert_task(
@@ -964,23 +987,42 @@ pub async fn server_main_loop(
                                         DEAD_DESPAWN_TIME,
                                         QueuedTaskData::DeadDespawn {
                                             actor_id: *actor_id,
+                                            respawn_layout_id: *respawn_layout_id,
                                         },
+                                    );
+                                } else {
+                                    tracing::warn!(
+                                        "Could not find instance to dead fade out {actor_id}?!"
                                     );
                                 }
                             }
-                            QueuedTaskData::DeadDespawn { actor_id } => {
+                            QueuedTaskData::DeadDespawn {
+                                actor_id,
+                                respawn_layout_id,
+                            } => {
                                 // despawn
                                 let mut data = data.lock();
                                 if let Some(instance) = data.find_actor_instance_mut(*actor_id) {
                                     let mut network = network.lock();
                                     network.remove_actor(instance, *actor_id);
+
+                                    if let Some(layout_id) = respawn_layout_id {
+                                        instance.insert_task(
+                                            ClientId::default(),
+                                            ObjectId::default(),
+                                            MOB_RESPAWN_TIME,
+                                            QueuedTaskData::RespawnMob {
+                                                layout_id: *layout_id,
+                                            },
+                                        );
+                                    }
                                 }
                             }
                             QueuedTaskData::CastEventAction { target } => {
                                 let mut data = data.lock();
                                 if let Some(instance) =
                                     data.find_actor_instance_mut(task.from_actor_id)
-                                    && let Some(director) = &mut instance.director
+                                    && let Some(director) = &mut instance.directors.first_mut()
                                 {
                                     director.event_action_cast(task.from_actor_id, *target);
                                 }
@@ -989,7 +1031,7 @@ pub async fn server_main_loop(
                                 let mut network = network.lock();
                                 network.send_to(
                                     task.from_id,
-                                    FromServer::FishBite(),
+                                    FromServer::FishBite,
                                     DestinationNetwork::ZoneClients,
                                 );
                             }
@@ -997,7 +1039,7 @@ pub async fn server_main_loop(
                                 let mut data = data.lock();
                                 if let Some(instance) =
                                     data.find_actor_instance_mut(task.from_actor_id)
-                                    && let Some(director) = &mut instance.director
+                                    && let Some(director) = &mut instance.directors.first_mut()
                                 {
                                     director.seal_boss_wall(*id, *place_name);
                                 }
@@ -1014,6 +1056,7 @@ pub async fn server_main_loop(
                                 let mut data = data.lock();
                                 let mut network = network.lock();
                                 let mut game_data = game_data.lock();
+                                let lua = lua.lock();
 
                                 let from_id = network.find_by_actor(task.from_actor_id).unwrap();
 
@@ -1021,13 +1064,12 @@ pub async fn server_main_loop(
                                     &mut data,
                                     &mut network,
                                     &mut game_data,
+                                    &lua,
                                     None, // Means we don't want to change their current instance
                                     *id,
                                     task.from_actor_id,
                                     from_id,
                                     WarpType::Normal,
-                                    0,
-                                    0,
                                     0,
                                 );
                             }
@@ -1036,7 +1078,7 @@ pub async fn server_main_loop(
                                     .find_actor_instance_mut(task.from_actor_id)
                                     .is_some_and(|instance| instance.zone.id == 745);
                                 if still_in_feast {
-                                    handle_zone_messages(data.clone(), network.clone(), game_data.clone(),
+                                    handle_zone_messages(data.clone(), network.clone(), game_data.clone(), lua.clone(),
                                         &ToServer::ReturnAfterDeath(task.from_id, task.from_actor_id, *homepoint));
                                 }
                             }
@@ -1052,6 +1094,87 @@ pub async fn server_main_loop(
                                 {
                                     *last_combo_action = 0;
                                     *combo_sequence = 0;
+                                }
+                            }
+                            QueuedTaskData::RespawnMob { layout_id } => {
+                                let mut data = data.lock();
+                                if let Some(instance) = data.instances.get_mut(*instance_index)
+                                    && let Some(npc) = instance.zone.get_battle_npc(*layout_id)
+                                {
+                                    let actor_id = ObjectId(fastrand::u32(..));
+                                    let config = get_config();
+                                    let mut game_data = game_data.lock();
+                                    instance.insert_npc(actor_id, npc, &config, &mut game_data);
+                                }
+                            }
+                            QueuedTaskData::EndFate { fate_id } => {
+                                let mut data = data.lock();
+                                let mut ended_ac = None;
+                                let mut unk10_ac = None;
+                                if let Some(instance) = data.instances.get_mut(*instance_index) {
+                                    if let Some(fate_instance) =
+                                        instance.fates.iter_mut().find(|x| x.fate_id == *fate_id)
+                                    {
+                                        ended_fate(fate_instance);
+                                        ended_ac = Some(fate_instance.create_fate_init_ac());
+
+                                        unk10_fate(fate_instance);
+                                        unk10_ac = Some(fate_instance.create_fate_init_ac());
+                                    }
+
+                                    // Remove the instance
+                                    instance.fates.retain(|x| x.fate_id != *fate_id);
+                                }
+
+                                if let Some(instance) = data.instances.get(*instance_index)
+                                    && let Some(ended_ac) = ended_ac
+                                    && let Some(unk10_ac) = unk10_ac
+                                {
+                                    let mut network = network.lock();
+                                    network.send_to_instance(
+                                        ObjectId::default(),
+                                        instance,
+                                        FromServer::ActorControlSelf(ended_ac),
+                                        DestinationNetwork::ZoneClients,
+                                    );
+                                    network.send_to_instance(
+                                        ObjectId::default(),
+                                        instance,
+                                        FromServer::ActorControlSelf(unk10_ac),
+                                        DestinationNetwork::ZoneClients,
+                                    );
+                                    network.send_to_instance(
+                                        ObjectId::default(),
+                                        instance,
+                                        FromServer::FATEComplete,
+                                        DestinationNetwork::ZoneClients,
+                                    );
+                                }
+
+                                // Fill in the FATE slot
+                                if let Some(instance) = data.instances.get_mut(*instance_index) {
+                                    let mut network = network.lock();
+                                    let mut game_data = game_data.lock();
+                                    let lua = lua.lock();
+                                    start_next_fate(&mut network, &mut game_data, &lua, instance);
+                                }
+                            }
+                            QueuedTaskData::TerminateDirector { handler_id } => {
+                                let mut data = data.lock();
+                                if let Some(instance) = data.instances.get_mut(*instance_index) {
+                                    instance.directors.retain(|x| x.id != *handler_id);
+
+                                    let mut network = network.lock();
+                                    network.send_to_instance(
+                                        ObjectId::default(),
+                                        instance,
+                                        FromServer::ActorControlSelf(
+                                            ActorControlCategory::TerminateDirector {
+                                                handler_id: *handler_id,
+                                            },
+                                        ),
+                                        DestinationNetwork::ZoneClients,
+                                    );
                                 }
                             }
                         }
@@ -1072,10 +1195,16 @@ pub async fn server_main_loop(
             &msg,
         );
         handled |= handle_social_messages(data.clone(), network.clone(), &msg);
-        handled |= handle_zone_messages(data.clone(), network.clone(), game_data.clone(), &msg);
+        handled |= handle_zone_messages(
+            data.clone(),
+            network.clone(),
+            game_data.clone(),
+            lua.clone(),
+            &msg,
+        );
         handled |= handle_action_messages(data.clone(), game_data.clone(), network.clone(), &msg);
         handled |= handle_effect_messages(data.clone(), network.clone(), lua.clone(), &msg);
-        handled |= handle_director_messages(data.clone(), &msg);
+        handled |= handle_director_messages(data.clone(), network.clone(), game_data.clone(), &msg);
         handled |= handle_party_messages(data.clone(), network.clone(), &msg);
         handled |= handle_linkshell_messages(network.clone(), &msg);
 
@@ -1156,16 +1285,11 @@ pub async fn server_main_loop(
                     let instance;
                     {
                         let mut game_data = game_data.lock();
-                        instance = data.ensure_exists(zone_id, &mut game_data);
+                        let lua = lua.lock();
+                        instance = data.ensure_exists(zone_id, &mut game_data, &lua);
                     }
 
                     instance.insert_empty_actor(from_actor_id);
-
-                    // TODO: de-duplicate with other ChangeZone call-sites
-                    let director_vars = instance
-                        .director
-                        .as_ref()
-                        .map(|director| director.build_var_segment());
 
                     let exit_position;
                     let exit_rotation;
@@ -1179,7 +1303,7 @@ pub async fn server_main_loop(
                         {
                             let (_, rotation, translation) =
                                 Affine3A::from(object.transform).to_scale_rotation_translation();
-                            exit_position = Position(translation);
+                            exit_position = Position(translation.into());
                             exit_rotation = euler_to_direction(rotation.to_euler(EulerRot::XYZ));
                         } else {
                             exit_position = position;
@@ -1198,8 +1322,7 @@ pub async fn server_main_loop(
                         exit_position,
                         exit_rotation,
                         instance.zone.to_lua_zone(instance.weather_id),
-                        true, // since this is initial login
-                        director_vars,
+                        instance.content_handler_id(),
                     );
 
                     network.send_to(from_id, msg, DestinationNetwork::ZoneClients);
@@ -1296,6 +1419,9 @@ pub async fn server_main_loop(
                             {
                                 let mut network = network.lock();
                                 network.send_to(from_id, msg, DestinationNetwork::ZoneClients);
+                                let msg =
+                                    FromServer::CheckTeleportSharingEligibility(*aetheryte_id);
+                                network.send_to(from_id, msg, DestinationNetwork::ZoneClients);
                             }
 
                             let mut data = data.lock();
@@ -1323,8 +1449,8 @@ pub async fn server_main_loop(
                             let mut network = network.lock();
                             network.send_to(from_id, msg, DestinationNetwork::ZoneClients);
                         }
-                        ClientTriggerCommand::DespawnMinion { .. } => {
-                            let msg = FromServer::ActorDespawnsMinion();
+                        ClientTriggerCommand::DespawnMinion => {
+                            let msg = FromServer::ActorDespawnsMinion;
 
                             let mut network = network.lock();
                             network.send_to(from_id, msg, DestinationNetwork::ZoneClients);
@@ -1333,14 +1459,6 @@ pub async fn server_main_loop(
                             actor_id,
                             actor_type,
                         } => {
-                            {
-                                let mut data = data.lock();
-                                if let Some(instance) = data.find_actor_instance_mut(from_actor_id)
-                                    && let Some(actor) = instance.find_actor_mut(from_actor_id)
-                                {
-                                    actor.get_common_spawn_mut().target_id.object_id = *actor_id;
-                                }
-                            }
                             // For whatever reason these don't match what the server has to send back, so they cannot be directly reused.
                             let actor_type = match *actor_type {
                                 0 => ObjectTypeKind::None,
@@ -1355,16 +1473,23 @@ pub async fn server_main_loop(
                                 }
                             };
 
+                            let object_type_id = ObjectTypeId {
+                                object_id: *actor_id,
+                                object_type: actor_type,
+                            };
+
+                            let mut data = data.lock();
+                            if let Some(instance) = data.find_actor_instance_mut(from_actor_id)
+                                && let Some(actor) = instance.find_actor_mut(from_actor_id)
+                            {
+                                actor.get_common_spawn_mut().target_id = object_type_id;
+                            }
+
                             let msg = FromServer::ActorControlTarget(
                                 from_actor_id,
-                                ObjectTypeId {
-                                    object_id: *actor_id,
-                                    object_type: actor_type,
-                                },
-                                ActorControlCategory::SetTarget {},
+                                object_type_id,
+                                ActorControlCategory::SetTarget,
                             );
-
-                            let data = data.lock();
 
                             let mut network = network.lock();
                             network.send_in_range(
@@ -1374,22 +1499,23 @@ pub async fn server_main_loop(
                                 DestinationNetwork::ZoneClients,
                             );
                         }
-                        ClientTriggerCommand::SetSoftTarget {} => {
-                            let msg = FromServer::ActorControlTarget(
-                                from_actor_id,
-                                trigger.target.unwrap_or_default(),
-                                ActorControlCategory::SetSoftTarget {},
-                            );
+                        ClientTriggerCommand::SetSoftTarget => {
+                            if let ClientTriggerTarget::Actor(actor) = trigger.target {
+                                let msg = FromServer::ActorControlTarget(
+                                    from_actor_id,
+                                    actor,
+                                    ActorControlCategory::SetSoftTarget,
+                                );
 
-                            let data = data.lock();
-
-                            let mut network = network.lock();
-                            network.send_in_range(
-                                from_actor_id,
-                                &data,
-                                msg,
-                                DestinationNetwork::ZoneClients,
-                            );
+                                let data = data.lock();
+                                let mut network = network.lock();
+                                network.send_in_range(
+                                    from_actor_id,
+                                    &data,
+                                    msg,
+                                    DestinationNetwork::ZoneClients,
+                                );
+                            }
                         }
                         ClientTriggerCommand::ChangePose { unk1, pose } => {
                             let msg = FromServer::ActorControl(
@@ -1450,42 +1576,45 @@ pub async fn server_main_loop(
                             }
                         }
                         ClientTriggerCommand::Emote { emote, hide_text } => {
-                            let msg = FromServer::ActorControlTarget(
-                                from_actor_id,
-                                trigger.target.unwrap(),
-                                ActorControlCategory::Emote {
-                                    emote: *emote,
-                                    hide_text: *hide_text,
-                                },
-                            );
-
-                            let mut data = data.lock();
-
-                            let mut network = network.lock();
-                            network.send_in_range(
-                                from_actor_id,
-                                &data,
-                                msg,
-                                DestinationNetwork::ZoneClients,
-                            );
-
-                            // setup persistence if looping
-                            let emote_mode;
-                            {
-                                let mut game_data = game_data.lock();
-                                emote_mode = game_data.get_emote_mode(*emote);
-                            }
-
-                            if let Some(mode) = emote_mode
-                                && let Some(instance) = data.find_actor_instance_mut(from_actor_id)
-                            {
-                                set_character_mode(
-                                    instance,
-                                    &mut network,
+                            if let ClientTriggerTarget::Actor(actor) = trigger.target {
+                                let msg = FromServer::ActorControlTarget(
                                     from_actor_id,
-                                    CharacterMode::EmoteLoop,
-                                    mode,
+                                    actor,
+                                    ActorControlCategory::Emote {
+                                        emote: *emote,
+                                        hide_text: *hide_text,
+                                    },
                                 );
+
+                                let mut data = data.lock();
+                                let mut network = network.lock();
+                                network.send_in_range(
+                                    from_actor_id,
+                                    &data,
+                                    msg,
+                                    DestinationNetwork::ZoneClients,
+                                );
+
+                                // setup persistence if looping
+                                let emote_mode;
+                                {
+                                    let mut game_data = game_data.lock();
+                                    emote_mode = game_data.get_emote_mode(*emote);
+                                }
+
+                                if let Some(mode) = emote_mode
+                                    && let Some(instance) =
+                                        data.find_actor_instance_mut(from_actor_id)
+                                {
+                                    set_character_mode(
+                                        instance,
+                                        &mut network,
+                                        from_actor_id,
+                                        CharacterMode::EmoteLoop,
+                                        mode,
+                                        true,
+                                    );
+                                }
                             }
                         }
                         ClientTriggerCommand::ToggleWeapon { shown, unk_flag } => {
@@ -1494,6 +1623,7 @@ pub async fn server_main_loop(
                                 ActorControlCategory::ToggleWeapon {
                                     shown: *shown,
                                     unk_flag: *unk_flag,
+                                    unk2: 1,
                                 },
                             );
 
@@ -1623,7 +1753,7 @@ pub async fn server_main_loop(
 
                             update_party_waymark(&mut network, &data, from_actor_id, *id, None);
                         }
-                        ClientTriggerCommand::ClearAllWaymarks {} => {
+                        ClientTriggerCommand::ClearAllWaymarks => {
                             let data = data.lock();
                             let mut network = network.lock();
 
@@ -1636,7 +1766,7 @@ pub async fn server_main_loop(
                             );
                         }
                         ClientTriggerCommand::ToggleSign { sign_id, .. } => {
-                            let Some(target_actor) = trigger.target else {
+                            let ClientTriggerTarget::Actor(target_actor) = trigger.target else {
                                 continue;
                             };
 
@@ -1994,16 +2124,16 @@ pub async fn server_main_loop(
                                 ActorControlCategory::SetBattle { battle: false },
                             );
                         }
-                        ClientTriggerCommand::EmoteInterrupted {} => {
+                        ClientTriggerCommand::EmoteInterrupted => {
                             let data = data.lock();
                             let mut network = network.lock();
                             network.send_ac_in_range_inclusive(
                                 &data,
                                 from_actor_id,
-                                ActorControlCategory::InterruptEmote {},
+                                ActorControlCategory::InterruptEmote,
                             );
                         }
-                        ClientTriggerCommand::LoopingEmoteInterrupted {} => {
+                        ClientTriggerCommand::LoopingEmoteInterrupted => {
                             let mut data = data.lock();
                             let Some(instance) = data.find_actor_instance_mut(from_actor_id) else {
                                 continue;
@@ -2016,6 +2146,95 @@ pub async fn server_main_loop(
                                 from_actor_id,
                                 CharacterMode::Normal,
                                 0,
+                                true,
+                            );
+                        }
+                        ClientTriggerCommand::ToggleAutoAttack { on, target, .. } => {
+                            let mut data = data.lock();
+                            if let Some(instance) = data.find_actor_instance_mut(from_actor_id)
+                                && let Some(actor) = instance.find_actor_mut(from_actor_id)
+                            {
+                                match actor {
+                                    NetworkedActor::Player {
+                                        autoattack_target, ..
+                                    } => {
+                                        if *on {
+                                            *autoattack_target = Some(*target);
+                                        } else {
+                                            *autoattack_target = None;
+                                        }
+                                    }
+                                    _ => unreachable!(),
+                                }
+                            }
+                        }
+                        ClientTriggerCommand::StartPreparingFATE { fate_id, .. } => {
+                            let mut data = data.lock();
+                            if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
+                                let mut network = network.lock();
+                                start_fate(&mut network, instance, *fate_id);
+                            }
+                        }
+                        ClientTriggerCommand::AcceptRevive { .. } => {
+                            // Currently always warp back to the entrance
+                            let mut data = data.lock();
+                            if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
+                                if let Some(actor) = instance.find_actor_mut(from_actor_id) {
+                                    // poor man's revive
+                                    actor.get_common_spawn_mut().health_points =
+                                        actor.get_common_spawn().max_health_points;
+                                }
+                                update_actor_hp_mp(network.clone(), instance, from_actor_id);
+
+                                let mut network = network.lock();
+                                let mut game_data = game_data.lock();
+
+                                let ipc = ServerZoneIpcSegment::new(
+                                    ServerZoneIpcData::PrepareZoning(PrepareZoning {
+                                        territory_type_id: instance.zone.id,
+                                        warp_type: WarpType::Resurrection,
+                                        vfx_id: 113,
+                                        hide_character: 2,
+                                        fade_out_delay: 1,
+                                        flags: PrepareZoningFlag::UNK2,
+                                        ..Default::default()
+                                    }),
+                                );
+
+                                network.send_to_by_actor_id(
+                                    from_actor_id,
+                                    FromServer::PacketSegment(ipc, from_actor_id),
+                                    DestinationNetwork::ZoneClients,
+                                );
+
+                                change_zone_warp_to_entrance(
+                                    &mut network,
+                                    &mut game_data,
+                                    instance,
+                                    false,
+                                    from_id,
+                                    WarpType::Resurrection,
+                                );
+                            }
+                        }
+                        ClientTriggerCommand::DirectorTrigger {
+                            handler_id,
+                            trigger,
+                        } => {
+                            handle_director_trigger(
+                                network.clone(),
+                                game_data.clone(),
+                                from_actor_id,
+                                *handler_id,
+                                trigger,
+                            );
+                        }
+                        ClientTriggerCommand::ReadyForDirectorVars => {
+                            send_director_vars(
+                                data.clone(),
+                                network.clone(),
+                                game_data.clone(),
+                                from_actor_id,
                             );
                         }
                         _ => tracing::warn!("Unknown client trigger {:#?}", trigger),
@@ -2040,7 +2259,10 @@ pub async fn server_main_loop(
                     spawn.common.display_flags = config.display_flag.into();
 
                     let mut network = network.lock();
-                    let msg = FromServer::UpdateConfig(from_actor_id, config.clone());
+                    let msg = FromServer::PacketSegment(
+                        ServerZoneIpcSegment::new(ServerZoneIpcData::Config(config.clone())),
+                        from_actor_id,
+                    );
 
                     network.send_in_range_inclusive_instance(
                         from_actor_id,
@@ -2100,7 +2322,7 @@ pub async fn server_main_loop(
                     // Tell our sibling chat connection that it's time to go too.
                     network.send_to_by_actor_id(
                         from_actor_id,
-                        FromServer::ChatDisconnected(),
+                        FromServer::ChatDisconnected,
                         DestinationNetwork::ChatClients,
                     );
 
@@ -2128,7 +2350,7 @@ pub async fn server_main_loop(
                     let mut network = network.lock();
                     network.to_remove_chat.push(from_id);
                 }
-                ToServer::JoinContent(from_id, from_actor_id, content_id) => {
+                ToServer::JoinContent(from_id, from_actor_id, content_id, settings) => {
                     // For now, just send them to do the zone if they do anything
                     let zone_id;
                     {
@@ -2156,26 +2378,29 @@ pub async fn server_main_loop(
                         let mut data = data.lock();
 
                         for (_, actor_id) in &actor_ids {
-                            // inform the players in this zone that this actor left
-                            if let Some(current_instance) = data.find_actor_instance_mut(*actor_id)
-                            {
-                                network.remove_actor(current_instance, *actor_id);
-                            }
+                            remove_actor_from_instance(&mut data, &mut network, *actor_id);
                         }
 
                         // then find or create a new instance with the zone id and content finder condition
                         let mut game_data = game_data.lock();
-                        if let Some(target_instance) =
-                            data.create_instance_for_content(zone_id, content_id, &mut game_data)
-                        {
+                        let lua = lua.lock();
+                        if let Some(target_instance) = data.create_instance_for_content(
+                            zone_id,
+                            content_id,
+                            settings,
+                            &mut game_data,
+                            &lua,
+                        ) {
                             for (client_id, actor_id) in &actor_ids {
                                 target_instance.insert_empty_actor(*actor_id);
 
                                 change_zone_warp_to_entrance(
                                     &mut network,
+                                    &mut game_data,
                                     target_instance,
-                                    true, // TODO: this shouldn't be hardcoded
+                                    true,
                                     *client_id,
+                                    WarpType::Normal,
                                 );
                             }
                         } else {
@@ -2195,24 +2420,17 @@ pub async fn server_main_loop(
                     let mut data = data.lock();
                     let mut network = network.lock();
 
-                    // Inform the players in this zone that this actor left
-                    if let Some(current_instance) = data.find_actor_instance_mut(from_actor_id) {
-                        network.remove_actor(current_instance, from_actor_id);
-                    }
+                    remove_actor_from_instance(&mut data, &mut network, from_actor_id);
 
                     // create a new instance if necessary
                     let instance;
                     {
                         let mut game_data = game_data.lock();
-                        instance = data.ensure_exists(old_zone_id, &mut game_data);
+                        let lua = lua.lock();
+                        instance = data.ensure_exists(old_zone_id, &mut game_data, &lua);
                     }
 
                     instance.insert_empty_actor(from_actor_id);
-
-                    let director_vars = instance
-                        .director
-                        .as_ref()
-                        .map(|director| director.build_var_segment());
 
                     // tell the client to load into the zone
                     let msg = FromServer::ChangeZone(
@@ -2222,8 +2440,7 @@ pub async fn server_main_loop(
                         old_position,
                         old_rotation,
                         instance.zone.to_lua_zone(instance.weather_id),
-                        false,
-                        director_vars,
+                        instance.content_handler_id(),
                     );
                     network.send_to(from_client_id, msg, DestinationNetwork::ZoneClients);
                 }
@@ -2244,46 +2461,6 @@ pub async fn server_main_loop(
                     };
 
                     *conditions = new_conditions;
-                }
-                ToServer::CommenceDuty(from_actor_id) => {
-                    let mut data = data.lock();
-                    let entrance_actor_id;
-                    let state = EventState::OFF | EventState::UNK2 | EventState::UNK3;
-
-                    {
-                        let Some(instance) = data.find_actor_instance_mut(from_actor_id) else {
-                            continue;
-                        };
-
-                        // Find the spawned entrance circle
-                        let Some(actor_id) = instance.find_entrance_circle() else {
-                            tracing::warn!("Failed to find entrance circle, it won't despawn!");
-                            continue;
-                        };
-                        entrance_actor_id = actor_id;
-
-                        // Update invisibility flags for next spawn
-                        if let Some(NetworkedActor::Object { object, .. }) =
-                            instance.find_actor_mut(entrance_actor_id)
-                        {
-                            object.event_state = state;
-                            object.not_targetable = true;
-                        }
-                    }
-
-                    // Make the entrance circle invisible.
-                    let msg = FromServer::ActorControl(
-                        entrance_actor_id,
-                        ActorControlCategory::SetEventState { state },
-                    );
-
-                    let mut network = network.lock();
-                    network.send_in_range(
-                        entrance_actor_id,
-                        &data,
-                        msg,
-                        DestinationNetwork::ZoneClients,
-                    );
                 }
                 ToServer::Kill(_from_id, from_actor_id) => {
                     let mut data = data.lock();
@@ -2355,7 +2532,7 @@ pub async fn server_main_loop(
                         from_client_id,
                         from_actor_id,
                         Duration::from_secs(2),
-                        QueuedTaskData::FishBite {},
+                        QueuedTaskData::FishBite,
                     );
                 }
                 ToServer::ReloadScripts => {
@@ -2422,7 +2599,7 @@ pub async fn server_main_loop(
                         continue;
                     };
 
-                    set_character_mode(instance, &mut network, from_actor_id, mode, arg);
+                    set_character_mode(instance, &mut network, from_actor_id, mode, arg, false);
                 }
                 ToServer::BroadcastActorControl(from_actor_id, actor_control) => {
                     let data = data.lock();
@@ -2453,6 +2630,7 @@ pub async fn server_main_loop(
                     let mut data = data.lock();
                     let mut network = network.lock();
                     let mut game_data = game_data.lock();
+                    let lua = lua.lock();
 
                     let to_actor_id = data.find_actor_by_name(&name);
 
@@ -2460,6 +2638,7 @@ pub async fn server_main_loop(
                         &mut network,
                         &mut data,
                         &mut game_data,
+                        &lua,
                         from_id,
                         to_actor_id,
                     );
@@ -2468,6 +2647,7 @@ pub async fn server_main_loop(
                     let mut data = data.lock();
                     let mut network = network.lock();
                     let mut game_data = game_data.lock();
+                    let lua = lua.lock();
 
                     let actor_id = data.find_actor_by_name(&name);
                     if let Some(client_id) = network.find_by_actor(actor_id) {
@@ -2475,25 +2655,69 @@ pub async fn server_main_loop(
                             &mut network,
                             &mut data,
                             &mut game_data,
+                            &lua,
                             client_id,
                             from_actor_id,
                         );
                     }
                 }
-                ToServer::SpawnLayoutNpc(from_actor_id, layout_id) => {
+                ToServer::EquipGlasses(from_actor_id, slot, id) => {
                     let mut data = data.lock();
 
                     let Some(instance) = data.find_actor_instance_mut(from_actor_id) else {
                         continue;
                     };
 
-                    if let Some(mut npc) = instance.zone.get_battle_npc(layout_id) {
-                        npc.common.handler_id = HandlerId::new(HandlerType::GoldSaucer, 1319); // TODO: hardcoded to gold saucer for now
-                        let config = get_config();
-                        instance.insert_npc(ObjectId(fastrand::u32(..)), npc, &config);
-                    } else {
-                        tracing::warn!(
-                            "Failed to find npc {layout_id} for SpawnLayoutNpc, it won't spawn!"
+                    let Some(actor) = instance.find_actor_mut(from_actor_id) else {
+                        continue;
+                    };
+
+                    let NetworkedActor::Player { spawn, .. } = actor else {
+                        continue;
+                    };
+
+                    // update their stored state so it's correctly sent on new spawns
+                    spawn.common.glasses_ids[slot as usize] = id as u16;
+
+                    let mut network = network.lock();
+                    network.send_ac_in_range_inclusive_instance(
+                        instance,
+                        from_actor_id,
+                        ActorControlCategory::SetGlasses { index: slot, id },
+                    );
+                }
+                ToServer::ReloadFestivals => {
+                    // TODO: This would override festivals in special zones that use this for content (like Ocean fishing) currently
+                    // TODO: what about the latter 4 festivals?
+                    let mut network = network.lock();
+                    let config = get_config();
+                    let clients: Vec<ClientId> = network.clients.keys().copied().collect();
+                    for id in clients {
+                        network.send_to(
+                            id,
+                            FromServer::ActorControlSelf(ActorControlCategory::SetFestival {
+                                festival1: config.world.active_festivals[0] as u32,
+                                festival2: config.world.active_festivals[1] as u32,
+                                festival3: config.world.active_festivals[2] as u32,
+                                festival4: config.world.active_festivals[3] as u32,
+                            }),
+                            DestinationNetwork::ZoneClients,
+                        );
+                    }
+                }
+                ToServer::SpawnBattleNpc(bnpc_base_id) => {
+                    // Currently spawns it on the first player we find
+                    let mut data = data.lock();
+                    let mut game_data = game_data.lock();
+                    let network = network.lock();
+                    if let Some(first_client) = network.clients.values().collect::<Vec<_>>().first()
+                    {
+                        spawn_custom_bnpc(
+                            &mut data,
+                            &mut game_data,
+                            first_client.0.actor_id,
+                            bnpc_base_id,
+                            405,
                         );
                     }
                 }

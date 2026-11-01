@@ -1,4 +1,6 @@
-use binrw::binrw;
+use std::io::Cursor;
+
+use binrw::{BinWrite, binrw};
 use strum_macros::IntoStaticStr;
 
 use crate::common::{
@@ -11,10 +13,6 @@ use crate::ipc::zone::client::HouseId;
 #[binrw]
 #[derive(Debug, PartialEq, Clone, IntoStaticStr)]
 pub enum ClientTriggerCommand {
-    /// Accepting a raise (5) or returning to the homepoint after death (8).
-    #[brw(magic = 200u32)]
-    Resurrect { kind: u32 },
-
     /// The player sheathes/unsheathes their weapon.
     #[brw(magic = 1u32)]
     ToggleWeapon {
@@ -45,7 +43,7 @@ pub enum ClientTriggerCommand {
 
     /// The player looks or stops looking at an actor using the soft targetting system.
     #[brw(magic = 4u32)]
-    SetSoftTarget {},
+    SetSoftTarget,
 
     /// The client is trying to dismount their current mount.
     #[brw(magic = 101u32)]
@@ -57,7 +55,7 @@ pub enum ClientTriggerCommand {
 
     /// The client requests a minion to be despawned.
     #[brw(magic = 103u32)]
-    DespawnMinion {},
+    DespawnMinion,
 
     /// When the player right-clicks their status effect to remove it.
     #[brw(magic = 104u32)]
@@ -76,9 +74,14 @@ pub enum ClientTriggerCommand {
         target_seat_index: u32,
     },
 
+    /// The client accepted a revive, at least from the system.
+    /// `kind` is 5 for accepting a raise and 8 for returning after death.
+    #[brw(magic = 200u32)]
+    AcceptRevive { kind: u32 },
+
     /// The client is finished zoning.
     #[brw(magic = 201u32)]
-    FinishZoning {},
+    FinishZoning,
 
     /// The player selects a teleport destination.
     #[brw(magic = 202u32)]
@@ -119,11 +122,11 @@ pub enum ClientTriggerCommand {
 
     /// The client requests the player's unlocked titles.
     #[brw(magic = 303u32)]
-    RequestTitleList {},
+    RequestTitleList,
 
     /// Requests the name of a player by their content ID. Seen used for crafted items.
     #[brw(magic = 305u32)]
-    RequestPlayerName {},
+    RequestPlayerName,
 
     /// The client shows an Active Help pop-up. This is triggered *when* it's shown, not when closed.
     #[brw(magic = 306u32)]
@@ -135,7 +138,7 @@ pub enum ClientTriggerCommand {
 
     /// The client clears all waymarks.
     #[brw(magic = 313u32)]
-    ClearAllWaymarks {},
+    ClearAllWaymarks,
 
     /// The client begins using the Idle Camera or Group Pose feature.
     #[brw(magic = 314u32)]
@@ -143,7 +146,7 @@ pub enum ClientTriggerCommand {
 
     /// The client opens the World Visit menu.
     #[brw(magic = 316u32)]
-    OpenWorldVisit {},
+    OpenWorldVisit,
 
     /// The client places a waymark.
     #[brw(magic = 317u32)]
@@ -173,7 +176,7 @@ pub enum ClientTriggerCommand {
     RequestMateriaMeld { actor_id: ObjectId },
 
     #[brw(magic = 444u32)]
-    OpenChocoboSaddlebag {},
+    OpenChocoboSaddlebag,
 
     /// The player is preparing to remove materia.
     #[brw(magic = 437u32)]
@@ -209,11 +212,9 @@ pub enum ClientTriggerCommand {
     /// When equipping using the Facewear window.
     #[brw(magic = 455u32)]
     EquipGlasses {
-        unk1: u32,
+        // Guessed!
+        slot: u32,
         id: u32,
-        unk2: u32,
-        unk3: u32,
-        unk4: u32,
     },
 
     /// The player begins an emote.
@@ -230,11 +231,11 @@ pub enum ClientTriggerCommand {
 
     /// The player interrupts their normal emote.
     #[brw(magic = 502u32)]
-    EmoteInterrupted {},
+    EmoteInterrupted,
 
     /// The player interrupts their looping emote.
     #[brw(magic = 503u32)]
-    LoopingEmoteInterrupted {},
+    LoopingEmoteInterrupted,
 
     /// The player explicitly changed their pose.
     #[brw(magic = 505u32)]
@@ -255,11 +256,11 @@ pub enum ClientTriggerCommand {
 
     /// When the player begins swimming. Seems to have no parameters.
     #[brw(magic = 608u32)]
-    BeginSwimming {},
+    BeginSwimming,
 
     /// When the player stops swimming (by going back on land, mounting, etc.). Seems to have no parameters.
     #[brw(magic = 609u32)]
-    EndSwimming {},
+    EndSwimming,
 
     /// When the player enters an area where mounting is prohibited in a zone that otherwise permits zoning. Commonly seen during Moonfire Faire festivals, and does not seem to have an exit counterpart.
     #[brw(magic = 612u32)]
@@ -267,7 +268,7 @@ pub enum ClientTriggerCommand {
 
     /// When the player starts flying on their mount.
     #[brw(magic = 616u32)]
-    StartFlying {},
+    StartFlying,
 
     /// When the player starts crafting.
     #[brw(magic = 700u32)]
@@ -294,11 +295,47 @@ pub enum ClientTriggerCommand {
         id: u32,
     },
 
+    /// Seen right before the server sends DirectorVars etc.
+    #[brw(magic = 801u32)]
+    ReadyForDirectorVars,
+
     /// Various triggers related to instanced content.
     #[brw(magic = 808u32)]
     DirectorTrigger {
         handler_id: HandlerId,
+        #[br(args(handler_id))]
         trigger: DirectorTrigger,
+    },
+
+    /// Start the prepared FATE, through a motivation NPC.
+    #[brw(magic = 809u32)]
+    StartPreparingFATE {
+        /// Index into the Fate Excel sheet.
+        fate_id: u32,
+        /// ID of the motivation NPC actor.
+        motivation_npc_id: ObjectId,
+    },
+
+    /// Seen while entering a running FATE. Unsure what it could be used for.
+    #[brw(magic = 812u32)]
+    EnteredRunningFate {
+        /// Index into the Fate Excel sheet.
+        fate_id: u32,
+    },
+
+    /// The player presses the "Level Sync" button in the UI for FATEs.
+    #[brw(magic = 813u32)]
+    FateLevelSync {
+        /// Index into the Fate Excel sheet.
+        fate_id: u32,
+        unk1: u32,
+    },
+
+    /// The client is requesting to update the type for this actor. Responds with AC FateStartNpc.
+    #[brw(magic = 814u32)]
+    RequestFateNpc {
+        /// The actor in question.
+        actor_id: ObjectId,
     },
 
     /// When a player requests an NPC (or player?) to a Triple Triad match.
@@ -366,7 +403,7 @@ pub enum ClientTriggerCommand {
 
     /// The client requests to warp to the housing interior's front door.
     #[brw(magic = 1122u32)]
-    HousingMoveToFrontDoor {},
+    HousingMoveToFrontDoor,
 
     /// The client has requested an apartment building's residents list from either an apartment building entrance or an apartment's front door.
     #[brw(magic = 1125u32)]
@@ -406,6 +443,10 @@ pub enum ClientTriggerCommand {
     #[brw(magic = 1600u32)]
     RepairItem { unk1: u32, unk2: u32, unk3: u32 },
 
+    /// The client requests to withdraw their chocobo through the context menu.
+    #[brw(magic = 1700u32)]
+    WithdrawCompanion { unk1: u32 },
+
     /// The client is performing a pet action.
     #[brw(magic = 1800u32)]
     PetAction {
@@ -413,19 +454,26 @@ pub enum ClientTriggerCommand {
         action_id: u32,
     },
 
+    /// The client wants to start or stop playing an instrument.
+    #[brw(magic = 1820u32)]
+    StartOrStopPerforming {
+        /// Index into the Perform Excel sheet. If zero, it means to stop performing.
+        perform_id: u32,
+    },
+
     /// The client opens the General tab in the Gold Saucer window.
     #[brw(magic = 1850u32)]
-    OpenGoldSaucerGeneralTab {},
+    OpenGoldSaucerGeneralTab,
 
     /// The client challengers another player to a normal match.
     #[brw(magic = 1950u32)]
     ChallengeNormalMatch { unk1: u32, unk2: u32 },
 
     #[brw(magic = 1980u32)]
-    BeginContentsReplay {},
+    BeginContentsReplay,
 
     #[brw(magic = 1981u32)]
-    EndContentsReplay {},
+    EndContentsReplay,
 
     /// Sent whenever the client tries to begin a Hall of the Novice exercise.
     #[brw(magic = 2050u32)]
@@ -435,7 +483,11 @@ pub enum ClientTriggerCommand {
 
     /// Sent whenever the client uses the /nastatus command.
     #[brw(magic = 2100u32)]
-    ToggleNoviceStatus {},
+    ToggleNoviceStatus,
+
+    /// Sent when the "Join Novice Network" button is pressed in the chat window.
+    #[brw(magic = 2102u32)]
+    JoinNoviceNetwork,
 
     /// Sent whenever the client requests to duel another player.
     #[brw(magic = 2200u32)]
@@ -470,23 +522,42 @@ pub enum ClientTriggerCommand {
 
     /// The client opens the Mahjong tab in the Gold Saucer window.
     #[brw(magic = 2550u32)]
-    OpenGoldSaucerMahjongTab {},
+    OpenGoldSaucerMahjongTab,
 
     /// The client opens the Trust window.
     #[brw(magic = 2651u32)]
-    OpenTrustWindow {},
+    OpenTrustWindow,
 
     /// The client opens the Duty Support window.
     #[brw(magic = 2653u32)]
-    OpenDutySupportWindow {},
+    OpenDutySupportWindow,
+
+    /// The client registers for a content in the Duty Support window.
+    #[brw(magic = 2654u32)]
+    RegisterDutySupport {
+        /// Index into the DawnContent Excel sheet.
+        dawn_content_id: u32,
+        unk1: u32,
+        unk2: u32,
+        unk3: u32,
+        unk4: u32,
+    },
 
     /// The client opens the Portrait window.
     #[brw(magic = 3200u32)]
-    OpenPortraitsWindow {},
+    OpenPortraitsWindow,
 
     /// The client is ready to begin loading a zone.
     #[brw(magic = 3201u32)]
-    BeginLoading {},
+    BeginLoading,
+
+    /// The client rolls an n-sided die with the /random command. If the amount of sides is zero (meaning the player didn't specify any), the server treats it as a 999-sided die.
+    #[brw(magic = 9000u32)]
+    ZoneDiceRoll {
+        // Only the second u32 is used, the others seem unused
+        #[brw(pad_before = 4, pad_after = 12)]
+        num_sides: u32,
+    },
 
     /// The client opens the Mogpendium or interacts with the Retainer Bell.
     #[brw(magic = 9003u32)]
@@ -499,7 +570,6 @@ pub enum ClientTriggerCommand {
     #[doc(hidden)]
     Unknown {
         category: u32,
-        // seen in haircut event
         unk1: u32,
         unk2: u32,
         unk3: u32,
@@ -508,30 +578,47 @@ pub enum ClientTriggerCommand {
     },
 }
 
+#[derive(Debug, Clone, Default, PartialEq)]
+pub enum ClientTriggerTarget {
+    /// Refers to a GameObject.
+    Actor(ObjectTypeId),
+    /// Refers to a player by their unique content ID.
+    ContentId(u64),
+    #[default]
+    None,
+}
+
+fn read_target(id: u64) -> ClientTriggerTarget {
+    if let Ok(actor) = ObjectTypeId::try_from(id) {
+        ClientTriggerTarget::Actor(actor)
+    } else if id > 0 {
+        ClientTriggerTarget::ContentId(id)
+    } else {
+        ClientTriggerTarget::None
+    }
+}
+
+fn write_target(target: &ClientTriggerTarget) -> u64 {
+    match target {
+        ClientTriggerTarget::Actor(object_type_id) => {
+            let mut cursor = Cursor::new(Vec::new());
+            object_type_id.write_le(&mut cursor).unwrap();
+
+            u64::from_le_bytes(cursor.into_inner().try_into().unwrap_or_default())
+        }
+        ClientTriggerTarget::ContentId(content_id) => *content_id,
+        ClientTriggerTarget::None => 0,
+    }
+}
+
 #[binrw]
 #[derive(Debug, Clone)]
 pub struct ClientTrigger {
     #[brw(pad_size_to = 24)] // take into account categories without params
     pub trigger: ClientTriggerCommand,
-
-    /// Can be a ObjectTypeId or a content ID.
-    #[br(temp)]
-    #[bw(calc = {
-        if let Some(target) = self.target {
-            target.into()
-        } else {
-            content_id.unwrap_or_default()
-        }
-    })]
-    target_id: u64,
-
-    // TODO: double check in a couple of months to see if the double-fallibility here is a stupid idea
-    #[br(calc = ObjectTypeId::try_from(target_id).ok())]
-    #[bw(ignore)]
-    pub target: Option<ObjectTypeId>,
-    #[br(calc = if target.is_none() { Some(target_id) } else { None } )]
-    #[bw(ignore)]
-    pub content_id: Option<u64>,
+    #[br(map = read_target)]
+    #[bw(map = write_target)]
+    pub target: ClientTriggerTarget,
 }
 
 impl Default for ClientTrigger {
@@ -541,8 +628,7 @@ impl Default for ClientTrigger {
                 actor_id: ObjectId::default(),
                 actor_type: 0,
             },
-            target: None,
-            content_id: None,
+            target: Default::default(),
         }
     }
 }
@@ -564,7 +650,7 @@ mod tests {
         bytes[..4].copy_from_slice(&200u32.to_le_bytes());
         bytes[4..8].copy_from_slice(&8u32.to_le_bytes());
         let trigger = ClientTrigger::read_le(&mut Cursor::new(bytes)).unwrap();
-        assert_eq!(trigger.trigger, ClientTriggerCommand::Resurrect { kind: 8 });
+        assert_eq!(trigger.trigger, ClientTriggerCommand::AcceptRevive { kind: 8 });
     }
 
     #[test]
@@ -584,15 +670,12 @@ mod tests {
                 unk2: 0,
             }
         );
-        // For this CT command, there should never be a content id in this field.
-        assert!(toggle_sign.content_id.is_none());
-        assert!(toggle_sign.target.is_some());
         assert_eq!(
-            toggle_sign.target.unwrap(),
-            ObjectTypeId {
+            toggle_sign.target,
+            ClientTriggerTarget::Actor(ObjectTypeId {
                 object_id: ObjectId(1140471), // Random NPC in New Gridania
                 object_type: ObjectTypeKind::EObjOrNpc,
-            }
+            })
         )
     }
 }

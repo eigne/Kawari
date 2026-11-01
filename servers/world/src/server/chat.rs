@@ -1,15 +1,17 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
-use bstr::BString;
 use kawari::{
-    common::{DEBUG_COMMAND_TRIGGER, ObjectId},
-    config::get_config,
+    common::{
+        DEBUG_COMMAND_TRIGGER, DirectorEvent, EOBJ_EXIT, EventState, HandlerId, HandlerType,
+        ObjectId, WarpType,
+    },
     ipc::zone::{
-        ActionRequest, ActionType, BattleNpcSubKind, CharacterDataFlag, CommonSpawn, ObjectKind,
-        ServerNoticeMessage, ServerZoneIpcData, ServerZoneIpcSegment, SpawnNpc, WarpType,
+        ActionRequest, ActionType, ActorControlCategory, ServerNoticeMessage, ServerZoneIpcData,
+        ServerZoneIpcSegment, SpawnTreasure, TreasureKind,
     },
 };
 use parking_lot::Mutex;
+use physis::sestring::SeString;
 
 use crate::{
     ClientId, FromServer, GameData, ToServer,
@@ -17,8 +19,10 @@ use crate::{
     server::{
         WorldServer,
         action::execute_action,
-        actor::NetworkedActor,
-        instance::Instance,
+        actor::{NetworkedActor, NpcState, spawn_custom_bnpc},
+        director::{DirectorData, LuaDirectorTask},
+        fate::spawn_fate,
+        instance::QueuedTaskData,
         network::{DestinationNetwork, NetworkState},
         zone::change_zone_warp_to_pop_range,
     },
@@ -148,7 +152,7 @@ fn process_debug_commands(
     lua: Arc<Mutex<KawariLua>>,
     from_id: ClientId,
     from_actor_id: ObjectId,
-    chat_message: &BString, // TODO: Replace this with an SEString
+    chat_message: &SeString,
 ) -> bool {
     // TODO: Ensure the message has no SEString macros (e.g. auto-translate phrases)?
     let chat_message = chat_message.to_string();
@@ -185,87 +189,10 @@ fn process_debug_commands(
                 && let Ok(id) = id.parse::<u32>()
             {
                 let mut data = data.lock();
+                let mut game_data = game_data.lock();
 
-                let actor_id = Instance::generate_actor_id();
-                let npc_spawn;
-                {
-                    let Some(instance) = data.find_actor_instance_mut(from_actor_id) else {
-                        return true;
-                    };
-
-                    let Some(actor) = instance.find_actor(from_actor_id) else {
-                        return true;
-                    };
-
-                    let NetworkedActor::Player { spawn, .. } = actor else {
-                        return true;
-                    };
-
-                    let (model_chara, battalion, customize, rank, npc_equip, equip, behavior);
-                    {
-                        let mut game_data = game_data.lock();
-                        (model_chara, battalion, customize, rank, npc_equip, behavior) =
-                            game_data.find_bnpc(id).unwrap();
-                        equip = game_data
-                            .get_npc_equip(npc_equip as u32)
-                            .unwrap_or_default()
-                    }
-
-                    npc_spawn = SpawnNpc {
-                        character_data_flags: CharacterDataFlag::HOSTILE,
-                        character_data_icon: rank,
-                        common: CommonSpawn {
-                            health_points: 1500,
-                            max_health_points: 1500,
-                            resource_points: 100,
-                            max_resource_points: 100,
-                            base_id: id,
-                            name_id: 405,
-                            object_kind: ObjectKind::BattleNpc(BattleNpcSubKind::Enemy),
-                            level: 1,
-                            battalion,
-                            model_chara,
-                            position: spawn.common.position,
-                            look: customize,
-                            behavior,
-                            ..equip
-                        },
-                        ..Default::default()
-                    };
-
-                    let config = get_config();
-                    instance.insert_npc(actor_id, npc_spawn.clone(), &config);
-                }
+                spawn_custom_bnpc(&mut data, &mut game_data, from_actor_id, id, 405);
             }
-            true
-        }
-        "!spawnclone" => {
-            let mut data = data.lock();
-
-            let actor_id = Instance::generate_actor_id();
-            let npc_spawn;
-            {
-                let Some(instance) = data.find_actor_instance_mut(from_actor_id) else {
-                    return true;
-                };
-
-                let Some(actor) = instance.find_actor(from_actor_id) else {
-                    return true;
-                };
-
-                let NetworkedActor::Player { spawn, .. } = actor else {
-                    return true;
-                };
-
-                npc_spawn = SpawnNpc {
-                    common: spawn.common.clone(),
-                    ..Default::default()
-                };
-
-                let config = get_config();
-                instance.insert_npc(actor_id, npc_spawn.clone(), &config);
-            }
-
             true
         }
         "!mount" => {
@@ -273,8 +200,8 @@ fn process_debug_commands(
                 let mount_id = match mount.parse::<u16>() {
                     Ok(id) => id,
                     Err(_) => {
-                        let mut gamedata = game_data.lock();
-                        gamedata
+                        let mut game_data = game_data.lock();
+                        game_data
                             .get_mount_id_from_name(mount.to_string())
                             .unwrap_or(1) // Fallback to a company chocobo otherwise
                     }
@@ -329,7 +256,7 @@ fn process_debug_commands(
                         return true;
                     };
 
-                    let Some(director) = &instance.director else {
+                    let Some(director) = &instance.directors.first() else {
                         return true;
                     };
 
@@ -339,21 +266,415 @@ fn process_debug_commands(
 
                 let mut network = network.lock();
                 let mut game_data = game_data.lock();
+                let lua = lua.lock();
                 // None here means we don't want them to change from their current instance.
                 change_zone_warp_to_pop_range(
                     &mut data,
                     &mut network,
                     &mut game_data,
+                    &lua,
                     None,
                     shortcut_poprange_id,
                     from_actor_id,
                     from_id,
                     WarpType::Normal,
                     0,
-                    0,
-                    0,
                 );
             }
+
+            true
+        }
+        "!strikingdummy" => {
+            let mut data = data.lock();
+            let mut game_data = game_data.lock();
+            spawn_custom_bnpc(&mut data, &mut game_data, from_actor_id, 11744, 541);
+
+            true
+        }
+        "!fate" => {
+            let mut data = data.lock();
+            if let Some((_, id)) = chat_message.split_once(' ')
+                && let Some(instance) = data.find_actor_instance_mut(from_actor_id)
+            {
+                let mut network = network.lock();
+                let mut game_data = game_data.lock();
+                let lua = lua.lock();
+                spawn_fate(
+                    &mut network,
+                    &mut game_data,
+                    &lua,
+                    instance,
+                    id.parse().unwrap(),
+                );
+            }
+
+            true
+        }
+        "!mapeffect" => {
+            let parts: Vec<&str> = chat_message.split(' ').collect();
+
+            let mut data = data.lock();
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
+                let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::DirectorMapEffect {
+                    handler_id: instance.directors.first().unwrap().id,
+                    state: parts.get(1).cloned().unwrap_or_default().parse().unwrap(),
+                    timeline_id: parts.get(2).cloned().unwrap_or_default().parse().unwrap(),
+                    index: parts.get(3).cloned().unwrap_or_default().parse().unwrap(),
+                });
+                let mut network = network.lock();
+                network.send_to(
+                    from_id,
+                    FromServer::PacketSegment(ipc, from_actor_id),
+                    DestinationNetwork::ZoneClients,
+                );
+            }
+
+            true
+        }
+        "!ofbg" => {
+            let parts: Vec<&str> = chat_message.split(' ').collect();
+
+            let mut data = data.lock();
+            let mut network = network.lock();
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
+                // TODO: Should we reject doing this if it's attempted from other types of content?
+                // Ocean fishing uses "festival" ids of 101 & 102, set when entering the zone, but it's more convenient to set it in this command for the time being
+                network.send_to(
+                    from_id,
+                    FromServer::ActorControlSelf(ActorControlCategory::SetFestival {
+                        festival1: 101,
+                        festival2: 102,
+                        festival3: 0,
+                        festival4: 0,
+                    }),
+                    DestinationNetwork::ZoneClients,
+                );
+                // The director sends this with a background arg and a "phase" arg when the scenery needs to change. See the IKDSpot sheet for arg1 values (the row number should be increased by 1, so Kugane Coast would be 10, not 9).
+                network.send_to(
+                    from_id,
+                    FromServer::ActorControlSelf(ActorControlCategory::DirectorEvent {
+                        handler_id: instance.directors.first().unwrap().id,
+                        event: DirectorEvent::Unknown {
+                            id: 2,
+                            arg1: parts
+                                .get(1)
+                                .cloned()
+                                .unwrap_or_default()
+                                .parse()
+                                .unwrap_or_default(),
+                            arg2: parts
+                                .get(2)
+                                .cloned()
+                                .unwrap_or_default()
+                                .parse()
+                                .unwrap_or_default(),
+                            arg3: 0,
+                            arg4: 0,
+                        },
+                    }),
+                    DestinationNetwork::ZoneClients,
+                );
+            }
+
+            true
+        }
+        "!fateinfo" => {
+            let mut data = data.lock();
+            let mut network = network.lock();
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id)
+                && let Some(actor) = instance.find_actor(from_actor_id)
+            {
+                let ranges = instance.zone.get_overlapping_map_ranges(actor.position().0);
+                if let Some(fate_range) = ranges.iter().find(|x| x.fate.is_some()) {
+                    let message;
+                    if let Some(instance) = instance
+                        .fates
+                        .iter()
+                        .find(|x| x.fate_id == fate_range.fate.unwrap())
+                    {
+                        message = format!(
+                            "Fate Id: {}\nState: {:?}\nStarted At: {:?}",
+                            fate_range.fate.unwrap(),
+                            instance.fate_state,
+                            instance.start_timestamp
+                        );
+                    } else {
+                        message =
+                            format!("Fate Id: {}\nState: Not Spawned", fate_range.fate.unwrap());
+                    }
+
+                    let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ServerNoticeMessage(
+                        ServerNoticeMessage {
+                            message,
+                            ..Default::default()
+                        },
+                    ));
+
+                    network.send_to(
+                        from_id,
+                        FromServer::PacketSegment(ipc, from_actor_id),
+                        DestinationNetwork::ZoneClients,
+                    );
+                } else {
+                    let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ServerNoticeMessage(
+                        ServerNoticeMessage {
+                            message: "There's not a FATE here.".to_string(),
+                            ..Default::default()
+                        },
+                    ));
+
+                    network.send_to(
+                        from_id,
+                        FromServer::PacketSegment(ipc, from_actor_id),
+                        DestinationNetwork::ZoneClients,
+                    );
+                }
+            }
+
+            true
+        }
+        "!fatecomplete" => {
+            let mut data = data.lock();
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id)
+                && let Some(actor) = instance.find_actor(from_actor_id)
+            {
+                let ranges = instance.zone.get_overlapping_map_ranges(actor.position().0);
+                if let Some(fate_range) = ranges.iter().find(|x| x.fate.is_some()) {
+                    instance.insert_task(
+                        from_id,
+                        from_actor_id,
+                        Duration::ZERO,
+                        QueuedTaskData::EndFate {
+                            fate_id: fate_range.fate.unwrap(),
+                        },
+                    );
+                }
+            }
+
+            true
+        }
+        "!path" => {
+            let parts: Vec<&str> = chat_message.split(' ').collect();
+            let actor_id: ObjectId = ObjectId(parts[1].parse().unwrap());
+            let layout_id: u32 = parts[2].parse().unwrap();
+
+            let mut data = data.lock();
+            if let Some(instance) = data.find_actor_instance_mut(actor_id)
+                && let Some(NetworkedActor::Npc {
+                    state,
+                    navmesh_target,
+                    ..
+                }) = instance.find_actor_mut(actor_id)
+            {
+                *state = NpcState::OnPath {
+                    layout_id,
+                    index: 0,
+                };
+                *navmesh_target = None;
+            } else {
+                tracing::warn!("Could not find the actor for !path: {actor_id:?}");
+            }
+
+            true
+        }
+        "!target" => {
+            let mut data = data.lock();
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id)
+                && let Some(actor) = instance.find_actor(from_actor_id)
+            {
+                let common_spawn = actor.get_common_spawn();
+                let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ServerNoticeMessage(
+                    ServerNoticeMessage {
+                        message: format!("Targetting {:?}", common_spawn.target_id),
+                        ..Default::default()
+                    },
+                ));
+
+                let mut network = network.lock();
+                network.send_to(
+                    from_id,
+                    FromServer::PacketSegment(ipc, from_actor_id),
+                    DestinationNetwork::ZoneClients,
+                );
+            }
+
+            true
+        }
+        "!treasurehunt" => {
+            let mut data = data.lock();
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id)
+                && let Some(actor) = instance.find_actor(from_actor_id)
+            {
+                // TODO: What does 350 mean here?
+                let handler_id = HandlerId::new(HandlerType::TreasureHunt, 350);
+
+                // TODO: turn spawning directors into a generic function so we can use it for Levequests, etc.
+
+                let mut network = network.lock();
+                network.send_to_by_actor_id(
+                    from_actor_id,
+                    FromServer::ActorControlSelf(ActorControlCategory::InitDirector {
+                        handler_id,
+                        content_id: 0,
+                        flags: 0,
+                    }),
+                    DestinationNetwork::ZoneClients,
+                );
+
+                let treasure_id = ObjectId(fastrand::u32(..));
+                instance.insert_treasure(
+                    treasure_id,
+                    SpawnTreasure {
+                        entity_id: treasure_id,
+                        layout_id: 4517187, // TODO
+                        event_state: EventState::OFF,
+                        coffer_kind: TreasureKind::TreasureHunt,
+                        handler_id,
+                        exported_sg_row_id: 1596, // TODO
+                        position: actor.position(),
+                        rotation: actor.rotation(),
+                        ..Default::default()
+                    },
+                );
+
+                instance.directors.push(DirectorData {
+                    id: handler_id,
+                    flag: 4,
+                    data: [0, 4, 1, 44, 0, 0, 0, 0, 0, 0],
+                    ..Default::default()
+                });
+
+                instance.insert_task(
+                    from_id,
+                    from_actor_id,
+                    Duration::from_mins(5),
+                    QueuedTaskData::TerminateDirector { handler_id },
+                );
+            }
+
+            true
+        }
+        "!leve" => {
+            let parts: Vec<&str> = chat_message.split(' ').collect();
+            let content_id: u16 = parts[1].parse().unwrap();
+
+            let mut data = data.lock();
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
+                // TODO: What does 1012 mean here?
+                let handler_id = HandlerId::new(HandlerType::BattleLeve, 1012);
+
+                // TODO: combine with the code above
+
+                let mut network = network.lock();
+                network.send_to_by_actor_id(
+                    from_actor_id,
+                    FromServer::ActorControlSelf(ActorControlCategory::InitDirector {
+                        handler_id,
+                        content_id,
+                        flags: 0,
+                    }),
+                    DestinationNetwork::ZoneClients,
+                );
+
+                instance.directors.push(DirectorData {
+                    id: handler_id,
+                    flag: 1,
+                    ..Default::default()
+                });
+
+                instance.insert_task(
+                    from_id,
+                    from_actor_id,
+                    Duration::from_mins(20),
+                    QueuedTaskData::TerminateDirector { handler_id },
+                );
+            }
+
+            true
+        }
+        "!complete_duty" => {
+            let mut data = data.lock();
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
+                instance
+                    .directors
+                    .first_mut()
+                    .unwrap()
+                    .tasks
+                    .push(LuaDirectorTask::ShowEObj { base_id: EOBJ_EXIT });
+                instance
+                    .directors
+                    .first_mut()
+                    .unwrap()
+                    .tasks
+                    .push(LuaDirectorTask::CompleteDuty {});
+            }
+
+            true
+        }
+        "!aoetest" => {
+            let parts: Vec<&str> = chat_message.split(' ').collect();
+            let action_id: u16 = parts[1].parse().unwrap();
+
+            let mut data = data.lock();
+
+            let mut tester_actor_id;
+            let tester_name_id = 14722; // foretold phenomenon
+            if let Some(instance) = data.find_actor_instance(from_actor_id) {
+                tester_actor_id = instance
+                    .actors
+                    .iter()
+                    .find(|x| x.1.get_common_spawn().name_id == tester_name_id)
+                    .map(|x| *x.0);
+            } else {
+                return true;
+            }
+
+            if tester_actor_id.is_none() {
+                // Spawn a tester if needed
+                let mut game_data = game_data.lock();
+                tester_actor_id = spawn_custom_bnpc(
+                    &mut data,
+                    &mut game_data,
+                    from_actor_id,
+                    11744,
+                    tester_name_id,
+                );
+            }
+
+            let ipc;
+            if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
+                let Some(actor) = instance.find_actor_mut(tester_actor_id.unwrap()) else {
+                    return true;
+                };
+
+                if let NetworkedActor::Npc { state, .. } = actor {
+                    *state = NpcState::AoeTest;
+                }
+
+                // TODO: this can get sent before the actor even spawns... whoops
+                ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ActorCast {
+                    spell_id: action_id,
+                    action_type: ActionType::Action,
+                    omen_delay: 0,
+                    action_id: action_id as u32,
+                    cast_time: 60.0,
+                    target: tester_actor_id.unwrap(),
+                    rotation: actor.rotation(),
+                    interruptible: false,
+                    ballista_entity_id: ObjectId::default(),
+                    position: actor.position(),
+                });
+            } else {
+                return true;
+            }
+
+            let mut network = network.lock();
+            network.send_in_range(
+                tester_actor_id.unwrap(),
+                &data,
+                FromServer::PacketSegment(ipc, tester_actor_id.unwrap()),
+                DestinationNetwork::ZoneClients,
+            );
 
             true
         }

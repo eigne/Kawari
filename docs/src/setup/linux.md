@@ -10,23 +10,21 @@ This guide covers how to setup Kawari on Linux.
 
 ## Downloading Kawari
 
-Download the [latest build for Linux x86_64](https://xiv.zone/distrib/kawari/kawari-linux-x86_64.zip) or [ARM64](https://xiv.zone/distrib/kawari/kawari-linux-aarch64.zip) (or pick a specific build from [Github Actions](https://github.com/redstrate/Kawari/actions).)
+Download the [latest build for Linux x86_64](https://xiv.zone/distrib/kawari/kawari-linux-x86_64.zip) or [ARM64](https://xiv.zone/distrib/kawari/kawari-linux-aarch64.zip) (or pick a specific build from [the CI](https://codeberg.org/redstrate/Kawari/actions).)
 
 ## Setup
 
 Place the `oodle-network-shared.so` from the Oodle zip you downloaded next to the Kawari executables.
 
-## Configuration
-
-{{#include configuration.md}}
-
 ## Hosts setup
 
 {{#include hosts.md}}
 
+This file is located at `/etc/hosts`.
+
 ## Running
 
-Run the server by executing `kawari-run` in your terminal emulator.
+Run the server by executing `./kawari-run` in your terminal emulator.
 
 ## Logging in
 

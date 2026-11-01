@@ -1,10 +1,7 @@
 #[cfg(test)]
 use binrw::BinWrite;
-use serde::{Deserialize, Serialize};
+use serde_derive::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
-mod customize_data;
-pub use customize_data::{customize_data_from_json, customize_data_to_json};
 
 mod position;
 pub use position::Position;
@@ -124,19 +121,18 @@ pub fn euler_to_direction(euler: (f32, f32, f32)) -> f32 {
     let dst_z = vector[2] * m22 + vector[0] * m02 + vector[1] * m12;
 
     let squared = dst_z * dst_z + dst_x * dst_x;
-    let v1;
-    let v2;
 
-    if squared > 0.00000011920929 {
+    let (v1, v2) = if squared > 0.00000011920929 {
         let mut ret = f32::sqrt(squared);
         ret = -((squared * ret) * ret - 1.0) * (0.5 * ret) + ret;
         ret = -((squared * ret) * ret - 1.0) * (0.5 * ret) + ret;
-        v1 = dst_z * (-(((squared * ret) * ret) - 1.0) * (0.5 * ret) + ret);
-        v2 = dst_x * (-(((squared * ret) * ret) - 1.0) * (0.5 * ret) + ret);
+        (
+            dst_z * (-(((squared * ret) * ret) - 1.0) * (0.5 * ret) + ret),
+            dst_x * (-(((squared * ret) * ret) - 1.0) * (0.5 * ret) + ret),
+        )
     } else {
-        v1 = 0.0;
-        v2 = 0.0;
-    }
+        (0.0, 0.0)
+    };
 
     f32::atan2(v2, v1)
 }
@@ -178,17 +174,16 @@ pub struct User {
 pub struct BasicCharacterData {
     pub content_id: u64,
     pub name: String,
+    pub gm_rank: String,
+    pub service_account_id: u64,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct MaxEx {
+pub struct BasicServiceAccountData {
+    pub id: u64,
+    pub user_id: u64,
     pub max_ex: u32,
     pub legacy: bool,
-}
-
-/// Turns a Quest row ID into a "normal" one. For example: 65537 to 1.
-pub fn adjust_quest_id(quest_id: u32) -> u32 {
-    quest_id.saturating_sub(65536)
 }
 
 #[macro_export]

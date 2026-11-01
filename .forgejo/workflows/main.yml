@@ -6,46 +6,43 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # There's no point in building release binaries for PRs, they are slower to build and no one is going to download them
+  CARGO_PROFILE: ${{ github.ref == 'refs/heads/master' && '--release' || '' }}
+  PROFILE_NAME: ${{ github.ref == 'refs/heads/master' && 'release' || 'debug' }}
 
 jobs:
   build-webassembly:
     name: "Build (WebAssembly)"
-    runs-on: ubuntu-latest
+    runs-on: docker
     # Skip running on PR events that come from the same repository, it will just duplicate the branch action
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
     - uses: actions/checkout@v6
-    - name: Add WebAssembly Target
-      run: |
-        rustup target add wasm32-unknown-unknown
+    - name: Setup Rust
+      uses: https://github.com/dtolnay/rust-toolchain@stable
+      with:
+        targets: "wasm32-unknown-unknown"
     - uses: actions/cache@v5
       id: cache-deps
       with:
         path: |
-          ~/.cargo
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
           target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: wasm-${{ env.PROFILE_NAME }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Build
-      run: cargo build --package kawari --release --verbose --target=wasm32-unknown-unknown --lib --no-default-features
+      run: cargo build --package kawari ${{ env.CARGO_PROFILE }} --target=wasm32-unknown-unknown --lib --no-default-features
 
   build:
-    name: "Build"
-    runs-on: ${{ matrix.os }}
+    name: "Build (${{ matrix.os_name }} ${{ matrix.target_name }})"
+    runs-on: docker
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     strategy:
-      fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
-        target: [x86_64-unknown-linux-gnu, x86_64-pc-windows-msvc, aarch64-unknown-linux-gnu]
-        exclude:
-        - os: windows-latest
-          target: x86_64-unknown-linux-gnu
-        - os: windows-latest
-          target: aarch64-unknown-linux-gnu
-        - os: ubuntu-latest
-          target: x86_64-pc-windows-msvc
         include:
         - target: x86_64-unknown-linux-gnu
           target_name: x86_64
@@ -53,62 +50,64 @@ jobs:
         - target: aarch64-unknown-linux-gnu
           target_name: aarch64
           os_name: linux
-        - target: x86_64-pc-windows-msvc
+        - target: x86_64-pc-windows-gnu
           target_name: x86_64
           os_name: windows
 
     steps:
     - uses: actions/checkout@v6
+    - name: Setup Rust
+      uses: https://github.com/dtolnay/rust-toolchain@stable
+      with:
+        components: "clippy rustfmt"
+        targets: "${{ matrix.target }}"
+    - uses: actions/cache@v5
+      id: cache-mdbook
+      with:
+        path: |
+          ~/.cargo/bin/mdbook
+        key: mdbook
+    - if: steps.cache-mdbook.outputs.cache-hit != 'true'
+      run: |
+        cargo install --git https://github.com/rust-lang/mdBook.git mdbook
     - uses: actions/cache@v5
       id: cache-deps
       with:
         path: |
-          ~/.cargo
+          ~/.cargo/bin/
+          !~/.cargo/bin/mdbook
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
           target/
-        key: ${{ matrix.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - if: steps.cache-deps.outputs.cache-hit != 'true'
-      run: |
-        cargo install --git https://github.com/rust-lang/mdBook.git mdbook
-    - if: matrix.target == 'aarch64-unknown-linux-gnu'
+        key: ${{ matrix.os_name }}-${{ matrix.target_name }}-${{ env.PROFILE_NAME }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross
-    - name: Add Target
-      run: |
-        rustup target add ${{ matrix.target }}
-    - uses: robinraju/release-downloader@v1
+        sudo apt-get install -y --no-install-recommends build-essential cmake libclang-dev rsync
+    - name: Setup Target (Linux x86_64)
       if: matrix.target == 'x86_64-unknown-linux-gnu'
-      with:
-        repository: 'WorkingRobot/OodleUE'
-        fileName: 'clang-x64-release.zip'
-        latest: true
-        extract: true
-    - uses: robinraju/release-downloader@v1
-      if: matrix.target == 'aarch64-unknown-linux-gnu'
-      with:
-        repository: 'WorkingRobot/OodleUE'
-        fileName: 'clang-arm64-release.zip'
-        latest: true
-        extract: true
-    - if: matrix.os == 'ubuntu-latest'
       run: |
+        wget https://github.com/WorkingRobot/OodleUE/releases/download/2026-06-04-1357/clang-x64-release.zip
+        unzip clang-x64-release.zip
         mkdir oodle
         cp lib/liboodle-network-shared.so oodle/
-    - uses: robinraju/release-downloader@v1
-      if: matrix.os == 'windows-latest'
-      with:
-        repository: 'WorkingRobot/OodleUE'
-        fileName: 'clang-cl-x64-release.zip'
-        latest: true
-        extract: true
-    - if: runner.os == 'windows-latest'
+    - name: Setup Target (Linux aarch64)
+      if: matrix.target == 'aarch64-unknown-linux-gnu'
       run: |
+        wget https://github.com/WorkingRobot/OodleUE/releases/download/2026-06-04-1357/clang-arm64-release.zip
+        unzip clang-arm64-release.zip
         mkdir oodle
-        cp ar/oodle-network-shared.lib oodle/
+        cp lib/liboodle-network-shared.so oodle/
+        sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross
+    - name: Setup Target (Windows x86_64)
+      if: matrix.target == 'x86_64-pc-windows-gnu'
+      run: |
+        sudo apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
     - name: Build
       env:
         CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-      run: cargo build --release --verbose --features oodle --target ${{ matrix.target }}
+      run: cargo build ${{ env.CARGO_PROFILE }} --target ${{ matrix.target }} --features oodle
     - name: Run Clippy
       if: matrix.target == 'x86_64-unknown-linux-gnu'
       run: cargo clippy --features oodle -- -Dwarnings --target ${{ matrix.target }}
@@ -116,8 +115,10 @@ jobs:
       if: matrix.target == 'x86_64-unknown-linux-gnu'
       run: cargo fmt --check
     - name: Run tests
-      if: matrix.target != 'aarch64-unknown-linux-gnu'
-      run: cargo test --verbose --target ${{ matrix.target }}
+      if: matrix.target == 'x86_64-unknown-linux-gnu'
+      run: cargo test ${{ env.CARGO_PROFILE }} --target ${{ matrix.target }} --features oodle
+      env:
+        CI: 1
     - name: Build documentation
       run: |
         mdbook build --dest-dir=docs-build ./docs
@@ -125,10 +126,10 @@ jobs:
         mv docs-build docs
     - name: Prepare artifacts
       run: |
-        mv target/${{ matrix.target }}/release/* .
+        mv target/${{ matrix.target }}/${{ env.PROFILE_NAME }}/* .
         echo "${{ github.sha }}" >> version.txt
     - name: Archive artifacts
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v3
       with:
         name: kawari-${{ matrix.os_name }}-${{ matrix.target_name }}
         path: |
@@ -141,18 +142,11 @@ jobs:
           kawari-patch*
           kawari-web*
           kawari-world*
-          kawari-launcher*
-          kawari-savedatabank*
           kawari-navimesh*
-          kawari-datacentertravel*
           kawari-run*
           !*.d
           resources/
-          !resources/data/tests
-          !resources/data/opcodes.json
-          !resources/data/scrambler
-          !resources/data/constants.yml
-          !resources/data/README.md
+          !resources/data/
           version.txt
           docs/
           !docs/src/
@@ -171,18 +165,22 @@ jobs:
     - name: Upload API documentation
       if: matrix.target == 'x86_64-unknown-linux-gnu' && github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
       run: |
-        cargo doc --release --no-deps --lib
+        cargo doc ${{ env.CARGO_PROFILE }} --no-deps --lib
         rsync -e "ssh -p 38901 -o StrictHostKeyChecking=no" --recursive target/doc/ deploy@ryne.moe:/srv/http/kawari-api-docs
 
   deploy:
     name: "Deploy"
-    runs-on: ubuntu-latest
+    runs-on: docker
     needs: build
     if: github.ref == 'refs/heads/master'
 
     steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends rsync
     - name: Download artifacts
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v3
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Set up SSH key
@@ -196,10 +194,12 @@ jobs:
     - name: Upload artifacts
       run: |
         pushd kawari-linux-x86_64
+        chmod +x ./kawari-*
         zip -r ../kawari-linux-x86_64.zip *
         popd
 
         pushd kawari-linux-aarch64
+        chmod +x ./kawari-*
         zip -r ../kawari-linux-aarch64.zip *
         popd
 

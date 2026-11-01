@@ -11,7 +11,6 @@ kawari = { path = "../../core" }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-axum = { workspace = true }
 sha1_smol = { workspace = true }
 ureq = { workspace = true }
 serde_json = { workspace = true }

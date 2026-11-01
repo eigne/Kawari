@@ -5,9 +5,8 @@ use binrw::binrw;
 use crate::common::HandlerId;
 use crate::ipc::zone::server::{ServerZoneIpcData, ServerZoneIpcSegment};
 
-#[derive(Debug, Clone, Default)]
 #[binrw]
-#[brw(little)]
+#[derive(Debug, Clone, Default)]
 #[brw(import{max_params: usize})]
 #[brw(assert(params.len() <= max_params, "Too many params! {} > {}", params.len(), max_params))]
 pub struct EventResume {
@@ -17,24 +16,26 @@ pub struct EventResume {
     pub scene: u16,
     /// Seems to be a custom ID (handled internally by an EventHandler on the client.)
     pub resume_id: u8,
-    pub params_count: u8,
-    #[br(count = max_params)]
-    #[bw(pad_size_to = 4 * max_params)]
+    #[br(temp)]
+    #[bw(calc = params.len() as u8)]
+    params_count: u8,
+    #[br(count = params_count)]
+    #[brw(pad_size_to = 4 * max_params)]
     pub params: Vec<u32>,
 }
 
 impl EventResume {
     pub fn package(&self) -> Option<ServerZoneIpcSegment> {
         match self.params.len() {
-            0..=2 => Some(ServerZoneIpcSegment::new(ServerZoneIpcData::EventResume2 {
-                data: self.clone(),
-            })),
-            3..=4 => Some(ServerZoneIpcSegment::new(ServerZoneIpcData::EventResume4 {
-                data: self.clone(),
-            })),
-            5..=8 => Some(ServerZoneIpcSegment::new(ServerZoneIpcData::EventResume8 {
-                data: self.clone(),
-            })),
+            0..=2 => Some(ServerZoneIpcSegment::new(ServerZoneIpcData::EventResume2(
+                self.clone(),
+            ))),
+            3..=4 => Some(ServerZoneIpcSegment::new(ServerZoneIpcData::EventResume4(
+                self.clone(),
+            ))),
+            5..=8 => Some(ServerZoneIpcSegment::new(ServerZoneIpcData::EventResume8(
+                self.clone(),
+            ))),
             _ => None,
         }
     }

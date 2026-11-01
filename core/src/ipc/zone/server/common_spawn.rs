@@ -83,7 +83,6 @@ pub enum ObjectKind {
 // From https://github.com/SapphireServer/Sapphire/blob/bf3368224a00c180cbb7ba413b52395eba58ec0b/src/common/Common.h#L212
 // TODO: Where did they get this list from??
 #[binrw]
-#[brw(little)]
 #[brw(repr = u8)]
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Display, EnumIter, FromRepr)]
@@ -168,6 +167,8 @@ impl From<EquipDisplayFlag> for DisplayFlag {
 bitflags! {
     impl DisplayFlag : u32 {
         const ACTIVE_STANCE = 0x001;
+        /// Used to mark FATE start NPCs at least.
+        const FATE_START_NPC = 0x004;
         const UNK2 = 0x008;
         const INVISIBLE = 0x020;
         const HIDE_HEAD = 0x040;
@@ -180,7 +181,6 @@ bitflags! {
 }
 
 #[binrw]
-#[brw(little)]
 #[derive(Debug, Clone, Default)]
 pub struct CommonSpawn {
     /// Initial target for this character.
@@ -201,9 +201,11 @@ pub struct CommonSpawn {
     pub name_id: u32,
     /// Refers to a game object in the layout, if applicable.
     pub layout_id: u32,
+    // TODO: This is more generic than this, and only a subset of the u32 is used for pet data.
     /// Index into the Pet Excel sheet. Seems to only be relevant for Carbuncles and other "pets".
     pub pet_id: u32,
     /// The director who spawned and is managing this actor, if any.
+    /// This needs to be set on the local player for various bits of the UI to work.
     pub handler_id: HandlerId,
     /// Seen set to the player owners of Carbuncles and Chocobos.
     pub owner_id: ObjectId,
@@ -258,7 +260,7 @@ pub struct CommonSpawn {
     pub level: u8,
     /// See ClassJob Excel sheet.
     pub class_job: u8,
-    /// Controls the animation of the event object.
+    /// Controls the animation of this character.
     pub event_state: EventState,
     /// Whether this object is initially hidden or not.
     #[br(map = read_bool_from::<u8>)]
@@ -301,7 +303,7 @@ pub struct CommonSpawn {
     pub glasses_ids: [u16; 2],
     /// Their name, for non-player characters this is the usually the original Japanese name.
     #[br(count = CHAR_NAME_MAX_LENGTH)]
-    #[bw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
+    #[brw(pad_size_to = CHAR_NAME_MAX_LENGTH)]
     #[br(map = read_string)]
     #[bw(map = write_string)]
     pub name: String,
@@ -309,7 +311,7 @@ pub struct CommonSpawn {
     pub look: CustomizeData,
     /// Their short Free Company tag.
     #[br(count = 6)]
-    #[bw(pad_size_to = 6)]
+    #[brw(pad_size_to = 6)]
     #[brw(pad_after = 6)] // i think is empty?
     #[br(map = read_string)]
     #[bw(map = write_string)]

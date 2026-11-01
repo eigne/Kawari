@@ -4,21 +4,22 @@ use async_trait::async_trait;
 use parking_lot::Mutex;
 
 use kawari::{
-    common::{CharacterMode, HandlerId, HandlerType, ObjectTypeId},
+    common::{CharacterMode, HandlerId, HandlerType, ObjectId, ObjectTypeId},
     ipc::zone::{Condition, EventType},
 };
 
 use crate::{
-    CraftingEventHandler, FishingEventHandler, GameData, GatheringEventHandler,
-    GimmickAccessorEventHandler, InclusionShopEventHandler, InstanceContentEventHandler,
-    LuaEventHandler, ShopEventHandler, SpecialShopEventHandler, ZoneConnection,
+    ContentEventHandler, CraftingEventHandler, FateEventHandler, FishingEventHandler, GameData,
+    GatheringEventHandler, GimmickAccessorEventHandler, GimmickBillEventHandler,
+    GimmickRectEventHandler, InclusionShopEventHandler, LuaEventHandler, ShopEventHandler,
+    SpecialShopEventHandler, ZoneConnection,
 };
 
 use super::lua::LuaPlayer;
 
 #[derive(Debug)]
 pub struct Event {
-    pub id: u32,
+    pub id: HandlerId,
     pub event_type: EventType,
     pub event_arg: u32,
     /// The condition set for this event.
@@ -48,6 +49,7 @@ pub trait EventHandler: std::fmt::Debug + Send + Sync {
     ) {
     }
 
+    /// The default implementation will always finish the event.
     async fn on_return(
         &self,
         event: &Event,
@@ -56,6 +58,8 @@ pub trait EventHandler: std::fmt::Debug + Send + Sync {
         results: &[i32],
         player: &mut LuaPlayer,
     ) {
+        // TODO: Check back later and see if we're OK with this somewhat magical behavior
+        player.finish_event();
     }
 
     /// Condition to set (or unset) for this handler.
@@ -67,7 +71,25 @@ pub trait EventHandler: std::fmt::Debug + Send + Sync {
     fn character_mode(&self) -> CharacterMode {
         CharacterMode::Normal
     }
+
+    /// Whether we should send the DisableEventPosRollback ActorControl.
+    fn disable_event_pos_rollback(&self) -> bool {
+        false
+    }
 }
+
+/// Dummied out EventHandler, which can be useful for certain handlers that don't need any logic.
+#[derive(Debug)]
+pub struct DummyEventHandler {}
+
+impl DummyEventHandler {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+#[async_trait]
+impl EventHandler for DummyEventHandler {}
 
 /// Extracts the script id from a given CustomTalk `name`. For example, "CmnDefBeginnerGuide_00327" will return 327.
 fn extract_script_id(name: &str) -> Result<u32, std::num::ParseIntError> {
@@ -84,6 +106,8 @@ pub fn dispatch_event(
     handler_id: HandlerId,
     base_id: Option<u32>,
     game_data: Arc<Mutex<GameData>>,
+    connection: &ZoneConnection,
+    actor_id: ObjectId,
 ) -> Option<Box<dyn EventHandler>> {
     let generic_lua_event = |path: &str| -> Option<Box<dyn EventHandler>> {
         if let Some(event) = LuaEventHandler::new(handler_id, base_id, path, game_data.clone()) {
@@ -131,15 +155,14 @@ pub fn dispatch_event(
         HandlerType::GatheringPoint => {
             let count;
             {
-                let mut gamedata = game_data.lock();
-                (_, _, count, _, _) = gamedata.get_gathering_point(handler_id.event_id());
+                let mut game_data = game_data.lock();
+                (_, _, count, _, _) = game_data.get_gathering_point(handler_id.event_id());
             }
 
             Some(Box::new(GatheringEventHandler::new(count)))
         }
         HandlerType::Aetheryte => {
-            // The Aetheryte sheet actually begins at 0, not 327680
-            let aetheryte_id = handler_id.0 & 0xFFF;
+            let aetheryte_id = handler_id.event_id();
 
             // Aetherytes and Aethernet shards are handled by different event scripts
             let is_aetheryte;
@@ -154,7 +177,7 @@ pub fn dispatch_event(
                 generic_lua_event("events/generic/AethernetShard.lua")
             }
         }
-        HandlerType::DefaultTalk => generic_lua_event("events/generic/DefaultTalk.lua"),
+        HandlerType::DefaultTalk => Some(Box::new(DummyEventHandler::new())), // This is normally handled client-side, however in certain cases e.g. SwitchTalk we need this scripted for... reasons.
         HandlerType::Craft => Some(Box::new(CraftingEventHandler::new())),
         HandlerType::GuildLeveAssignment => generic_lua_event("events/generic/Levemete.lua"),
         HandlerType::CustomTalk => {
@@ -176,9 +199,8 @@ pub fn dispatch_event(
             generic_lua_event(&script_path)
         }
         HandlerType::GimmickAccessor => Some(Box::new(GimmickAccessorEventHandler::new())),
-        HandlerType::GimmickBill => generic_lua_event("events/generic/GimmickBill.lua"),
-        // NOTE: This is only applicable to instance exits for now.
-        HandlerType::GimmickRect => generic_lua_event("events/generic/InstanceExit.lua"),
+        HandlerType::GimmickBill => Some(Box::new(GimmickBillEventHandler::new())),
+        HandlerType::GimmickRect => Some(Box::new(GimmickRectEventHandler::new())),
         HandlerType::ChocoboTaxiStand => generic_lua_event("events/generic/Chocobokeep.lua"),
         HandlerType::Opening => {
             let script_name;
@@ -196,19 +218,24 @@ pub fn dispatch_event(
             generic_lua_event("events/generic/GoldSaucerArcadeMachine.lua")
         }
         HandlerType::GoldSaucerTalk => generic_lua_event("events/generic/GoldSaucerTalk.lua"),
+        HandlerType::Verminion => generic_lua_event("events/generic/Verminion.lua"),
         HandlerType::DpsChallengeOfficer => {
             generic_lua_event("events/generic/DpsChallengeOfficer.lua")
         }
         HandlerType::TopicSelect => generic_lua_event("events/generic/TopicSelect.lua"),
         HandlerType::PreHandler => generic_lua_event("events/generic/PreHandler.lua"),
-        HandlerType::Description => generic_lua_event("events/generic/Description.lua"),
+        HandlerType::Description => Some(Box::new(DummyEventHandler::new())), // Same reason as DefaultTalk
         HandlerType::InclusionShop => Some(Box::new(InclusionShopEventHandler::new())),
         HandlerType::EventGimmickPathMove => {
             generic_lua_event("events/generic/GimmickPathMove.lua")
         }
         HandlerType::SpecialShop => Some(Box::new(SpecialShopEventHandler::new())),
         HandlerType::HousingAethernet => generic_lua_event("events/generic/HousingAethernet.lua"),
-        HandlerType::InstanceContent => Some(Box::new(InstanceContentEventHandler::new())),
+        HandlerType::InstanceContent => Some(Box::new(ContentEventHandler::new())),
+        HandlerType::PublicContent => Some(Box::new(ContentEventHandler::new())),
+        HandlerType::Fate => Some(Box::new(FateEventHandler {
+            fate_id: *connection.fate_motivation_npcs.get(&actor_id).unwrap(),
+        })),
         _ => None,
     }
 }

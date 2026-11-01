@@ -1,10 +1,13 @@
 use std::{
     net::{IpAddr, SocketAddr},
+    path::PathBuf,
     str::FromStr,
 };
 
-use physis::Language;
-use serde::{Deserialize, Serialize};
+use physis::{Language, existing_dirs::find_existing_game_dirs};
+use serde_derive::{Deserialize, Serialize};
+
+use crate::packet::CompressionType;
 
 fn default_listen_address() -> String {
     "0.0.0.0".to_string()
@@ -13,11 +16,17 @@ fn default_listen_address() -> String {
 /// Configuration for the admin server.
 #[derive(Serialize, Deserialize)]
 pub struct AdminConfig {
+    /// Port for the server.
     #[serde(default = "AdminConfig::default_port")]
     pub port: u16,
 
+    /// Address to listen for new connections on.
     #[serde(default = "default_listen_address")]
     pub listen_address: String,
+
+    /// Public-facing domain of the server.
+    #[serde(default = "AdminConfig::default_server_name")]
+    pub server_name: String,
 }
 
 impl Default for AdminConfig {
@@ -25,6 +34,7 @@ impl Default for AdminConfig {
         Self {
             port: Self::default_port(),
             listen_address: default_listen_address(),
+            server_name: Self::default_server_name(),
         }
     }
 }
@@ -41,23 +51,32 @@ impl AdminConfig {
     fn default_port() -> u16 {
         21057
     }
+
+    fn default_server_name() -> String {
+        format!("http://admin.ffxiv.localhost:{}", Self::default_port())
+    }
 }
 
 /// Configuration for the frontier server.
 #[derive(Serialize, Deserialize)]
 pub struct FrontierConfig {
+    /// Port for the server.
     #[serde(default = "FrontierConfig::default_port")]
     pub port: u16,
 
+    /// Address to listen for new connections on.
     #[serde(default = "default_listen_address")]
     pub listen_address: String,
 
+    /// Public-facing domain of the server.
     #[serde(default = "FrontierConfig::default_server_name")]
     pub server_name: String,
 
+    /// Controls whether launchers report that the world servers are open.
     #[serde(default = "FrontierConfig::default_worlds_open")]
     pub worlds_open: bool,
 
+    /// Controls whether launchers report that logins are open.
     #[serde(default = "FrontierConfig::default_login_open")]
     pub login_open: bool,
 }
@@ -103,12 +122,15 @@ impl FrontierConfig {
 /// Configuration for the lobby server.
 #[derive(Serialize, Deserialize)]
 pub struct LobbyConfig {
+    /// Port for the server.
     #[serde(default = "LobbyConfig::default_port")]
     pub port: u16,
 
+    /// Address to listen for new connections on.
     #[serde(default = "default_listen_address")]
     pub listen_address: String,
 
+    /// Public-facing domain of the server.
     #[serde(default = "LobbyConfig::default_server_name")]
     pub server_name: String,
 }
@@ -199,9 +221,11 @@ impl LoginConfig {
 /// Configuration for the patch server.
 #[derive(Serialize, Deserialize)]
 pub struct PatchConfig {
+    /// Port for the server.
     #[serde(default = "PatchConfig::default_port")]
     pub port: u16,
 
+    /// Address to listen for new connections on.
     #[serde(default = "default_listen_address")]
     pub listen_address: String,
 
@@ -215,9 +239,11 @@ pub struct PatchConfig {
     #[serde(default = "PatchConfig::default_patches_location")]
     pub patches_location: String,
 
+    /// Public-facing domain of the server.
     #[serde(default = "PatchConfig::default_server_name")]
     pub server_name: String,
 
+    /// Determines which platform URLs are served.
     #[serde(default = "PatchConfig::default_supported_platforms")]
     pub supported_platforms: Vec<String>,
 }
@@ -267,9 +293,11 @@ impl PatchConfig {
 /// Configuration for the web server.
 #[derive(Serialize, Deserialize)]
 pub struct WebConfig {
+    /// Port for the server.
     #[serde(default = "WebConfig::default_port")]
     pub port: u16,
 
+    /// Address to listen for new connections on.
     #[serde(default = "default_listen_address")]
     pub listen_address: String,
 
@@ -309,19 +337,23 @@ impl WebConfig {
 /// Configuration for the world server.
 #[derive(Serialize, Deserialize)]
 pub struct WorldConfig {
+    /// Port for the server.
     #[serde(default = "WorldConfig::default_port")]
     pub port: u16,
 
+    /// Port for the healthcheck endpoint.
     #[serde(default = "WorldConfig::default_healthcheck_port")]
     pub healthcheck_port: u16,
 
+    /// Address to listen for new connections on.
     #[serde(default = "default_listen_address")]
     pub listen_address: String,
 
+    /// Public-facing domain of the server.
     #[serde(default = "WorldConfig::default_server_name")]
     pub server_name: String,
 
-    /// See the World Excel sheet.
+    /// What the World server is called. See the World Excel sheet.
     #[serde(default = "WorldConfig::default_world_id")]
     pub world_id: u16,
 
@@ -349,7 +381,7 @@ pub struct WorldConfig {
     #[serde(default = "WorldConfig::default_accept_new_characters")]
     pub accept_new_characters: bool,
 
-    /// Whether the World has the EXP bonus bonus.
+    /// Whether the World has the EXP bonus.
     #[serde(default = "WorldConfig::default_exp_bonus")]
     pub exp_bonus: bool,
 
@@ -430,6 +462,14 @@ impl WorldConfig {
     pub fn language(&self) -> Language {
         Language::from_shortname(self.language.as_str())
     }
+
+    pub fn compression(&self) -> CompressionType {
+        if self.enable_packet_compression {
+            CompressionType::Oodle
+        } else {
+            CompressionType::Uncompressed
+        }
+    }
 }
 
 impl WorldConfig {
@@ -449,49 +489,8 @@ impl WorldConfig {
     }
 }
 
-/// Configuration for the launcher server.
-#[derive(Serialize, Deserialize)]
-pub struct LauncherConfig {
-    #[serde(default = "LauncherConfig::default_port")]
-    pub port: u16,
-
-    #[serde(default = "default_listen_address")]
-    pub listen_address: String,
-
-    #[serde(default = "LauncherConfig::default_server_name")]
-    pub server_name: String,
-}
-
-impl Default for LauncherConfig {
-    fn default() -> Self {
-        Self {
-            port: Self::default_port(),
-            listen_address: default_listen_address(),
-            server_name: Self::default_server_name(),
-        }
-    }
-}
-
-impl LauncherConfig {
-    /// Returns the configured IP address & port as a `SocketAddr`.
-    pub fn get_socketaddr(&self) -> SocketAddr {
-        SocketAddr::from((
-            IpAddr::from_str(&self.listen_address).expect("Invalid IP address format in config!"),
-            self.port,
-        ))
-    }
-
-    fn default_port() -> u16 {
-        21065
-    }
-
-    fn default_server_name() -> String {
-        format!("http://launcher.ffxiv.localhost:{}", Self::default_port())
-    }
-}
-
 /// Configuration for the game filesystem.
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize)]
 pub struct FilesystemConfig {
     /// Path to the game directory. For example, "C:\Program Files (x86)\SquareEnix\FINAL FANTASY XIV - A Realm Reborn\game".
     #[serde(default)]
@@ -518,6 +517,18 @@ pub struct FilesystemConfig {
     /// Note that drop-ins and timelines are *not* combined. Web templates do not respect this option.
     #[serde(default)]
     pub additional_resource_paths: Vec<String>,
+}
+
+impl Default for FilesystemConfig {
+    fn default() -> Self {
+        Self {
+            game_path: Default::default(),
+            additional_search_paths: Default::default(),
+            unpack_path: Default::default(),
+            navimesh_path: FilesystemConfig::default_navimesh_path(),
+            additional_resource_paths: Default::default(),
+        }
+    }
 }
 
 impl FilesystemConfig {
@@ -552,12 +563,36 @@ impl FilesystemConfig {
 
         format!("resources/timelines/{path}")
     }
+
+    /// Get the current game path, which will either take it from the
+    /// config or auto-detect it from the running system.
+    pub fn game_path(&self) -> String {
+        if !self.game_path.is_empty() {
+            return self.game_path.clone();
+        }
+
+        let game_dirs = find_existing_game_dirs();
+        if let Some(game_dir) = game_dirs.last() {
+            let mut path = PathBuf::from(&game_dir.path);
+            path.push("game");
+            let path = path.to_str().unwrap().to_string();
+
+            tracing::info!(
+                "Automatically detected game installation at {path:?}. You can override this in config.yaml, see the documentation for more details."
+            );
+            return path;
+        }
+
+        panic!(
+            "The game directory isn't defined in config.yaml, nor could it be automatically found. See the documentation for more details."
+        );
+    }
 }
 
 /// Configuration for various tweaks.
 #[derive(Serialize, Deserialize)]
 pub struct TweaksConfig {
-    /// If true, always the player to skip cutscenes marked as unskippable.
+    /// If true, allows the player to skip some cutscenes that are normally unskippable.
     #[serde(default)]
     pub always_allow_skipping: bool,
 
@@ -608,9 +643,6 @@ pub struct Config {
 
     #[serde(default)]
     pub world: WorldConfig,
-
-    #[serde(default)]
-    pub launcher: LauncherConfig,
 
     #[serde(default)]
     pub tweaks: TweaksConfig,

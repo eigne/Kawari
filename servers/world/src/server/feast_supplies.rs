@@ -85,7 +85,7 @@ impl Supplies {
             network.lock().remove_actor(instance, id);
         }
         for id in std::mem::take(&mut self.controllers) {
-            super::set_shared_group_timeline_state(instance, &mut network.lock(), id, &[1]);
+            super::actor::set_shared_group_timeline_state(instance, &mut network.lock(), id, &[1]);
             network.lock().remove_actor(instance, id);
         }
     }
@@ -112,7 +112,7 @@ fn spawn(
             base_id: 2008986,
             bind_layout_id: layout,
             radius: 1.0,
-            position: Position(glam::Vec3::from_array(position)),
+            position: Position(glam::Vec3A::from_array(position)),
             not_targetable: true,
             args1: SharedGroupTimelineState::TIMELINE_4.bits(),
             ..Default::default()
@@ -134,7 +134,7 @@ fn spawn(
         "Wolf's Heart"
     }
     .into();
-    spawn.common.position = Position(glam::Vec3::from_array(position));
+    spawn.common.position = Position(glam::Vec3A::from_array(position));
     spawn.common.health_points = BOX_HP;
     spawn.common.max_health_points = BOX_HP;
     spawn.common.battalion = 4;
@@ -157,6 +157,9 @@ fn spawn(
             newly_hated_actor: None,
             currently_invulnerable: false,
             status_effects: Default::default(),
+            last_wander_timestamp: std::time::Instant::now(),
+            parameters: Default::default(),
+            casting: false,
         },
     );
     supplies.boxes.insert(
@@ -168,7 +171,7 @@ fn spawn(
         },
     );
     // Native timeline table: 1 off, 2 break, 3 visible, 4 spawn.
-    super::set_shared_group_timeline_state(instance, &mut network.lock(), controller, &[4]);
+    super::actor::set_shared_group_timeline_state(instance, &mut network.lock(), controller, &[4]);
 }
 
 pub fn tick(
@@ -222,7 +225,7 @@ pub fn tick(
                         } else {
                             2007652
                         },
-                        position: Position(glam::Vec3::from_array(position)),
+                        position: Position(glam::Vec3A::from_array(position)),
                         not_targetable: true,
                         args1: if team == Team::Fang {
                             SharedGroupTimelineState::TIMELINE_3.bits()
@@ -244,7 +247,7 @@ pub fn tick(
                 );
             }
         }
-        super::set_shared_group_timeline_state(instance, &mut network.lock(), b.controller, &[2]);
+        super::actor::set_shared_group_timeline_state(instance, &mut network.lock(), b.controller, &[2]);
         network.lock().remove_actor(instance, id);
     }
     let mut collected = Vec::new();
@@ -270,7 +273,7 @@ pub fn tick(
     }
     for id in collected {
         supplies.kits.remove(&id);
-        super::set_shared_group_timeline_state(instance, &mut network.lock(), id, &[2]);
+        super::actor::set_shared_group_timeline_state(instance, &mut network.lock(), id, &[2]);
         supplies.fading.insert(id, now + 0.5);
     }
     let faded: Vec<_> = supplies

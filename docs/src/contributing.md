@@ -1,6 +1,6 @@
 # Contributing
 
-Pull requests for new scripts, features, patch updates, or fixes to documentation are welcome. You can do so through [GitHub](https://github.com/redstrate/Kawari).
+Pull requests for new scripts, features, patch updates, or fixes to documentation are welcome. You can do so through [Codeberg](https://codeberg.org/redstrate/Kawari).
 
 For informal development discussion outside of GitHub, join the [Kawari Dev Chat](https://matrix.to/#/#kawari-welcome:pyra.sh).
 
@@ -29,7 +29,7 @@ Please ensure your commits are atomic, and has short and concise messaging. This
 
 ## Updating to new patches
 
-Updating Kawari can be quite involved, and so we developed a tool to automate the process. You can find said tool [here](https://codeberg.org/redstrate/KawariUpdater).
+See our dedicated [updating guide](updating.md).
 
 ## Testing local Physis
 

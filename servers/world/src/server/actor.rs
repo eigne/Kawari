@@ -1,14 +1,27 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, sync::Arc, time::Instant};
 
 use crate::{
-    StatusEffects,
+    ClientId, FromServer, GameData, StatusEffects,
+    server::{
+        WorldServer,
+        instance::{Instance, QueuedTaskData},
+        network::{DestinationNetwork, NetworkState},
+    },
     zone_connection::{BaseParameters, TeleportQuery},
 };
-use glam::Vec3;
+use glam::Vec3A;
 use kawari::{
-    common::{DistanceRange, ObjectId, Position, Timeline},
-    ipc::zone::{CommonSpawn, Conditions, SpawnNpc, SpawnObject, SpawnPlayer, SpawnTreasure},
+    common::{
+        CharacterMode, DEAD_FADE_OUT_TIME, DistanceRange, ObjectId, Position,
+        SharedGroupTimelineState, Timeline, TimepointData, should_respawn_mobs,
+    },
+    config::get_config,
+    ipc::zone::{
+        ActorControlCategory, BattleNpcSubKind, CommonSpawn, Conditions, ObjectKind,
+        ServerZoneIpcData, ServerZoneIpcSegment, SpawnNpc, SpawnObject, SpawnPlayer, SpawnTreasure,
+    },
 };
+use parking_lot::Mutex;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NpcState {
@@ -20,6 +33,15 @@ pub enum NpcState {
     Hate,
     /// DEAD!
     Dead,
+    /// Currently following a path.
+    OnPath {
+        /// The layout ID of the ServerPath object.
+        layout_id: u32,
+        /// The index of the control point we're going to.
+        index: usize,
+    },
+    /// This NPC is in AoE test mode.
+    AoeTest,
 }
 
 impl NpcState {
@@ -36,6 +58,12 @@ impl NpcState {
 }
 
 #[derive(Debug, Clone)]
+pub enum NpcTarget {
+    Actor(ObjectId),
+    Position(Vec3A),
+}
+
+#[derive(Debug, Clone)]
 pub enum NetworkedActor {
     Player {
         spawn: SpawnPlayer,
@@ -49,7 +77,9 @@ pub enum NetworkedActor {
         executing_gimmick_jump: bool,
         // If this actor is currently inside of an instance exit range.
         inside_instance_exit: bool,
+        /// Stat parameters.
         parameters: BaseParameters,
+        /// Their current duel opponent.
         dueling_opponent_id: ObjectId,
         /// Whether or not cooldowns should be cheatily removed.
         remove_cooldowns: bool,
@@ -57,13 +87,17 @@ pub enum NetworkedActor {
         last_combo_action: u16,
         /// Sequence into the current combo.
         combo_sequence: u8,
+        /// Their current auto-attack target, if any.
+        autoattack_target: Option<ObjectId>,
+        /// In half-seconds (the current server logic tick.)
+        autoattack_timing: i64,
     },
     Npc {
         state: NpcState,
-        navmesh_path: VecDeque<Vec3>,
+        navmesh_path: VecDeque<Vec3A>,
         navmesh_path_lerp: f32,
-        navmesh_target: Option<ObjectId>,
-        last_position: Option<Vec3>,
+        navmesh_target: Option<NpcTarget>,
+        last_position: Option<Vec3A>,
         spawn: SpawnNpc,
         timeline: Timeline,
         /// In half-seconds (the current server logic tick.)
@@ -74,6 +108,12 @@ pub enum NetworkedActor {
         currently_invulnerable: bool,
         /// This actor's status effects.
         status_effects: StatusEffects,
+        /// The last time the mob wandered.
+        last_wander_timestamp: Instant,
+        /// Stat parameters.
+        parameters: BaseParameters,
+        /// Whether this NPC is currently casting.
+        casting: bool,
     },
     Object {
         object: SpawnObject,
@@ -144,7 +184,7 @@ impl NetworkedActor {
             let mut other_pos = other.position().0;
             other_pos.y = 0.0;
 
-            let distance = Vec3::distance(self_pos, other_pos);
+            let distance = Vec3A::distance(self_pos, other_pos);
             distance < distance_range.distance()
         } else {
             false
@@ -176,5 +216,390 @@ impl NetworkedActor {
             NetworkedActor::Npc { status_effects, .. } => Some(status_effects),
             _ => None,
         }
+    }
+}
+
+pub fn set_player_minion(
+    data: &mut WorldServer,
+    network: &mut NetworkState,
+    minion_id: u32,
+    from_actor_id: ObjectId,
+) {
+    // Update our common spawn to reflect the new minion
+    let Some(instance) = data.find_actor_instance_mut(from_actor_id) else {
+        return;
+    };
+
+    let Some(actor) = instance.find_actor_mut(from_actor_id) else {
+        return;
+    };
+
+    let NetworkedActor::Player { spawn, .. } = actor else {
+        return;
+    };
+
+    spawn.common.active_minion = minion_id as u16;
+
+    network.send_ac_in_range_inclusive(
+        data,
+        from_actor_id,
+        ActorControlCategory::MinionSpawnControl { minion_id },
+    );
+}
+
+pub fn set_character_mode(
+    instance: &mut Instance,
+    network: &mut NetworkState,
+    from_actor_id: ObjectId,
+    mode: CharacterMode,
+    mode_arg: u8,
+    inform_client: bool,
+) {
+    let is_npc;
+
+    // Update internal data model for new spawns
+    {
+        let Some(actor) = instance.find_actor_mut(from_actor_id) else {
+            return;
+        };
+
+        is_npc = matches!(actor, NetworkedActor::Npc { .. });
+
+        // Skip if this mode is already set.
+        if actor.get_common_spawn().mode == mode && actor.get_common_spawn().mode_arg == mode_arg {
+            return;
+        }
+
+        actor.get_common_spawn_mut().mode = mode;
+        actor.get_common_spawn_mut().mode_arg = mode_arg;
+    }
+
+    if is_npc {
+        network.send_in_range_instance(
+            from_actor_id,
+            instance,
+            FromServer::ActorControl(
+                from_actor_id,
+                ActorControlCategory::SetMode {
+                    mode,
+                    mode_arg: mode_arg as u32,
+                },
+            ),
+            DestinationNetwork::ZoneClients,
+        );
+    } else {
+        // Tell the client of their new CharacterMode, they will be in charge of distributing that information to other players
+        if inform_client {
+            network.send_to_by_actor_id(
+                from_actor_id,
+                FromServer::SetCharacterMode(mode, mode_arg),
+                DestinationNetwork::ZoneClients,
+            );
+        }
+    }
+}
+
+pub fn set_shared_group_timeline_state(
+    instance: &mut Instance,
+    network: &mut NetworkState,
+    from_actor_id: ObjectId,
+    timelines: &[u32],
+) {
+    let mut state = SharedGroupTimelineState::empty();
+    for timeline in timelines {
+        state.toggle(match timeline {
+            1 => SharedGroupTimelineState::TIMELINE_1,
+            2 => SharedGroupTimelineState::TIMELINE_2,
+            3 => SharedGroupTimelineState::TIMELINE_3,
+            4 => SharedGroupTimelineState::TIMELINE_4,
+            5 => SharedGroupTimelineState::TIMELINE_5,
+            6 => SharedGroupTimelineState::TIMELINE_6,
+            7 => SharedGroupTimelineState::TIMELINE_7,
+            8 => SharedGroupTimelineState::TIMELINE_8,
+            9 => SharedGroupTimelineState::TIMELINE_9,
+            10 => SharedGroupTimelineState::TIMELINE_10,
+            11 => SharedGroupTimelineState::TIMELINE_11,
+            12 => SharedGroupTimelineState::TIMELINE_12,
+            13 => SharedGroupTimelineState::TIMELINE_13,
+            14 => SharedGroupTimelineState::TIMELINE_14,
+            15 => SharedGroupTimelineState::TIMELINE_15,
+            16 => SharedGroupTimelineState::TIMELINE_16,
+            _ => unimplemented!(),
+        });
+    }
+
+    // Update internal data model for new spawns
+    {
+        let Some(actor) = instance.find_actor_mut(from_actor_id) else {
+            return;
+        };
+
+        let NetworkedActor::Object { object, .. } = actor else {
+            return;
+        };
+
+        object.args1 = state.bits();
+    }
+
+    // Inform actors
+    network.send_ac_in_range_inclusive_instance(
+        instance,
+        from_actor_id,
+        ActorControlCategory::SetSharedGroupTimelineState {
+            state,
+            arg2: 0,
+            object_type: 0,
+            layout_id: 0,
+        },
+    );
+}
+
+// Sends the ActorControls to inform the actor that they're dead.
+pub fn kill_actor(network: Arc<Mutex<NetworkState>>, instance: &mut Instance, actor_id: ObjectId) {
+    if instance.zone.id == 745
+        && matches!(
+            instance.find_actor(actor_id),
+            Some(NetworkedActor::Player { .. })
+        )
+    {
+        super::feast_match::begin_respawn_lock(instance, actor_id, std::time::Instant::now());
+    }
+
+    let mut network = network.lock();
+
+    // First, set their state (otherwise they can still walk)
+    set_character_mode(
+        instance,
+        &mut network,
+        actor_id,
+        CharacterMode::Dead,
+        0,
+        true,
+    );
+
+    // Then, play the death animation.
+    {
+        let ac = ActorControlCategory::Kill { animation_id: 0 };
+
+        network.send_ac_in_range_inclusive_instance(instance, actor_id, ac);
+    }
+
+    // Inform the director that their actor died
+    let mut npc_id = None;
+    let mut position = None;
+    let mut fate_id = None;
+    if let Some(actor) = instance.find_actor(actor_id)
+        && let Some(npc) = actor.get_npc_spawn()
+    {
+        npc_id = Some(npc.common.layout_id);
+        fate_id = Some(npc.common.fate_id);
+    }
+
+    // Transistion into the dead state so they stop moving.
+    if let Some(actor) = instance.find_actor_mut(actor_id)
+        && let NetworkedActor::Npc { state, spawn, .. } = actor
+    {
+        *state = NpcState::Dead;
+        position = Some(spawn.common.position);
+    }
+
+    if let Some(npc_id) = npc_id
+        && let Some(director) = &mut instance.directors.first_mut()
+    {
+        director.on_actor_death(npc_id, position.unwrap());
+    }
+
+    // If we're associated with a Fate, that's handled by a completely different system!
+    if let Some(fate_id) = fate_id
+        && let Some(fate) = instance.find_fate_by_id_mut(fate_id as u32)
+    {
+        fate.data.on_actor_death();
+    }
+
+    // Cancel existing tasks
+    instance.cancel_actor_tasks(actor_id);
+    let intended_use = instance.zone.intended_use;
+
+    // Training dummies remain as corpses until the next practice setup.
+    if instance.feast_dummies.contains_key(&actor_id) {
+        return;
+    }
+    // Queue up despawn if this is an NPC
+    if let Some(actor) = instance.find_actor_mut(actor_id)
+        && let NetworkedActor::Npc {
+            spawn, timeline, ..
+        } = actor
+    {
+        let mut new_timeline_states = Vec::new();
+
+        // Play any timeline actions on death.
+        // TODO: please de-duplicate with the other handler if possible!
+        for action in &timeline.on_death {
+            match action {
+                TimepointData::TimelineState { states } => {
+                    // Find the event object bound to our gimmick.
+                    let gimmick_id = spawn.gimmick_id;
+                    new_timeline_states.push((gimmick_id, states.clone()));
+                }
+                _ => unimplemented!(),
+            }
+        }
+
+        let respawn_layout_id =
+            if actor.get_common_spawn().layout_id != 0 && should_respawn_mobs(intended_use) {
+                Some(actor.get_common_spawn().layout_id)
+            } else {
+                None
+            };
+
+        for (gimmick_id, states) in new_timeline_states {
+            let actor_id;
+            {
+                actor_id = instance.find_object_by_bind_layout_id(gimmick_id);
+            }
+            if let Some(actor_id) = actor_id {
+                set_shared_group_timeline_state(instance, &mut network, actor_id, &states);
+            }
+        }
+
+        instance.insert_task(
+            ClientId::default(),
+            actor_id,
+            DEAD_FADE_OUT_TIME,
+            QueuedTaskData::DeadFadeOut {
+                actor_id,
+                respawn_layout_id,
+            },
+        );
+    }
+}
+
+/// Updates other actors about this actor's HP and MP.
+pub fn update_actor_hp_mp(
+    network: Arc<Mutex<NetworkState>>,
+    instance: &mut Instance,
+    target_actor_id: ObjectId,
+) {
+    let mut send_kill_actor = false;
+    // Inform the client of the new actor's HP/MP
+    {
+        let Some(actor) = instance.find_actor(target_actor_id) else {
+            return;
+        };
+
+        let common_spawn = actor.get_common_spawn();
+
+        {
+            let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::UpdateHpMpTp {
+                hp: common_spawn.health_points,
+                mp: common_spawn.resource_points,
+                unk: 0,
+            });
+            let mut network = network.lock();
+            network.send_in_range_inclusive_instance(
+                target_actor_id,
+                instance,
+                FromServer::PacketSegment(ipc, target_actor_id),
+                DestinationNetwork::ZoneClients,
+            );
+        }
+
+        if common_spawn.health_points == 0 && common_spawn.mode != CharacterMode::Dead {
+            send_kill_actor = true;
+        }
+    }
+
+    if send_kill_actor {
+        kill_actor(network.clone(), instance, target_actor_id);
+    }
+}
+
+pub fn spawn_custom_bnpc(
+    data: &mut WorldServer,
+    game_data: &mut GameData,
+    from_actor_id: ObjectId,
+    base_id: u32,
+    name_id: u32,
+) -> Option<ObjectId> {
+    let actor_id = Instance::generate_actor_id();
+    {
+        let instance = data.find_actor_instance_mut(from_actor_id)?;
+        let actor = instance.find_actor(from_actor_id)?;
+
+        let NetworkedActor::Player { spawn, .. } = actor else {
+            return None;
+        };
+
+        let base_npc =
+            create_npc_common_spawn(game_data, base_id, name_id, None, spawn.common.level as u32);
+        let npc_spawn = SpawnNpc {
+            common: CommonSpawn {
+                position: spawn.common.position,
+                ..base_npc.common
+            },
+            ..base_npc
+        };
+
+        let config = get_config();
+        instance.insert_npc(actor_id, npc_spawn.clone(), &config, game_data);
+    }
+
+    Some(actor_id)
+}
+
+/// Creates the NPC spawn data based off of game data and whatever parameters you require.
+pub fn create_npc_common_spawn(
+    game_data: &mut GameData,
+    base_id: u32,
+    name_id: u32,
+    hp: Option<u32>,
+    level: u32,
+) -> SpawnNpc {
+    let (model_chara, battalion, customize, rank, equip, behavior) =
+        game_data.find_bnpc(base_id).unwrap();
+
+    let usable_hp;
+    if let Some(hp) = hp {
+        usable_hp = hp;
+    } else {
+        let classjob_id = 0; // Pretty sure it's this for all enemies
+        let modifiers = game_data
+            .get_class_job_modifiers(classjob_id as u32)
+            .expect("Failed to read param grow");
+
+        let tribe_row = game_data
+            .get_tribe(classjob_id)
+            .expect("Failed to read racial attributes");
+
+        let param_grow = game_data
+            .get_param_grow(level)
+            .expect("Failed to read param grow");
+
+        let mut base_parameters = BaseParameters::default();
+        let primary_stat = game_data
+            .get_job_primary_stat(classjob_id as u16)
+            .unwrap_or(1);
+        base_parameters.perform_calculations(primary_stat, &tribe_row, &param_grow, &modifiers);
+        base_parameters.calculate_potencies(&param_grow, None); // TODO: If NPCs have classjob modifiers and such, change that None!
+
+        usable_hp = base_parameters.hp;
+    }
+
+    SpawnNpc {
+        character_data_icon: rank,
+        common: CommonSpawn {
+            base_id,
+            name_id,
+            max_health_points: usable_hp,
+            health_points: usable_hp,
+            model_chara,
+            object_kind: ObjectKind::BattleNpc(BattleNpcSubKind::Enemy),
+            battalion,
+            level: level as u8,
+            look: customize,
+            behavior,
+            ..game_data.get_npc_equip(equip as u32).unwrap_or_default()
+        },
+        ..Default::default()
     }
 }

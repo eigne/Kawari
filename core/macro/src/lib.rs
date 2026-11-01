@@ -19,7 +19,6 @@ pub fn opcode_data(_metadata: TokenStream, input: TokenStream) -> TokenStream {
     let mut variant_idents = Vec::new();
     let mut default_pat_structs = Vec::new();
 
-    // TODO: add doc comments
     for variant in &mut input.variants {
         let variant_name = variant.ident.clone();
         let variant_tokens = variant.to_token_stream();
@@ -87,7 +86,7 @@ pub fn opcode_data(_metadata: TokenStream, input: TokenStream) -> TokenStream {
     input.variants.push_value(::syn::parse::Parser::parse2(syn::Variant::parse, quote! {
         #[doc(hidden)]
         Unknown {
-            #[br(count = size - (crate::packet::IPC_HEADER_SIZE + crate::packet::PACKET_SEGMENT_HEADER_SIZE))]
+            #[br(count = size.saturating_sub(crate::packet::IPC_HEADER_SIZE + crate::packet::PACKET_SEGMENT_HEADER_SIZE))]
             unk: Vec<u8>,
         }
     }).unwrap());

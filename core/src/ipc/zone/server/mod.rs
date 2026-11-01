@@ -25,7 +25,8 @@ pub use player_stats::PlayerStats;
 
 mod actor_control;
 pub use actor_control::{
-    ActorControl, ActorControlCategory, ActorControlSelf, ActorControlTarget, LiveEventType,
+    ActorControl, ActorControlCategory, ActorControlSelf, ActorControlTarget, BaseStat,
+    LiveEventType,
 };
 
 mod zone_init;
@@ -57,13 +58,14 @@ pub use event_scene::{EventScene, SceneFlags};
 mod event_start;
 pub use event_start::{EventStart, EventType};
 
-mod action_result;
-pub use action_result::{
-    ActionEffect, ActionResult, AoeActionResult, ActionResultFlag, DamageElement, DamageKind, DamageType, EffectKind,
+mod action_effect;
+pub use action_effect::{
+    ActionEffect, ActionEffectFlag, AoeActionResult, DamageElement, DamageKind, DamageType, TargetEffect,
+    TargetEffectKind,
 };
 
 mod actor_set_pos;
-pub use actor_set_pos::{ActorSetPos, WarpType};
+pub use actor_set_pos::ActorSetPos;
 
 mod equip;
 pub use equip::Equip;
@@ -152,13 +154,16 @@ mod map_effects;
 pub use map_effects::MapEffects;
 
 mod marketboard;
-pub use marketboard::MarketBoardItem;
+pub use marketboard::{MarketBoardHistory, MarketBoardHistoryEntry, MarketBoardItem};
 
 mod linkshell;
 pub use linkshell::*;
 
+mod fellowships;
+pub use fellowships::*;
+
 mod spawn_treasure;
-pub use spawn_treasure::SpawnTreasure;
+pub use spawn_treasure::{SpawnTreasure, TreasureKind};
 
 mod mogpendium;
 pub use mogpendium::{Mogpendium, MogpendiumCompletionFlags};
@@ -166,12 +171,28 @@ pub use mogpendium::{Mogpendium, MogpendiumCompletionFlags};
 mod cross_realm_listing;
 pub use cross_realm_listing::{CrossRealmListing, CrossRealmListings};
 
+mod prepare_zoning;
+pub use prepare_zoning::{PrepareZoning, PrepareZoningFlag};
+
 mod mail;
 pub use mail::{
     AttachedItemInfo, LETTER_MSG_MAX_LENGTH, Letter, LetterPreview, LetterType, MAX_ATTACHMENTS,
     MAX_FRIEND_LETTERS, MAX_MAIL, MAX_MAIL_ATTACHMENTS_STORAGE, MAX_REWARD_LETTERS,
     MAX_SYSTEM_LETTERS, PREVIEW_MSG_MAX_LENGTH,
 };
+
+
+mod duty_support_information;
+pub use duty_support_information::DutySupportInformation;
+
+mod walk_in_event;
+pub use walk_in_event::{WalkInEvent, WalkInEventType};
+
+mod dice_roll_result;
+pub use dice_roll_result::ZoneDiceRollResult;
+
+mod event_log_message;
+pub use event_log_message::EventLogMessage;
 
 use crate::common::{
     CHAR_NAME_MAX_LENGTH, ContainerType, ItemOperationKind, ObjectId, read_bool_from, read_string,
@@ -185,8 +206,8 @@ use crate::packet::ServerIpcSegmentHeader;
 use crate::ipc::{
     chat::ChatChannel,
     zone::{
-        PartyMemberEntry, PartyMemberPositions, PartyUpdateStatus, StrategyBoard,
-        StrategyBoardUpdate, WaymarkPlacementMode, WaymarkPosition, WaymarkPreset,
+        DutyFinderSetting, PartyMemberEntry, PartyMemberPositions, PartyUpdateStatus,
+        StrategyBoard, StrategyBoardUpdate, WaymarkPlacementMode, WaymarkPosition, WaymarkPreset,
     },
 };
 
@@ -217,21 +238,7 @@ pub enum ServerZoneIpcData {
     },
     ActorSetPos(ActorSetPos),
     ServerNoticeMessage(ServerNoticeMessage),
-    PrepareZoning {
-        log_message: u32,
-        /// What zone we're about to load into. Index into the TerritoryType Excel sheet.
-        target_zone: u16,
-        animation: u16,
-        /// This, in conjunction with unk1, seem to influence visual effects displayed during the zoning transition. For example, when diving, param4 is 218, and unk1 is 6 (with hide_character set to 1). When surfacing, param4 is 227, unk1 6, and hide_character 1. When going through an underwater portal, param4 is 15, unk1 is 4, and hide_character is 2.
-        param4: u8,
-        hide_character: u8,
-        /// Must match what is used in ActorSetPos (if applicable) otherwise weird stuff like EnterTerritoryEvent is sent by the client again.
-        warp_type: WarpType,
-        param_7: u8,
-        fade_out_time: u8,
-        unk1: u8,
-        unk2: u16,
-    },
+    PrepareZoning(PrepareZoning),
     ActorControl(ActorControl),
     ActorMove(ActorMove),
     SocialList(SocialList),
@@ -240,61 +247,17 @@ pub enum ServerZoneIpcData {
     WeatherId(WeatherChange),
     UpdateItem(ItemInfo),
     ContainerInfo(ContainerInfo),
-    EventResume2 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 2 } )]
-        data: EventResume,
-    },
-    EventResume4 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 4 } )]
-        data: EventResume,
-    },
-    EventResume8 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 8 } )]
-        data: EventResume,
-    },
-    EventScene2 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 2 } )]
-        data: EventScene,
-    },
-    EventScene4 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 4 } )]
-        data: EventScene,
-    },
-    EventScene8 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 8 } )]
-        data: EventScene,
-    },
-    EventScene16 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 16 } )]
-        data: EventScene,
-    },
-    EventScene32 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 32 } )]
-        data: EventScene,
-    },
-    EventScene64 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 64 } )]
-        data: EventScene,
-    },
-    EventScene128 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 128 } )]
-        data: EventScene,
-    },
-    EventScene255 {
-        /// Data to resume this event.
-        #[brw(args { max_params: 255 } )]
-        data: EventScene,
-    },
+    EventResume2(#[brw(args { max_params: 2 } )] EventResume),
+    EventResume4(#[brw(args { max_params: 4 } )] EventResume),
+    EventResume8(#[brw(args { max_params: 8 } )] EventResume),
+    EventScene2(#[brw(args { max_params: 2 } )] EventScene),
+    EventScene4(#[brw(args { max_params: 4 } )] EventScene),
+    EventScene8(#[brw(args { max_params: 8 } )] EventScene),
+    EventScene16(#[brw(args { max_params: 16 } )] EventScene),
+    EventScene32(#[brw(args { max_params: 32 } )] EventScene),
+    EventScene64(#[brw(args { max_params: 64 } )] EventScene),
+    EventScene128(#[brw(args { max_params: 128 } )] EventScene),
+    EventScene255(#[brw(args { max_params: 255 } )] EventScene),
     EventStart(EventStart),
     UpdateHpMpTp {
         /// The new health point value.
@@ -304,7 +267,7 @@ pub enum ServerZoneIpcData {
         // Unknown. It's filled with... something.
         unk: u16,
     },
-    ActionResult(ActionResult),
+    ActionEffect1(#[brw(args { max_targets: 1 } )] ActionEffect),
     Equip(Equip),
     DeleteActor {
         /// The index into the client-side object pool.
@@ -330,9 +293,13 @@ pub enum ServerZoneIpcData {
     CurrencyCrystalInfo(CurrencyInfo),
     Config(Config),
     InventoryActionAck {
-        sequence: u32,
-        #[brw(pad_after = 10)]
-        action_type: u16,
+        sequence: u32, // TODO: FFXIVClientStructs thinks is this "context_id", what does that mean...?
+        action_type: u8,
+        #[brw(pad_after = 2)] // not read
+        unk1: u8,
+        /// Only used if `action_type` is 3??
+        #[brw(pad_after = 6)] // not read
+        equipped_items_inventory_type: ContainerType,
     },
     PingSyncReply {
         timestamp: u32,
@@ -342,11 +309,11 @@ pub enum ServerZoneIpcData {
     QuestCompleteList {
         /// Bitmask of completed quests.
         #[br(count = COMPLETED_QUEST_BITMASK_SIZE)]
-        #[bw(pad_size_to = COMPLETED_QUEST_BITMASK_SIZE)]
+        #[brw(pad_size_to = COMPLETED_QUEST_BITMASK_SIZE)]
         completed_quests: Vec<u8>,
         #[brw(pad_after = 1)] // unused I guess
         #[br(count = UNLOCKED_MAP_MARKERS_BITMASK_SIZE)]
-        #[bw(pad_size_to = UNLOCKED_MAP_MARKERS_BITMASK_SIZE)]
+        #[brw(pad_size_to = UNLOCKED_MAP_MARKERS_BITMASK_SIZE)]
         unlocked_map_markers: Vec<u8>,
     },
     UnkResponse2 {
@@ -364,7 +331,7 @@ pub enum ServerZoneIpcData {
         src_container_index: u16,
         #[brw(pad_before = 2)]
         src_stack: u32,
-        src_catalog_id: u32,
+        src_item_id: u32,
 
         /// This section was observed to be static, across two captures and a bunch of discards these never changed.
         /// Always set to 0xE000_0000, also known as no/invalid actor.
@@ -378,15 +345,15 @@ pub enum ServerZoneIpcData {
         #[brw(pad_before = 2)]
         dst_stack: u32,
         /// Always set to zero.
-        dst_catalog_id: u32,
+        dst_item_id: u32,
     },
     InventoryTransactionFinish {
         /// Same sequence value as in InventoryTransaction.
         sequence: u32,
-        /// Repeated unk1 value. No, it's not a copy-paste error.
+        /// Repeated sequence value. No, it's not a copy-paste error.
         sequence_repeat: u32,
-        /// Unknown, seems to always be 0x00000090.
-        unk1: u32,
+        /// The operation that's finishing.'
+        operation_type: ItemOperationKind,
         /// Unknown, seems to always be 0x00000200.
         unk2: u32,
     },
@@ -400,16 +367,20 @@ pub enum ServerZoneIpcData {
         state1: u8,
         /// The class you registered with. Index into the ClassJob Excel sheet.
         classjob_id: u8,
-        unk1: [u8; 18],
+        unk1: [u8; 6],
+        duty_settings: DutyFinderSetting,
+        unk2: [u8; 4],
         /// The content IDs you registered for. Index into the ContentFinderCondition Excel sheet.
         content_ids: [u16; 5],
-        unk2: [u8; 10],
+        unk3: [u8; 10],
     },
     ContentFinderFound {
-        unk1: [u8; 28],
+        unk1: [u8; 8],
+        duty_settings: DutyFinderSetting,
+        unk2: [u8; 12],
         /// The content ID that popped. Index into the ContentFinderCondition Excel sheet.
         content_id: u16,
-        unk2: [u8; 10],
+        unk3: [u8; 10],
     },
     SpawnObject(SpawnObject),
     ActorGauge {
@@ -424,45 +395,21 @@ pub enum ServerZoneIpcData {
     TitleList {
         /// Bitmask of unlocked titles.
         #[br(count = TITLE_UNLOCK_BITMASK_SIZE)]
-        #[bw(pad_size_to = TITLE_UNLOCK_BITMASK_SIZE)]
+        #[brw(pad_size_to = TITLE_UNLOCK_BITMASK_SIZE)]
         unlock_bitmask: Vec<u8>,
     },
     QuestActiveList(QuestActiveList),
     LevequestCompleteList {
         /// Bitmask of completed levequests.
         #[br(count = COMPLETED_LEVEQUEST_BITMASK_SIZE)]
-        #[bw(pad_size_to = COMPLETED_LEVEQUEST_BITMASK_SIZE)]
+        #[brw(pad_size_to = COMPLETED_LEVEQUEST_BITMASK_SIZE)]
         completed_levequests: Vec<u8>,
         #[br(count = 6)]
-        #[bw(pad_size_to = 6)]
+        #[brw(pad_size_to = 6)]
         unk2: Vec<u8>,
     },
-    ShopLogMessage {
-        /// Event ID of this shop.
-        handler_id: HandlerId,
-        /// When buying: 0x697
-        /// When selling: 0x698
-        /// When buying back: 0x699
-        message_type: u32,
-        /// Always 3, regardless of the interactions going on
-        params_count: u32,
-        item_id: u32,
-        item_quantity: u32,
-        #[brw(pad_after = 8)]
-        total_sale_cost: u32,
-    },
-    LogMessage {
-        handler_id: HandlerId,
-        /// Non-stackable item or a single item: 750 / 0x2EE ("You obtained a .")
-        /// Stackable item: 751 / 0x2EF ("You obtained .")
-        message_type: u32,
-        /// Always 2
-        params_count: u32,
-        item_id: u32,
-        #[brw(pad_after = 4)]
-        /// Set to zero if only one item was obtained (stackable or not)
-        item_quantity: u32,
-    },
+    EventLogMessage2(#[brw(args { max_params: 2 } )] EventLogMessage),
+    EventLogMessage4(#[brw(args { max_params: 4 } )] EventLogMessage),
     UpdateInventorySlot(ItemInfo),
     EffectResult(EffectResult),
     ContentFinderCommencing {
@@ -481,20 +428,7 @@ pub enum ServerZoneIpcData {
     },
     SetSearchInfo(SearchInfo),
     Blacklist(Blacklist),
-    WalkInEvent {
-        /// Object ID of the ClientPath in the zone.
-        path_id: u32,
-        unk2: u16,
-        #[brw(pad_before = 2)]
-        unk3: u16,
-        /// In some unknown amount of units.
-        speed: u16,
-        /// Always seems to be 1.
-        constant: u16,
-        unk4: u16,
-        #[brw(pad_after = 4)]
-        unk5: u32,
-    },
+    WalkInEvent(WalkInEvent),
     GrandCompanyInfo {
         /// Which Grand Company this player is affiliated with.
         active_company_id: GrandCompany,
@@ -509,13 +443,13 @@ pub enum ServerZoneIpcData {
     CraftingLog {
         #[brw(pad_after = 7)] // unaccounted for in the CS size
         #[br(count = COMPLETED_RECIPES_BITMASK_SIZE)]
-        #[bw(pad_size_to = COMPLETED_RECIPES_BITMASK_SIZE)]
+        #[brw(pad_size_to = COMPLETED_RECIPES_BITMASK_SIZE)]
         bitmask: Vec<u8>,
     },
     GatheringLog {
         #[brw(pad_after = 2)] // unaccounted for in the CS size
         #[br(count = GATHERED_GATHERING_ITEMS_BITMASK_SIZE)]
-        #[bw(pad_size_to = GATHERED_GATHERING_ITEMS_BITMASK_SIZE)]
+        #[brw(pad_size_to = GATHERED_GATHERING_ITEMS_BITMASK_SIZE)]
         bitmask: Vec<u8>,
     },
     Fellowships {
@@ -530,7 +464,7 @@ pub enum ServerZoneIpcData {
     Linkshells {
         /// List of linkshells.
         #[br(count = LinkshellEntry::COUNT)]
-        #[bw(pad_size_to = LinkshellEntry::SIZE * LinkshellEntry::COUNT)]
+        #[brw(pad_size_to = LinkshellEntry::SIZE * LinkshellEntry::COUNT)]
         shells: Vec<LinkshellEntry>,
     },
     ChatMessage(ChatMessage),
@@ -556,13 +490,13 @@ pub enum ServerZoneIpcData {
     CharaInfoFromContentIds {
         #[brw(pad_before = 8)] // empty
         #[br(count = 10)]
-        #[bw(pad_size_to = 10 * CharaInfoFromContentIdsData::SIZE)]
+        #[brw(pad_size_to = 10 * CharaInfoFromContentIdsData::SIZE)]
         info: Vec<CharaInfoFromContentIdsData>,
     },
     InviteCharacterResult {
         /// The invited character's content id.
         content_id: u64,
-        /// The pre-defined LogMessage to display. 0 seems to indicate no errors, and the client will display a default message such as "You invite <name> to a party."
+        /// The pre-defined LogMessage to display. 0 seems to indicate no errors, and the client will display a default message such as "You invite \[name\] to a party."
         message_id: u16,
         #[brw(pad_before = 2)]
         /// The invited character's home world id.
@@ -632,7 +566,7 @@ pub enum ServerZoneIpcData {
     },
     PartyList {
         #[br(count = PartyMemberEntry::NUM_ENTRIES)]
-        #[bw(pad_size_to = PartyMemberEntry::NUM_ENTRIES * PartyMemberEntry::SIZE)]
+        #[brw(pad_size_to = PartyMemberEntry::NUM_ENTRIES * PartyMemberEntry::SIZE)]
         members: Vec<PartyMemberEntry>,
         party_id: u64,
         party_chatchannel: ChatChannel,
@@ -660,18 +594,10 @@ pub enum ServerZoneIpcData {
         #[brw(pad_after = 4)]
         flag2: u8,
     },
-    UpdateMapMarkers8 {
-        #[brw(args { max_params: 8 } )]
-        data: MapMarkers,
-    },
-    UpdateMapMarkers16 {
-        #[brw(args { max_params: 16 } )]
-        data: MapMarkers,
-    },
-    UpdateMapMarkers32 {
-        #[brw(args { max_params: 32 } )]
-        data: MapMarkers,
-    },
+    UpdateMapMarkers4(#[brw(args { max_params: 4 } )] MapMarkers),
+    UpdateMapMarkers8(#[brw(args { max_params: 8 } )] MapMarkers),
+    UpdateMapMarkers16(#[brw(args { max_params: 16 } )] MapMarkers),
+    UpdateMapMarkers32(#[brw(args { max_params: 32 } )] MapMarkers),
     QuestTracker(QuestTracker),
     HouseList(HouseList),
     HousingWardInfo(HousingWardInfo),
@@ -692,7 +618,7 @@ pub enum ServerZoneIpcData {
     },
     LegacyQuestList {
         #[br(count = COMPLETED_LEGACY_QUEST_BITMASK_SIZE)]
-        #[bw(pad_size_to = COMPLETED_LEGACY_QUEST_BITMASK_SIZE)]
+        #[brw(pad_size_to = COMPLETED_LEGACY_QUEST_BITMASK_SIZE)]
         bitmask: Vec<u8>,
     },
     DirectorVars {
@@ -725,12 +651,7 @@ pub enum ServerZoneIpcData {
         unk: [u8; 16],
     },
     TrustInformation(TrustInformation),
-    DutySupportInformation {
-        /// List indices into the DawnContent Excel sheet.
-        #[br(count = 80)]
-        #[bw(pad_size_to = 80)]
-        available_content: Vec<u8>,
-    },
+    DutySupportInformation(DutySupportInformation),
     PortraitsInformation {
         unk: [u8; 56],
     },
@@ -788,7 +709,7 @@ pub enum ServerZoneIpcData {
         leader_name: String,
 
         #[br(count = 16)]
-        #[bw(pad_size_to = 16 * FcHierarchy::SIZE)]
+        #[brw(pad_size_to = 16 * FcHierarchy::SIZE)]
         hierarchy_list: Vec<FcHierarchy>,
     },
     FreeCompanyShortMessage {
@@ -876,29 +797,30 @@ pub enum ServerZoneIpcData {
         starter_name: String,
     },
     DirectorPopupMessage {
-        unk1: u64, // Empty?
+        /// The actor id of who's saying the text. Unused, as the client does not use it past reading it.
+        actor_id: ObjectTypeId,
         /// Should be the ID of the instance's director.
         handler_id: HandlerId,
         /// Index into the BNPCName Excel sheet.
         npc_name: u32,
         /// Index into the InstanceContentTextData Excel sheet.
+        /// This value has to be in this InstanceContent's range of InstanceContentTextDataObjectiveStart and InstanceContentTextDataObjectiveEnd. If not, the client will crash.
         text_data_id: u32,
-        unk4: u32,
-        unk5: u32,
-        unk6: u32,
-        unk7: u32,
-        unk8: u32,
+        duration_msecs: u32,
+        /// The icon/image that shows on the top left
+        icon: u32,
+        /// What kind of object the speaker (npc_name) is. Used when resolving npc_name.
+        kind: ObjectKind,
+        /// The appearance of the text box.
+        style: u8,
+        /// Amount of parameters to be read. Max value is 2.
+        #[brw(pad_after = 1)] // padding
+        params_count: u8,
+        param1: u32,
+        param2: u32,
     },
-    DirectorSetupMapEffects64 {
-        /// The map effects to setup.
-        #[brw(args { max_params: 64 } )]
-        data: MapEffects,
-    },
-    DirectorSetupMapEffects128 {
-        /// The map effects to setup.
-        #[brw(args { max_params: 128 } )]
-        data: MapEffects,
-    },
+    DirectorSetupMapEffects64(#[brw(args { max_params: 64 } )] MapEffects),
+    DirectorSetupMapEffects128(#[brw(args { max_params: 128 } )] MapEffects),
     DirectorMapEffect {
         /// Should be the ID of the instance's director.
         handler_id: HandlerId,
@@ -933,7 +855,7 @@ pub enum ServerZoneIpcData {
     },
     UnkSocialResponse {
         #[br(count = 80)]
-        #[bw(pad_size_to = 80)]
+        #[brw(pad_size_to = 80)]
         unk: Vec<u8>,
     },
     UnkClassRelated {
@@ -971,14 +893,16 @@ pub enum ServerZoneIpcData {
         sequence: u16,
     },
     EffectResultBasic {
-        unk1: u32,
-        unk2: u32,
+        /// How many actors are covered by this packet.
+        count: u32,
+        /// See ActionResult for more details.
+        global_sequence: u32,
         target_id: ObjectId,
         current_hp: u32,
         unk3: u32,
         unk4: u32,
     },
-    AoeEffect8(action_result::AoeActionResult),
+    AoeEffect8(action_effect::AoeActionResult),
     ActorCast {
         /// Usually the same as `action_id`.
         spell_id: u16,
@@ -1117,9 +1041,11 @@ pub enum ServerZoneIpcData {
         /// Index into the FATE Excel sheet.
         fate_id: u32,
         unk1: u32,
-        unk2: u32,
+        /// When the FATE was spawned. The game uses this to determine how much time is left in the FATE.
+        start_timestamp: u32,
         unk3: u32,
-        unk4: u32,
+        /// In seconds.
+        time_limit: u32,
         unk5: u32,
     },
     CrossRealmListings(CrossRealmListings),
@@ -1325,8 +1251,8 @@ pub enum ServerZoneIpcData {
     },
     Letter(Letter),
     LetterUpdate {
-        /// Seems to be a result or mode value. When a letter is sent successfully, this will be 0xDD. When a letter is deleted successfully, it will contain 0x366. When attachments are taken, it will contain 0x24E. Completely unknown purpose, as it doesn't seem to be a timestamp, actor id, or LogMessageType.
-        unk_result: u32,
+        /// The letter-related action the client just took. This is the literal client opcode corresponding to sending/deleting letters, or taking attachments.
+        mail_action: u32, // TODO: This might just be u16 since it's an opcode?
         unk1: u32, // Probably just padding, seems to always be 0.
         /// When deleting a letter, the sender's content id. When sending a letter, zeroes.
         sender_content_id: u64,
@@ -1378,7 +1304,7 @@ pub enum ServerZoneIpcData {
         /// Which slot the furniture was placed into.
         slot: u16,
         /// The low 12 bits of the row number on the HousingFurniture sheet for this furniture. The row to that sheet can be obtained from the AdditionalData column on the Item Excel sheet. When the client receives this value, it then ORs it with 0x30000 to recreate the row number.
-        catalog_id: u16,
+        item_id: u16,
         unk1: u16, // Always 1? Changing it seems to have no visible effect so far.
         /// The furniture's dye/stain.
         stain: u8,
@@ -1396,7 +1322,7 @@ pub enum ServerZoneIpcData {
         slot: u8,
         unk1: [u8; 2], // Likely just padding
         /// The low 12 bits of the row number on the HousingYardObject sheet for this furniture. The row to that sheet can be obtained from the AdditionalData column on the Item Excel sheet. When the client receives this value, it then ORs it with 0x20000 to recreate the row number.
-        catalog_id: u16,
+        item_id: u16,
         unk2: u16, // Observed as zeroes
         /// The furniture's dye/stain.
         stain: u8,
@@ -1425,8 +1351,11 @@ pub enum ServerZoneIpcData {
     SharedFATEInformation {
         /// The page index, starting from zero.
         page: u8,
-        /// Unsure what this means yet.
-        unk1: [u8; 15],
+        /// How many FATEs were done for each zone.
+        fate_count: [u8; 6],
+        /// How many FATEs are needed to max rank in this zone.
+        #[brw(pad_after = 3)] // not used
+        fate_count_maximum: [u8; 6],
     },
     UnkDirector2 {
         unk: [u8; 24],
@@ -1528,6 +1457,50 @@ pub enum ServerZoneIpcData {
         /// New value at this index.
         #[brw(pad_after = 6)] // unused
         value: u8,
+    },
+    RecruitingPartyCount {
+        unk1: [u8; 968], // not exactly sure what this is yet...
+    },
+    OccultCrescentSetup {
+        unk1: [u8; 160],
+    },
+    SpectatorList {
+        object_ids: [ObjectId; 8],
+        #[brw(pad_after = 3)] // padding
+        unk1: u8,
+    },
+    MarketBoardHistory(MarketBoardHistory),
+    MarketBoardOfferings {
+        unk1: [u8; 44],
+        item_id: u32,
+        #[br(count = 1392)]
+        #[brw(pad_size_to = 1392)]
+        unk2: Vec<u8>,
+        unk3: u8, // TODO: bool,
+        unk4: u8, // TODO: bool
+        #[brw(pad_after = 5)] // not used, padding
+        request_id: u8,
+    },
+    MarketBoardHits {
+        unk1: u32,
+        /// Sets the "N hits" label in the "Search Results" window for the marketboard.
+        hits: u32,
+    },
+    ZoneDiceRollResult(ZoneDiceRollResult),
+    SearchFellowshipsNoResults {
+        #[brw(pad_before = 4, pad_after = 16)]
+        err_code: u32, // Name is assumed, observed as 0x01240C89. Changing this to an incorrect value seems to make the client wait for more results (the UI window acts as if it's waiting with a spinner)?
+    },
+    SearchFellowshipsResults {
+        #[brw(pad_before = 4)] // Seems to always be zeroes/padding
+        unk1: u32, // Seems to always be 0xFFFF_FFFF
+        sequence_end: u32, // Is typically 0xFFFF_FFFF, but seems to change to 0x28 as the final value when a number of FellowshipFinderResults have been sent. If only one is sent, it stays at 0xFFFF_FFFF and sequence_current will be 0. More research is needed for this.
+        /// The current sequence value, so the client knows which packet this is so far. If it's set to 0, the client won't expect more to be coming (the appropriate page arrows in the Finder window will be disabled).
+        sequence_current: u32,
+        /// The actual Fellowship result items.
+        #[br(count = 4)]
+        #[brw(pad_size_to = 4 * 376)]
+        fellowships: Vec<FellowshipSearchInfo>,
     },
 }
 

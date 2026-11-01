@@ -1,25 +1,54 @@
 use binrw::binrw;
 use bitflags::bitflags;
-use strum::FromRepr;
+use strum_macros::FromRepr;
 
 #[binrw]
-#[brw(little)]
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct StrategyBoard {
     /// Apparently compressed data. Completely unknown what's in here, but it seems the server doesn't care about it, unless we want to document it someday!
     #[br(count = 1176)]
-    #[bw(pad_size_to = 1176)]
+    #[brw(pad_size_to = 1176)]
     data: Vec<u8>,
 }
 
 #[binrw]
-#[brw(little)]
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct StrategyBoardUpdate {
     /// Unknown data for now. The server seems not to care about it, unless we want to document it someday!
     #[br(count = 64)]
-    #[bw(pad_size_to = 64)]
+    #[brw(pad_size_to = 64)]
     data: Vec<u8>,
+}
+
+/// Represents circle/Fellowship activity tags that players set for Fellowships they've created, or tags that can be used to search for Fellowships to join.
+#[binrw]
+#[brw(repr = u16)]
+#[derive(Clone, Debug, Default)]
+pub enum FellowshipActivityTag {
+    #[default]
+    None = 0,
+    RolePlaying = 1,
+    PlayerEvents = 2,
+    MakingFriends = 3,
+    NoviceSupport = 4,
+    Casual = 5,
+    Hardcore = 6,
+    Leveling = 7,
+    Battle = 8,
+    Crafting = 9,
+    Gathering = 10,
+    Housing = 11,
+    Hunts = 12,
+    TreasureHunt = 13,
+    PvP = 14,
+    Fishing = 15,
+    DomanMahjong = 16,
+    Performance = 17,
+    Glamours = 18,
+    GroupPose = 19,
+    TripleTriad = 20,
+    Collectables = 21,
+    Chatting = 22,
 }
 
 /// Represents housing appeal tags that players can set for their owned housing.
@@ -115,7 +144,7 @@ pub enum AvailabilityType {
 }
 
 #[binrw]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct HousingFlags(u8);
 
 bitflags! {
@@ -125,5 +154,11 @@ bitflags! {
         const HAS_SEARCH_COMMENT = 1 << 2;
         const HOUSE_BUILT = 1 << 3;
         const OWNED_BY_FC = 1 << 4;
+    }
+}
+
+impl std::fmt::Debug for HousingFlags {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        bitflags::parser::to_writer(self, f)
     }
 }

@@ -1,18 +1,25 @@
+// TODO: Restore DirectorTrigger handling, I removed it after the refactor...
+
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use kawari::{
     common::{
-        DirectorEvent, EOBJ_EXIT, EOBJ_SHORTCUT, EventState, HandlerId, ObjectId, ObjectTypeId,
-        ObjectTypeKind, Position,
+        ContentDirectorEvent, DirectorEvent, DirectorTrigger, DutyOption, EOBJ_EXIT, EOBJ_SHORTCUT,
+        EventState, GimmickAccessorType, GimmickRectEvent, HandlerId, HandlerType,
+        InstanceContentDirectorEvent, LeveDirectorEvent, LogMessageType, ObjectId, ObjectTypeId,
+        ObjectTypeKind, Position, PublicContentType, TerritoryIntendedUse, timestamp_secs,
     },
     config::get_config,
-    ipc::zone::{ActorControlCategory, ActorControlSelf, ServerZoneIpcData, ServerZoneIpcSegment},
+    ipc::zone::{
+        ActorControlCategory, ActorControlSelf, DutyFinderSetting, EventLogMessage, MapEffects,
+        ServerZoneIpcData, ServerZoneIpcSegment, WalkInEvent,
+    },
 };
 use mlua::{Function, LuaSerdeExt, UserData, UserDataMethods, Value};
 use parking_lot::Mutex;
 
 use crate::{
-    ClientId, FromServer, ToServer,
+    ClientId, FromServer, GameData, ToServer,
     lua::KawariLua,
     server::{
         WorldServer,
@@ -93,7 +100,7 @@ pub enum LuaDirectorTask {
     UseShortcut {
         actor_id: ObjectId,
     },
-    CompleteDuty {},
+    CompleteDuty,
     MapEffect {
         index: u32,
         timeline_id: u32,
@@ -136,12 +143,6 @@ impl UserData for LuaDirector {
             Ok(())
         });
         methods.add_method("data", |_, this, index: u8| Ok(this.data[index as usize]));
-        methods.add_method_mut("abandon_duty", |_, this, actor_id: u32| {
-            this.tasks.push(LuaDirectorTask::AbandonDuty {
-                actor_id: ObjectId(actor_id),
-            });
-            Ok(())
-        });
         methods.add_method_mut(
             "event_action",
             |_, this, (action_id, actor_id, target): (u32, u32, u32)| {
@@ -218,12 +219,6 @@ impl UserData for LuaDirector {
                 .push(LuaDirectorTask::UpdateShortcut { poprange_id });
             Ok(())
         });
-        methods.add_method_mut("use_shortcut", |_, this, actor_id: u32| {
-            this.tasks.push(LuaDirectorTask::UseShortcut {
-                actor_id: ObjectId(actor_id),
-            });
-            Ok(())
-        });
         methods.add_method_mut("complete_duty", |_, this, _: ()| {
             // Show the exit object
             this.tasks
@@ -258,7 +253,7 @@ pub struct DirectorBoss {
     place_name: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DirectorData {
     pub id: HandlerId,
     pub flag: u8,
@@ -310,6 +305,10 @@ impl DirectorData {
         };
         if let Err(err) = run_script() {
             tracing::warn!("Syntax error during onGimmickAccessor: {err:?}");
+
+            // Finish the gimmick event so the client at least gets unstuck
+            self.tasks
+                .push(LuaDirectorTask::FinishGimmickEvent { actor_id });
         }
     }
 
@@ -393,7 +392,7 @@ impl DirectorData {
     pub fn seal_boss_wall(&mut self, id: u32, place_name: u32) {
         if let Some(boss) = self.bosses.iter_mut().find(|x| x.1.wall_id == id) {
             self.tasks.push(LuaDirectorTask::LogMessage {
-                id: 2013,
+                id: LogMessageType::BossRoomSealed as u32,
                 params: vec![place_name],
             });
             self.tasks.push(LuaDirectorTask::ShowEObj { base_id: id });
@@ -408,7 +407,7 @@ impl DirectorData {
         self.tasks
             .push(LuaDirectorTask::HideEObj { base_id: line_id });
         self.tasks.push(LuaDirectorTask::LogMessage {
-            id: 2014,
+            id: LogMessageType::BossRoomUnsealed as u32,
             params: vec![place_name],
         });
     }
@@ -419,7 +418,7 @@ impl DirectorData {
         {
             // TODO: is there times that are longer than 15 secs?
             self.tasks.push(LuaDirectorTask::LogMessage {
-                id: 2012,
+                id: LogMessageType::BossRoomSealing as u32,
                 params: vec![boss.place_name, 15],
             });
             self.tasks.push(LuaDirectorTask::SealBossWall {
@@ -433,6 +432,17 @@ impl DirectorData {
     }
 
     pub fn on_gimmick_rect(&mut self, id: u32) {
+        // Skip if the fucntion isn't defined'
+        if !self
+            .lua
+            .0
+            .globals()
+            .contains_key("onGimmickRect")
+            .unwrap_or_default()
+        {
+            return;
+        }
+
         let mut run_script = || {
             let mut lua_director = self.create_lua_director();
             let err = self.lua.0.scope(|scope| {
@@ -470,6 +480,7 @@ impl DirectorData {
         }
     }
 
+    #[allow(unused)] // TODO: temporary after refactor
     pub fn variant_vote(&mut self, vote: u32) {
         let mut run_script = || {
             let mut lua_director = self.create_lua_director();
@@ -489,23 +500,45 @@ impl DirectorData {
             tracing::warn!("Syntax error during onVariantVote: {err:?}");
         }
     }
+
+    pub fn is_gimmick_functional(&self, id: u32) -> bool {
+        let run_script = || {
+            self.lua.0.scope(|_| {
+                let func: Function = self.lua.0.globals().get("isGimmickFunctional")?;
+
+                func.call::<bool>(id)
+            })
+        };
+        match run_script() {
+            Ok(value) => value,
+            Err(err) => {
+                tracing::warn!("Syntax error during isGimmickFunctional: {err:?}");
+
+                true
+            }
+        }
+    }
 }
 
 /// Perform any queued director tasks
-pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance) {
-    let tasks = if let Some(director) = &instance.director {
+pub fn director_tick(
+    network: Arc<Mutex<NetworkState>>,
+    instance: &mut Instance,
+    game_data: Arc<Mutex<GameData>>,
+) {
+    let tasks = if let Some(director) = &instance.directors.first() {
         director.tasks.clone()
     } else {
         return;
     };
 
-    let mut bosses = if let Some(director) = &instance.director {
+    let mut bosses = if let Some(director) = &instance.directors.first() {
         director.bosses.clone()
     } else {
         return;
     };
 
-    let director_id = instance.director.as_ref().unwrap().id;
+    let director_id = instance.directors.first().as_ref().unwrap().id;
 
     for task in &tasks {
         match task {
@@ -575,19 +608,24 @@ pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance)
                 }
             }
             LuaDirectorTask::SendVariables => {
-                let vars = if let Some(director) = &instance.director {
+                let vars = if let Some(director) = &instance.directors.first() {
                     director.build_var_segment()
                 } else {
                     panic!("There's no way this could've happened!");
                 };
 
                 let mut network = network.lock();
-                for id in instance.actors.keys() {
-                    let Some((handle, _)) = network.get_by_actor_mut(*id) else {
+                for id in instance
+                    .actors
+                    .iter()
+                    .filter(|x| matches!(x.1, NetworkedActor::Player { .. }))
+                    .map(|x| *x.0)
+                {
+                    let Some((handle, _)) = network.get_by_actor_mut(id) else {
                         continue;
                     };
 
-                    let msg = FromServer::PacketSegment(vars.clone(), *id);
+                    let msg = FromServer::PacketSegment(vars.clone(), id);
                     let _ = handle.send(msg.clone()); // TODO: use result
                 }
             }
@@ -595,7 +633,7 @@ pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance)
                 let mut network = network.lock();
                 network.send_to_by_actor_id(
                     *actor_id,
-                    FromServer::LeaveContent(),
+                    FromServer::LeaveContent,
                     DestinationNetwork::ZoneClients,
                 );
             }
@@ -637,18 +675,18 @@ pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance)
                 let mut network = network.lock();
                 network.send_to_by_actor_id(
                     *actor_id,
-                    FromServer::FinishEvent(),
+                    FromServer::FinishEvent,
                     DestinationNetwork::ZoneClients,
                 );
             }
             LuaDirectorTask::LogMessage { id, params } => {
-                let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::LogMessage {
+                let ipc = EventLogMessage {
                     handler_id: director_id,
                     message_type: *id,
-                    params_count: params.len() as u32,
-                    item_id: params.first().copied().unwrap_or_default(),
-                    item_quantity: params.get(1).copied().unwrap_or_default(),
-                });
+                    params: params.to_vec(),
+                }
+                .package()
+                .unwrap();
 
                 let mut network = network.lock();
                 network.send_to_instance(
@@ -662,7 +700,8 @@ pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance)
                 if let Some(mut npc) = instance.zone.get_battle_npc(*id) {
                     npc.common.handler_id = director_id;
                     let config = get_config();
-                    instance.insert_npc(ObjectId(fastrand::u32(..)), npc, &config);
+                    let mut game_data = game_data.lock();
+                    instance.insert_npc(ObjectId(fastrand::u32(..)), npc, &config, &mut game_data);
                 } else {
                     tracing::warn!("Failed to find bnpc {id} for SpawnBattleNpc, it won't spawn!");
                 }
@@ -690,7 +729,9 @@ pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance)
                     ActorControlSelf {
                         category: ActorControlCategory::DirectorEvent {
                             handler_id: director_id,
-                            event: DirectorEvent::SetBGM { bgm: *id },
+                            event: DirectorEvent::ContentDirector(ContentDirectorEvent::SetBGM {
+                                bgm: *id,
+                            }),
                         },
                     },
                 ));
@@ -730,7 +771,8 @@ pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance)
 
                     let actor_id = ObjectId(fastrand::u32(..));
                     let config = get_config();
-                    instance.insert_npc(actor_id, npc, &config);
+                    let mut game_data = game_data.lock();
+                    instance.insert_npc(actor_id, npc, &config, &mut game_data);
                     bosses.insert(
                         *bnpc_id,
                         DirectorBoss {
@@ -757,38 +799,39 @@ pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance)
                     );
                 }
             }
-            LuaDirectorTask::VariantVoteRoute { npc_route } => {
-                let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ActorControlSelf(
-                    ActorControlSelf {
-                        category: ActorControlCategory::DirectorEvent {
-                            handler_id: director_id,
-                            event: DirectorEvent::VariantVoteRoute {
-                                votes_needed: 1, // TODO: set to the number of players in the instance
-                                npc_route: *npc_route,
-                            },
-                        },
-                    },
-                ));
-
-                let mut network = network.lock();
-                network.send_to_instance(
-                    ObjectId::default(),
-                    instance,
-                    FromServer::PacketSegment(ipc, ObjectId::default()), // TODO: how do we just send it from the player?
-                    DestinationNetwork::ZoneClients,
-                );
+            LuaDirectorTask::VariantVoteRoute { .. } => {
+                // TODO: Restore, this was removed after the refactor
+                // let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ActorControlSelf(
+                //     ActorControlSelf {
+                //         category: ActorControlCategory::DirectorEvent {
+                //             handler_id: director_id,
+                //             event: DirectorEvent::VariantVoteRoute {
+                //                 votes_needed: 1, // TODO: set to the number of players in the instance
+                //                 npc_route: *npc_route,
+                //             },
+                //         },
+                //     },
+                // ));
+                //
+                // let mut network = network.lock();
+                // network.send_to_instance(
+                //     ObjectId::default(),
+                //     instance,
+                //     FromServer::PacketSegment(ipc, ObjectId::default()), // TODO: how do we just send it from the player?
+                //     DestinationNetwork::ZoneClients,
+                // );
             }
             LuaDirectorTask::PlayCutscene { cutscene_id } => {
                 let mut network = network.lock();
                 network.send_to_instance(
                     ObjectId::default(),
                     instance,
-                    FromServer::PlayDirectorCutscene(*cutscene_id),
+                    FromServer::PlayDirectorCutscene(*cutscene_id, director_id),
                     DestinationNetwork::ZoneClients,
                 );
             }
             LuaDirectorTask::UpdateShortcut { poprange_id } => {
-                instance.director.as_mut().unwrap().shortcut_poprange_id = Some(*poprange_id);
+                instance.directors.first_mut().unwrap().shortcut_poprange_id = Some(*poprange_id);
             }
             LuaDirectorTask::UseShortcut { actor_id } => {
                 instance.insert_task(
@@ -797,7 +840,8 @@ pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance)
                     Duration::from_secs(0),
                     QueuedTaskData::WarpToPopRange {
                         id: instance
-                            .director
+                            .directors
+                            .first()
                             .as_ref()
                             .unwrap()
                             .shortcut_poprange_id
@@ -805,17 +849,21 @@ pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance)
                     },
                 );
             }
-            LuaDirectorTask::CompleteDuty {} => {
+            LuaDirectorTask::CompleteDuty => {
                 let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ActorControlSelf(
                     ActorControlSelf {
                         category: ActorControlCategory::DirectorEvent {
                             handler_id: director_id,
-                            event: DirectorEvent::DutyCompleted {
-                                arg1: 0,
-                                arg2: 0,
-                                arg3: 0,
-                                arg4: 0,
-                            },
+                            event: DirectorEvent::ContentDirector(
+                                ContentDirectorEvent::InstanceContent(
+                                    InstanceContentDirectorEvent::DutyCompleted {
+                                        arg1: 0,
+                                        arg2: 0,
+                                        arg3: 0,
+                                        arg4: 0,
+                                    },
+                                ),
+                            ),
                         },
                     },
                 ));
@@ -849,50 +897,575 @@ pub fn director_tick(network: Arc<Mutex<NetworkState>>, instance: &mut Instance)
         }
     }
 
-    if let Some(director) = &mut instance.director {
+    if let Some(director) = &mut instance.directors.first_mut() {
         director.tasks.clear();
         director.bosses = bosses;
     }
 }
 
 /// Process director-related messages.
-pub fn handle_director_messages(data: Arc<Mutex<WorldServer>>, msg: &ToServer) -> bool {
+pub fn handle_director_messages(
+    data: Arc<Mutex<WorldServer>>,
+    network: Arc<Mutex<NetworkState>>,
+    game_data: Arc<Mutex<GameData>>,
+    msg: &ToServer,
+) -> bool {
     match msg {
-        ToServer::GimmickAccessor(from_actor_id, from_object_id, params) => {
+        ToServer::GimmickAccessor(id, from_actor_id, from_object_id, params) => {
             let mut data = data.lock();
             let Some(instance) = data.find_actor_instance_mut(*from_actor_id) else {
                 tracing::warn!("Somehow failed to find an instance for actor?");
                 return true;
             };
 
-            let Some(id) = instance.find_base_id_by_actor_id(*from_object_id) else {
+            let Some(base_id) = instance.find_base_id_by_actor_id(*from_object_id) else {
                 tracing::warn!("Somehow failed to find base id from actor id {from_object_id}!");
                 return true;
             };
 
-            if let Some(director) = &mut instance.director {
-                director.gimmick_accessor(*from_actor_id, id, params);
-            } else {
+            let Some(director) = &mut instance.directors.first_mut() else {
                 tracing::warn!("Expected a director when recieving a GimmickAccessor?");
+                return true;
+            };
+
+            let (gimmick_accessor_type, gimmick_param0, gimmick_param1, gimmick_param2);
+            {
+                let mut game_data = game_data.lock();
+                (
+                    gimmick_accessor_type,
+                    gimmick_param0,
+                    gimmick_param1,
+                    gimmick_param2,
+                ) = game_data.lookup_gimmick_accessor(*id).unwrap();
+            }
+
+            match gimmick_accessor_type {
+                GimmickAccessorType::Shortcut => {
+                    director.tasks.push(LuaDirectorTask::FinishGimmickEvent {
+                        actor_id: *from_actor_id,
+                    });
+                    director.tasks.push(LuaDirectorTask::UseShortcut {
+                        actor_id: *from_actor_id,
+                    });
+                }
+                GimmickAccessorType::DutyExit
+                | GimmickAccessorType::DeepDungeonExit
+                | GimmickAccessorType::LeapOfFaithExit => {
+                    // 0 means the user hit "Yes" in the prompt
+                    if params[0] == 0 {
+                        director.tasks.push(LuaDirectorTask::AbandonDuty {
+                            actor_id: *from_actor_id,
+                        });
+                    }
+                    director.tasks.push(LuaDirectorTask::FinishGimmickEvent {
+                        actor_id: *from_actor_id,
+                    });
+                }
+                GimmickAccessorType::GimmickPath => {
+                    let pop_range_id = gimmick_param2;
+                    let path_id = gimmick_param1;
+                    let speed = 150; // TODO: dunno if this is defined somewhere
+
+                    // TODO: Needs an EventAction before this happens I think
+                    if let Some((position, rotation)) =
+                        instance.zone.cached_pop_ranges.get(&pop_range_id)
+                    {
+                        let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::WalkInEvent(
+                            WalkInEvent {
+                                path_id,
+                                rotation: *rotation,
+                                speed,
+                                position: *position,
+                                ..Default::default()
+                            },
+                        ));
+                        let mut network = network.lock();
+                        network.send_to_by_actor_id(
+                            *from_actor_id,
+                            FromServer::PacketSegment(ipc, *from_actor_id),
+                            DestinationNetwork::ZoneClients,
+                        );
+                    }
+
+                    director.tasks.push(LuaDirectorTask::FinishGimmickEvent {
+                        actor_id: *from_actor_id,
+                    });
+                }
+                GimmickAccessorType::Talk => {
+                    // This handled by the client, we just need to finish it
+                    director.tasks.push(LuaDirectorTask::FinishGimmickEvent {
+                        actor_id: *from_actor_id,
+                    });
+                }
+                GimmickAccessorType::FalliblePrompt => {
+                    // 0 means the user hit "Yes" in the prompt
+                    if params[0] == 0 {
+                        if director.is_gimmick_functional(base_id) {
+                            director.gimmick_accessor(*from_actor_id, base_id, params);
+                            return true;
+                        } else {
+                            director.tasks.push(LuaDirectorTask::LogMessage {
+                                id: gimmick_param1,
+                                params: Vec::default(),
+                            });
+                        }
+                    }
+
+                    director.tasks.push(LuaDirectorTask::FinishGimmickEvent {
+                        actor_id: *from_actor_id,
+                    });
+                }
+                GimmickAccessorType::Message => {
+                    if director.is_gimmick_functional(base_id) {
+                        director.gimmick_accessor(*from_actor_id, base_id, params);
+                    } else {
+                        director.tasks.push(LuaDirectorTask::LogMessage {
+                            id: gimmick_param0,
+                            params: Vec::default(),
+                        });
+                        director.tasks.push(LuaDirectorTask::FinishGimmickEvent {
+                            actor_id: *from_actor_id,
+                        });
+                    }
+                }
+                GimmickAccessorType::InfalliblePrompt => {
+                    // 0 means the user hit "Yes" in the prompt
+                    if params[0] == 0 {
+                        director.gimmick_accessor(*from_actor_id, base_id, params);
+                    } else {
+                        director.tasks.push(LuaDirectorTask::FinishGimmickEvent {
+                            actor_id: *from_actor_id,
+                        });
+                    }
+                }
+                _ => {
+                    director.gimmick_accessor(*from_actor_id, base_id, params);
+                }
             }
 
             true
         }
-        ToServer::VariantVote(from_actor_id, vote) => {
+        ToServer::ReadyDirectorData(from_actor_id) => {
             let mut data = data.lock();
             let Some(instance) = data.find_actor_instance_mut(*from_actor_id) else {
                 tracing::warn!("Somehow failed to find an instance for actor?");
                 return true;
             };
 
-            if let Some(director) = &mut instance.director {
-                director.variant_vote(*vote);
-            } else {
-                tracing::warn!("Expected a director when recieving a VariantVote?");
+            // A Feast respawn reloads the player, but the existing native
+            // director survives. Initializing it twice leaves a second CC
+            // HUD alive after the normal departure terminates the first.
+            if instance.content_finder_condition_id == 476
+                && !instance.feast_directors_sent.insert(*from_actor_id)
+            {
+                return true;
+            }
+            let mut network = network.lock();
+            for director in &instance.directors {
+                let flags = if instance
+                    .content_settings
+                    .unwrap_or_default()
+                    .contains(DutyFinderSetting::EXPLORER_MODE)
+                    && director.id.handler_type().is_content_director()
+                {
+                    1
+                } else {
+                    0
+                };
+
+                network.send_to_by_actor_id(
+                    *from_actor_id,
+                    FromServer::ActorControlSelf(ActorControlCategory::InitDirector {
+                        handler_id: director.id,
+                        content_id: if director.id.handler_type().is_content_director() {
+                            instance.content_id
+                        } else {
+                            0xFFFF
+                        },
+                        flags,
+                    }),
+                    DestinationNetwork::ZoneClients,
+                );
+            }
+
+            // Sync to new max level
+            if let Some(synced_level) = instance.synced_level {
+                network.send_to_by_actor_id(
+                    *from_actor_id,
+                    FromServer::SyncMaxLevel(synced_level),
+                    DestinationNetwork::ZoneClients,
+                );
             }
 
             true
         }
+        ToServer::EnterTerritoryEvent(from_actor_id) => {
+            let mut data = data.lock();
+            let Some(instance) = data.find_actor_instance_mut(*from_actor_id) else {
+                tracing::warn!("Somehow failed to find an instance for actor?");
+                return true;
+            };
+
+            let mut network = network.lock();
+            for director in &instance.directors {
+                if director.id.handler_type().is_content_director() {
+                    // Start the initial cutscene
+                    network.send_to_by_actor_id(
+                        *from_actor_id,
+                        FromServer::PlayInitialCutscene(
+                            instance.duration.unwrap_or_default().as_secs() as u32,
+                            DutyOption::from_content_flags(
+                                instance.content_settings.unwrap_or_default(),
+                            )
+                            .bits(),
+                        ),
+                        DestinationNetwork::ZoneClients,
+                    );
+                }
+            }
+
+            true
+        }
+        ToServer::ReadyToCommence(from_actor_id) => {
+            let mut data = data.lock();
+            let Some(instance) = data.find_actor_instance_mut(*from_actor_id) else {
+                tracing::warn!("Somehow failed to find an instance for actor?");
+                return true;
+            };
+
+            // TODO: wait for all players to be ready, not just the first one!
+
+            // Have the director commence the duty
+            let ipc =
+                ServerZoneIpcSegment::new(ServerZoneIpcData::ActorControlSelf(ActorControlSelf {
+                    category: ActorControlCategory::DirectorEvent {
+                        handler_id: instance.directors.first().unwrap().id,
+                        event: DirectorEvent::ContentDirector(
+                            ContentDirectorEvent::InstanceContent(
+                                InstanceContentDirectorEvent::DutyCommence {
+                                    time_limit: instance.duration.unwrap_or_default().as_secs()
+                                        as u32,
+                                },
+                            ),
+                        ),
+                    },
+                }));
+            let mut network = network.lock();
+            network.send_to_by_actor_id(
+                *from_actor_id,
+                FromServer::PacketSegment(ipc, *from_actor_id),
+                DestinationNetwork::ZoneClients,
+            );
+
+            let entrance_actor_id;
+            let state = EventState::OFF | EventState::UNK2 | EventState::UNK3;
+
+            {
+                // Find the spawned entrance circle
+                let Some(actor_id) = instance.find_entrance_circle() else {
+                    tracing::warn!("Failed to find entrance circle, it won't despawn!");
+                    return true;
+                };
+                entrance_actor_id = actor_id;
+
+                // Update invisibility flags for next spawn
+                if let Some(NetworkedActor::Object { object, .. }) =
+                    instance.find_actor_mut(entrance_actor_id)
+                {
+                    object.event_state = state;
+                    object.not_targetable = true;
+                }
+            }
+
+            // Make the entrance circle invisible.
+            let msg = FromServer::ActorControl(
+                entrance_actor_id,
+                ActorControlCategory::SetEventState { state },
+            );
+
+            network.send_to_by_actor_id(*from_actor_id, msg, DestinationNetwork::ZoneClients);
+
+            // This begins the countdown
+            let ipc =
+                ServerZoneIpcSegment::new(ServerZoneIpcData::ActorControlSelf(ActorControlSelf {
+                    category: ActorControlCategory::DirectorEvent {
+                        handler_id: instance.directors.first().unwrap().id,
+                        event: DirectorEvent::ContentDirector(
+                            ContentDirectorEvent::SetDutyTimeRemaining {
+                                time_remaining: instance.duration.unwrap_or_default().as_secs()
+                                    as u32,
+                            },
+                        ),
+                    },
+                }));
+            network.send_to_by_actor_id(
+                *from_actor_id,
+                FromServer::PacketSegment(ipc, *from_actor_id),
+                DestinationNetwork::ZoneClients,
+            );
+
+            true
+        }
         _ => false,
+    }
+}
+
+/// Handles an incoming director trigger from a client.
+pub fn handle_director_trigger(
+    network: Arc<Mutex<NetworkState>>,
+    game_data: Arc<Mutex<GameData>>,
+    from_actor_id: ObjectId,
+    handler_id: HandlerId,
+    trigger: &DirectorTrigger,
+) {
+    if handler_id.handler_type() == HandlerType::GimmickRect {
+        let ipc =
+            ServerZoneIpcSegment::new(ServerZoneIpcData::ActorControlSelf(ActorControlSelf {
+                category: ActorControlCategory::DirectorEvent {
+                    handler_id,
+                    event: DirectorEvent::GimmickRect(GimmickRectEvent::Activate { arg1: 1 }),
+                },
+            }));
+        let mut network = network.lock();
+        network.send_to_by_actor_id(
+            from_actor_id,
+            FromServer::PacketSegment(ipc, from_actor_id),
+            DestinationNetwork::ZoneClients,
+        );
+    }
+    if handler_id.handler_type() == HandlerType::GoldSaucer
+        && let DirectorTrigger::Unknown { id, .. } = trigger
+        && *id == 0
+    {
+        let gate_id = 12; // TODO: GATE hardcoded
+        let row;
+        {
+            let mut game_data = game_data.lock();
+            let Some(gate_row) = game_data.get_gate(gate_id) else {
+                return;
+            };
+            row = gate_row;
+        }
+
+        let mut network = network.lock();
+        network.send_to_by_actor_id(
+            from_actor_id,
+            FromServer::ActorControlSelf(ActorControlCategory::DirectorEvent {
+                handler_id,
+                event: DirectorEvent::Unknown {
+                    id: 9,
+                    arg1: gate_id,
+                    arg2: 4, // 4 for AFO, 12 for Cliffhanger?
+                    arg3: 0,
+                    arg4: 0,
+                },
+            }),
+            DestinationNetwork::ZoneClients,
+        );
+        network.send_to_by_actor_id(
+            from_actor_id,
+            FromServer::ActorControlSelf(ActorControlCategory::DirectorEvent {
+                handler_id,
+                event: DirectorEvent::Unknown {
+                    id: 6,
+                    arg1: row.GFATEParams[0].LGBPopRange,
+                    arg2: timestamp_secs() + 1000, // TODO: hardcoded duration
+                    arg3: 0,
+                    arg4: 0,
+                },
+            }),
+            DestinationNetwork::ZoneClients,
+        );
+        network.send_to_by_actor_id(
+            from_actor_id,
+            FromServer::ActorControlSelf(ActorControlCategory::DirectorEvent {
+                handler_id,
+                event: DirectorEvent::Unknown {
+                    id: 11,
+                    arg1: 3,
+                    arg2: 0,
+                    arg3: 0,
+                    arg4: 0,
+                },
+            }),
+            DestinationNetwork::ZoneClients,
+        );
+    }
+
+    // TODO: send triggers to Lua etc.
+}
+
+pub fn send_director_vars(
+    data: Arc<Mutex<WorldServer>>,
+    network: Arc<Mutex<NetworkState>>,
+    game_data: Arc<Mutex<GameData>>,
+    from_actor_id: ObjectId,
+) {
+    let mut data = data.lock();
+    let Some(instance) = data.find_actor_instance_mut(from_actor_id) else {
+        tracing::warn!("Somehow failed to find an instance for actor?");
+        return;
+    };
+
+    let mut network = network.lock();
+    for director in &instance.directors {
+        if director.id.handler_type().is_content_director() {
+            network.send_to_by_actor_id(
+                from_actor_id,
+                FromServer::PacketSegment(director.build_var_segment(), from_actor_id),
+                DestinationNetwork::ZoneClients,
+            );
+
+            let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::UnkDirector1 {
+                unk: [
+                    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 38, 0, 0, 0,
+                ],
+            });
+            network.send_to_by_actor_id(
+                from_actor_id,
+                FromServer::PacketSegment(ipc, from_actor_id),
+                DestinationNetwork::ZoneClients,
+            );
+
+            let mut game_data = game_data.lock();
+            if let Some(map_effects) = game_data.get_map_effects(instance.content_id as u32) {
+                let mut states = Vec::new();
+                for (i, layout_id) in map_effects.iter().enumerate() {
+                    // A layout ID of zero means the effect should be skipped.
+                    if *layout_id != 0 {
+                        states.resize(i + 1, 0);
+                        states[i] = 4; // 4 means to play it, I guess?
+                    }
+                }
+
+                let ipc = MapEffects {
+                    handler_id: director.id,
+                    unk_flag: 5,
+                    states,
+                    ..Default::default()
+                }
+                .package()
+                .unwrap();
+                network.send_to_by_actor_id(
+                    from_actor_id,
+                    FromServer::PacketSegment(ipc, from_actor_id),
+                    DestinationNetwork::ZoneClients,
+                );
+            }
+
+            let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::UnkDirector2 {
+                unk: [
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                ],
+            });
+            network.send_to_by_actor_id(
+                from_actor_id,
+                FromServer::PacketSegment(ipc, from_actor_id),
+                DestinationNetwork::ZoneClients,
+            );
+        }
+
+        if director.id.handler_type() == HandlerType::PublicContent {
+            let content_type;
+            {
+                let mut game_data = game_data.lock();
+                content_type = game_data
+                    .find_public_content_type(director.id.event_id())
+                    .unwrap_or_default();
+            }
+
+            if content_type == PublicContentType::OccultCrescent {
+                // Setup the panel
+                let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::OccultCrescentSetup {
+                    unk1: [
+                        243, 152, 1, 0, 136, 182, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 48, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 137, 21, 36, 0, 0,
+                        0, 0, 0, 0, 0, 2, 5, 0, 1, 0, 0, 4, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+                        0, 0, 0, 1, 223, 63, 0, 0, 0, 0, 0, 0, 0, 0,
+                    ],
+                });
+                network.send_to_by_actor_id(
+                    from_actor_id,
+                    FromServer::PacketSegment(ipc, from_actor_id),
+                    DestinationNetwork::ZoneClients,
+                );
+
+                // Setup duty actions
+                network.send_to_by_actor_id(
+                    from_actor_id,
+                    FromServer::ActorControlSelf(ActorControlCategory::UnkDutyActions { unk1: 24 }),
+                    DestinationNetwork::ZoneClients,
+                );
+                network.send_to_by_actor_id(
+                    from_actor_id,
+                    FromServer::ActorControlSelf(ActorControlCategory::EnableDutyActions {
+                        enabled: true,
+                    }),
+                    DestinationNetwork::ZoneClients,
+                );
+                network.send_to_by_actor_id(
+                    from_actor_id,
+                    FromServer::ActorControlSelf(ActorControlCategory::SetDutyActions {
+                        action_ids: [41588, 41589, 41590, 0, 0],
+                    }),
+                    DestinationNetwork::ZoneClients,
+                );
+            }
+        }
+
+        if director.id.handler_type() == HandlerType::TreasureHunt {
+            network.send_to_by_actor_id(
+                from_actor_id,
+                FromServer::PacketSegment(director.build_var_segment(), from_actor_id),
+                DestinationNetwork::ZoneClients,
+            );
+        }
+
+        if director.id.handler_type().is_leve_director() {
+            network.send_to_by_actor_id(
+                from_actor_id,
+                FromServer::PacketSegment(director.build_var_segment(), from_actor_id),
+                DestinationNetwork::ZoneClients,
+            );
+
+            // Send a dummy commence for now
+            // TODO: I think this can be extrapolated from Excel
+            network.send_to_by_actor_id(
+                from_actor_id,
+                FromServer::ActorControlSelf(ActorControlCategory::DirectorEvent {
+                    handler_id: director.id,
+                    event: DirectorEvent::LeveDirector(LeveDirectorEvent::DutyCommence {
+                        time_limit: 1200,
+                        start_timestamp: timestamp_secs(),
+                    }),
+                }),
+                DestinationNetwork::ZoneClients,
+            );
+        }
+
+        if instance.zone.intended_use == TerritoryIntendedUse::CrystallineConflictCustomMatch {
+            let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::SpectatorList {
+                object_ids: [
+                    from_actor_id,
+                    ObjectId::default(),
+                    ObjectId::default(),
+                    ObjectId::default(),
+                    ObjectId::default(),
+                    ObjectId::default(),
+                    ObjectId::default(),
+                    ObjectId::default(),
+                ],
+                unk1: 1,
+            });
+            network.send_to_by_actor_id(
+                from_actor_id,
+                FromServer::PacketSegment(ipc, from_actor_id),
+                DestinationNetwork::ZoneClients,
+            );
+        }
     }
 }

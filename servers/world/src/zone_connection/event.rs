@@ -9,8 +9,8 @@ use kawari::{
     common::{CharacterMode, HandlerId, ObjectTypeId},
     config::get_config,
     ipc::zone::{
-        EventResume, EventScene, EventStart, EventType, SceneFlags, ServerZoneIpcData,
-        ServerZoneIpcSegment,
+        ActorControlCategory, EventResume, EventScene, EventStart, EventType, SceneFlags,
+        ServerZoneIpcData, ServerZoneIpcSegment,
     },
 };
 
@@ -25,15 +25,14 @@ impl ZoneConnection {
     ) {
         let config = get_config();
         if config.tweaks.always_allow_skipping {
-            scene_flags.set(SceneFlags::DISABLE_SKIP, false);
+            scene_flags.remove(SceneFlags::DISABLE_SKIP);
         }
 
         let scene = EventScene {
             actor_id: event.actor_id,
-            handler_id: HandlerId(event.id),
+            handler_id: event.id,
             scene,
             scene_flags,
-            params_count: params.len() as u8,
             params,
             ..Default::default()
         };
@@ -41,7 +40,7 @@ impl ZoneConnection {
             self.send_ipc_self(ipc).await;
         } else {
             tracing::error!(
-                "Unable to play event {}, scene {:?}, scene_flags {scene_flags}!",
+                "Unable to package event scene {}, scene {:?}, scene_flags {scene_flags}!",
                 event.id,
                 scene
             );
@@ -55,7 +54,8 @@ impl ZoneConnection {
             let event_arg = event.1.event_arg;
             let event_id = event.1.id;
 
-            self.set_character_mode(CharacterMode::Normal, 0).await;
+            self.set_character_mode(CharacterMode::Normal, 0, true)
+                .await;
 
             // Remove the condition given at the start of the event
             self.conditions.remove_condition(event.1.condition);
@@ -64,7 +64,7 @@ impl ZoneConnection {
             // sent event finish
             {
                 let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::EventFinish {
-                    handler_id: HandlerId(event_id),
+                    handler_id: event_id,
                     event_type,
                     result: 1,
                     arg: event_arg,
@@ -74,7 +74,7 @@ impl ZoneConnection {
         }
 
         if let Some(event) = events.last() {
-            self.event_handler_id = Some(HandlerId(event.1.id));
+            self.event_handler_id = Some(event.1.id);
         } else {
             self.event_handler_id = None;
         }
@@ -84,20 +84,20 @@ impl ZoneConnection {
     pub async fn start_event(
         &mut self,
         actor_id: ObjectTypeId,
-        event_id: u32,
+        event_id: HandlerId,
         event_type: EventType,
         event_arg: u32,
         events: &mut Vec<(Box<dyn EventHandler>, Event)>,
         lua_player: &LuaPlayer,
     ) -> bool {
         let old_event_handler_id = self.event_handler_id;
-        self.event_handler_id = Some(HandlerId(event_id));
+        self.event_handler_id = Some(event_id);
 
         // tell the client the event has started
         {
             let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::EventStart(EventStart {
                 target_id: actor_id,
-                handler_id: HandlerId(event_id),
+                handler_id: event_id,
                 event_type,
                 event_arg,
                 ..Default::default()
@@ -109,7 +109,7 @@ impl ZoneConnection {
         let base_id = lua_player
             .zone_data
             .cached_eobj_base_ids
-            .get(&actor_id.object_id)
+            .get(&actor_id.object_id.0)
             .copied()
             .or(lua_player
                 .zone_data
@@ -118,7 +118,13 @@ impl ZoneConnection {
                 .copied());
 
         // call into the event dispatcher, get the event
-        let handler = dispatch_event(HandlerId(event_id), base_id, self.gamedata.clone());
+        let handler = dispatch_event(
+            event_id,
+            base_id,
+            self.game_data.clone(),
+            self,
+            actor_id.object_id,
+        );
 
         if let Some(handler) = handler {
             let condition = handler.condition();
@@ -127,7 +133,14 @@ impl ZoneConnection {
             self.conditions.toggle_condition(condition, true);
             self.send_conditions().await;
 
-            self.set_character_mode(character_mode, 0).await;
+            self.set_character_mode(character_mode, 0, true).await;
+
+            if handler.disable_event_pos_rollback() {
+                self.actor_control_self(ActorControlCategory::DisableEventPosRollback {
+                    handler_id: event_id,
+                })
+                .await;
+            }
 
             events.push((
                 handler,
@@ -142,15 +155,12 @@ impl ZoneConnection {
 
             true
         } else {
-            tracing::warn!(
-                "Event {:?} isn't scripted yet! Ignoring...",
-                HandlerId(event_id)
-            );
+            tracing::warn!("Event {:?} isn't scripted yet! Ignoring...", event_id);
 
             // give control back to the player so they aren't stuck
             {
                 let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::EventFinish {
-                    handler_id: HandlerId(event_id),
+                    handler_id: event_id,
                     event_type,
                     result: 1,
                     arg: event_arg,
@@ -184,13 +194,15 @@ impl ZoneConnection {
             handler_id: HandlerId(event_id),
             scene,
             resume_id,
-            params_count: params.len() as u8,
             params,
         };
         if let Some(ipc) = scene.package() {
             self.send_ipc_self(ipc).await;
         } else {
-            tracing::error!("Unable to resume event {event_id}, scene {:?}!", scene);
+            tracing::error!(
+                "Unable to package resume event {event_id}, scene {:?}!",
+                scene
+            );
         }
     }
 }

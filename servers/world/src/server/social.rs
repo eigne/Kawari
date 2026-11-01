@@ -6,7 +6,8 @@ use crate::{
     FromServer, ToServer,
     server::{DestinationNetwork, WorldServer, network::NetworkState},
 };
-use kawari::{common::LogMessageType, ipc::zone::InviteType};
+
+use kawari::{common::LogMessageType, ipc::chat::ChatChannelType, ipc::zone::InviteType};
 
 /// Process social invitation and moogle mail-related messages.
 pub fn handle_social_messages(
@@ -25,7 +26,7 @@ pub fn handle_social_messages(
             recipient_character_name,
             invite_type,
         ) => {
-            let mut log_message = LogMessageType::Default;
+            let mut log_message = None;
             let is_online;
             {
                 let data = data.lock();
@@ -35,7 +36,7 @@ pub fn handle_social_messages(
 
             // The client seems to enforce offline friend list requests itself, but we'll still block it.
             if !is_online {
-                log_message = LogMessageType::UnableToPerformPlayerOffline;
+                log_message = Some(LogMessageType::UnableToPerformPlayerOffline);
             } else {
                 match invite_type {
                     InviteType::FriendList => {}
@@ -52,7 +53,7 @@ pub fn handle_social_messages(
                             .count()
                             > 0
                         {
-                            log_message = LogMessageType::PlayerAlreadyInAnotherParty;
+                            log_message = Some(LogMessageType::PlayerAlreadyInAnotherParty);
                         }
                     }
                     _ => {
@@ -66,7 +67,7 @@ pub fn handle_social_messages(
             }
 
             // If all is well, send the invite to the recipient.
-            if log_message == LogMessageType::Default {
+            if log_message.is_none() {
                 let msg = FromServer::SocialInvite(
                     *from_account_id,
                     *from_content_id,
@@ -83,7 +84,7 @@ pub fn handle_social_messages(
             // Inform the sender of the invite they just sent.
             let msg = FromServer::InviteCharacterResult(
                 *recipient_content_id,
-                log_message,
+                log_message.map(|x| x as u16).unwrap_or_default(),
                 *invite_type,
                 recipient_character_name.clone(),
             );
@@ -155,9 +156,59 @@ pub fn handle_social_messages(
             let mut network = network.lock();
             network.send_to_by_actor_id(
                 *recipient_actor_id,
-                FromServer::NewLetterArrived(),
+                FromServer::NewLetterArrived,
                 DestinationNetwork::ZoneClients,
             );
+
+            true
+        }
+        ToServer::ChatDiceRoll(from_actor_id, roll_data) => {
+            let mut network = network.lock();
+            let msg = FromServer::ChatDiceRoll(*from_actor_id, roll_data.clone());
+
+            match roll_data.community_id.channel_type {
+                ChatChannelType::CWLinkshell => {
+                    network.send_to_linkshell(
+                        roll_data.community_id.channel_number as u64,
+                        None,
+                        msg,
+                        DestinationNetwork::ChatClients,
+                    );
+                }
+                ChatChannelType::Party => {
+                    let Some(id) = network.parties.iter().find_map(|(key, val)| {
+                        (val.chatchannel_id == roll_data.community_id.channel_number).then_some(key)
+                    }) else {
+                        return true;
+                    };
+
+                    let party_id = *id;
+
+                    network.send_to_party(party_id, None, msg, DestinationNetwork::ChatClients);
+                }
+                _ => {
+                    tracing::warn!(
+                        "Unimplemented dice roll channel: {:?}, we should implement this when possible!",
+                        roll_data.community_id.channel_type
+                    );
+                }
+            }
+
+            true
+        }
+        ToServer::ZoneDiceRoll(from_actor_id, roll_data) => {
+            let mut network = network.lock();
+            let data = data.lock();
+
+            if let Some(instance) = data.find_actor_instance(*from_actor_id) {
+                let msg = FromServer::ZoneDiceRoll(*from_actor_id, roll_data.clone());
+                network.send_in_range_inclusive_instance(
+                    *from_actor_id,
+                    instance,
+                    msg,
+                    DestinationNetwork::ZoneClients,
+                );
+            }
 
             true
         }

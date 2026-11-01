@@ -11,8 +11,8 @@ mod tests {
         let Some(ServerZoneIpcData::AoeEffect8(result))=presentation(&instance,&event) else { panic!("missing area result") };
         assert_eq!(result.effect_count,2); assert_eq!(result.spell_id,9620);
         assert_eq!(result.target_ids[0].object_id,ObjectId(2));
-        assert!(matches!(result.effects[0][0].kind,EffectKind::Damage{amount:1000,..}));
-        assert!(matches!(result.effects[1][0].kind,EffectKind::Heal{amount:2000,..}));
+        assert!(matches!(result.effects[0][0].0,TargetEffectKind::Damage{amount:1000,..}));
+        assert!(matches!(result.effects[1][0].0,TargetEffectKind::Heal{amount:2000,..}));
         let network=Arc::new(Mutex::new(NetworkState::default()));
         apply(&mut instance,&network,vec![Event{kind:"dia_visual".into(),actor:1,target:2,amount:15,..Default::default()}]);
         let effect=instance.find_actor(ObjectId(2)).unwrap().status_effects().unwrap().get(2035).unwrap();
@@ -91,7 +91,7 @@ mod tests {
                 action_id: button_id(&name).unwrap(), action_type: ActionType::Action,
                 sequence: 123, ..Default::default()
             };
-            let mut result = ActionResult { action_id: historical, spell_id: historical as u16, ..Default::default() };
+            let mut result = ActionEffect { action_id: historical, spell_id: historical as u16, ..Default::default() };
             acknowledge_result(&mut result, &request);
             assert_eq!(result.action_id, request.action_id, "{name} button acknowledgement");
             assert_eq!(result.source_sequence, 123);
@@ -208,15 +208,15 @@ mod tests {
         event.message = "cure2".into();
         event.amount = 4000;
         event.healing = true;
-        let Some(ServerZoneIpcData::ActionResult(result)) = presentation(&instance, &event) else {
+        let Some(ServerZoneIpcData::ActionEffect1(result)) = presentation(&instance, &event) else {
             panic!("Expected action result")
         };
         assert_eq!(result.action_id, 8896);
         assert_eq!(result.source_sequence, 0);
-        assert_eq!(result.target_id_again.object_id, ObjectId(2));
+        assert_eq!(result.targets[0].object_id, ObjectId(2));
         assert!(matches!(
-            result.effects[0].kind,
-            EffectKind::Heal { amount: 4000, .. }
+            result.effects[0].0,
+            TargetEffectKind::Heal { amount: 4000, .. }
         ));
         assert_eq!(
             instance
@@ -341,12 +341,12 @@ mod tests {
 use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use kawari::{
-    common::{CharacterMode, ObjectId, Position},
+    common::{CharacterMode, ObjectId, Position, WarpType},
     config::get_config,
     ipc::zone::{
-        ActionEffect, ActionResult, ActionType, ActorControlCategory, ActorSetPos, DamageElement,
-        DamageKind, DamageType, EffectKind, ServerNoticeMessage, ServerZoneIpcData,
-        ServerZoneIpcSegment, WarpType,
+        ActionEffect, ActionType, ActorControlCategory, ActorSetPos, DamageElement, DamageKind,
+        DamageType, ServerNoticeMessage, ServerZoneIpcData, ServerZoneIpcSegment, TargetEffect,
+        TargetEffectKind,
     },
 };
 use mlua::{Function, Lua, LuaSerdeExt, Table};
@@ -513,7 +513,7 @@ fn snapshots(instance: &Instance) -> Vec<Snapshot> {
             let s = actor.get_common_spawn();
             let combat = instance.actors.values().any(|enemy| {
                 matches!(enemy,
-            NetworkedActor::Npc { navmesh_target: Some(target), spawn, .. }
+            NetworkedActor::Npc { navmesh_target: Some(super::actor::NpcTarget::Actor(target)), spawn, .. }
                 if target == id && spawn.common.health_points > 0)
             });
             Some(Snapshot {
@@ -594,7 +594,7 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                     {
                         *action_id = request.action_id;
                     }
-                    if let ServerZoneIpcData::ActionResult(ref mut result) = packet {
+                    if let ServerZoneIpcData::ActionEffect1(ref mut result) = packet {
                         if let Some(request) = instance
                             .feast_whm
                             .as_mut()
@@ -654,12 +654,14 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                 }
             }
             "cancel" => {
-                if let Some(engine) = instance.feast_whm.as_mut() {
-                    engine.native_requests.remove(&target);
-                }
+                let action_id = instance
+                    .feast_whm
+                    .as_mut()
+                    .and_then(|engine| engine.native_requests.remove(&target))
+                    .map_or(0, |request| request.action_id);
                 network.lock().send_to_by_actor_id(
                     target,
-                    FromServer::ActorControlSelf(ActorControlCategory::CancelCast {}),
+                    FromServer::ActorControlSelf(cancel_cast(action_id)),
                     DestinationNetwork::ZoneClients,
                 );
             }
@@ -706,7 +708,7 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
                             event.amount.min(common.max_resource_points as u32) as u16;
                     }
                 }
-                super::action::update_actor_hp_mp(network.clone(), instance, target);
+                super::actor::update_actor_hp_mp(network.clone(), instance, target);
             }
             "damage" => {
                 if let Some(m) = &mut instance.feast_match {
@@ -736,7 +738,7 @@ fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events: Ve
             "notice" => notice(network, ObjectId(event.actor), event.message),
             "move" => {
                 use kawari::common::{JumpState, MoveAnimationState, MoveAnimationType};
-                let position = Position(glam::Vec3::new(event.x, event.y, event.z));
+                let position = Position(glam::Vec3A::new(event.x, event.y, event.z));
                 if let Some(actor) = instance.find_actor_mut(target) {
                     actor.get_common_spawn_mut().position = position;
                 }
@@ -836,7 +838,7 @@ fn animation_id(name: &str) -> Option<u32> {
     })
 }
 
-fn acknowledge_result(result: &mut ActionResult, request: &kawari::ipc::zone::ActionRequest) {
+fn acknowledge_result(result: &mut ActionEffect, request: &kawari::ipc::zone::ActionRequest) {
     result.source_sequence = request.sequence;
     result.action_id = request.action_id;
     result.action_type = request.action_type;
@@ -862,7 +864,7 @@ fn presentation(instance: &Instance, event: &Event) -> Option<ServerZoneIpcData>
             rotation: common.rotation,
             interruptible: false,
             ballista_entity_id: ObjectId::default(),
-            position: if matches!(event.message.as_str(), "soten" | "cometeor") { Position(glam::Vec3::new(event.x,event.y,event.z)) } else { actor.position() },
+            position: if matches!(event.message.as_str(), "soten" | "cometeor") { Position(glam::Vec3A::new(event.x,event.y,event.z)) } else { actor.position() },
         }
     } else if event.hits.len() > 1 || event.hits.first().is_some_and(|h| h.target != event.target) {
         let mut result = kawari::ipc::zone::AoeActionResult {
@@ -874,24 +876,24 @@ fn presentation(instance: &Instance, event: &Event) -> Option<ServerZoneIpcData>
         for (i, hit) in event.hits.iter().take(8).enumerate() {
             let visual = Event { kind: "animation".into(), actor: event.actor, target: hit.target,
                 amount: hit.amount, healing: hit.healing, message: event.message.clone(), ..Default::default() };
-            if let Some(ServerZoneIpcData::ActionResult(single)) = presentation(instance, &visual) {
+            if let Some(ServerZoneIpcData::ActionEffect1(single)) = presentation(instance, &visual) {
                 result.effects[i] = single.effects;
-                result.target_ids[i] = single.target_id_again;
+                result.target_ids[i] = single.targets[0];
             }
         }
         ServerZoneIpcData::AoeEffect8(result)
     } else {
-        let mut effects = [ActionEffect::default(); 8];
+        let mut effects = [TargetEffect::default(); 8];
         let amount = event.amount.min(u16::MAX as u32) as u16;
         if amount > 0 {
-            effects[0].kind = if event.healing {
-                EffectKind::Heal {
+            effects[0].0 = if event.healing {
+                TargetEffectKind::Heal {
                     unk1: [0; 5],
                     amount,
                 }
             } else {
-                EffectKind::Damage {
-                    damage_kind: DamageKind::Normal,
+                TargetEffectKind::Damage {
+                    damage_kind: DamageKind::default(),
                     damage_type: DamageType::Magic,
                     damage_element: DamageElement::Unaspected,
                     bonus_percent: 0,
@@ -901,21 +903,29 @@ fn presentation(instance: &Instance, event: &Event) -> Option<ServerZoneIpcData>
                 }
             };
         }
-        ServerZoneIpcData::ActionResult(ActionResult {
+        ServerZoneIpcData::ActionEffect1(ActionEffect {
             animation_target_id: target,
-            target_id_again: target,
+            targets: vec![target],
             action_id,
             spell_id: action_id as u16,
             action_type: ActionType::Action,
             animation_lock: kawari::common::ANIMATION_LOCK_TIME,
             rotation: common.rotation,
-            effect_count: 1,
             effects,
             // Presentation only: HP/MP were already applied by the rules engine.
             // Commands/plugin casts have no native ActionRequest sequence to acknowledge.
             ..Default::default()
         })
     })
+}
+
+/// Cancels the client's cast of `action_id`, as the retail server does.
+pub(super) fn cancel_cast(action_id: u32) -> ActorControlCategory {
+    ActorControlCategory::CancelCast {
+        unk1: 538,
+        unk2: 1,
+        action_id,
+    }
 }
 
 pub(super) fn native_action_name(id: u32) -> Option<&'static str> {
@@ -969,7 +979,7 @@ pub fn native_action(
         notice(network, actor, "Feast combat is closed: wait for the countdown, or join the next match. Jobs are locked during a match.".into());
         network.lock().send_to_by_actor_id(
             actor,
-            FromServer::ActorControlSelf(ActorControlCategory::CancelCast {}),
+            FromServer::ActorControlSelf(cancel_cast(request.action_id)),
             DestinationNetwork::ZoneClients,
         );
         return;
@@ -1050,7 +1060,7 @@ pub fn native_action(
             } else {
                 network.lock().send_to_by_actor_id(
                     actor,
-                    FromServer::ActorControlSelf(ActorControlCategory::CancelCast {}),
+                    FromServer::ActorControlSelf(cancel_cast(request.action_id)),
                     DestinationNetwork::ZoneClients,
                 );
             }
@@ -1061,7 +1071,7 @@ pub fn native_action(
             notice(network, actor, error.to_string());
             network.lock().send_to_by_actor_id(
                 actor,
-                FromServer::ActorControlSelf(ActorControlCategory::CancelCast {}),
+                FromServer::ActorControlSelf(cancel_cast(request.action_id)),
                 DestinationNetwork::ZoneClients,
             );
         }

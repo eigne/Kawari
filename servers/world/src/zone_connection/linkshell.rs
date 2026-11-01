@@ -1,6 +1,6 @@
 // ! The linkshell systems. Currently, only cross-world shells are supported.
-use super::social::fetch_entries;
-use crate::{ToServer, ZoneConnection};
+
+use crate::{ToServer, ZoneConnection, common::fetch_entries};
 use kawari::{
     common::{LogMessageType, ObjectId},
     ipc::chat::{ChatChannel, ChatChannelType},
@@ -92,8 +92,8 @@ impl ZoneConnection {
         // Only refresh and reset state if our list is empty.
         if self.cwls_results.is_empty() {
             let mut db = self.database.lock();
-            let mut gamedata = self.gamedata.lock();
-            if let Some(cwls_results) = db.find_linkshell_members(linkshell_id, &mut gamedata) {
+            let mut game_data = self.game_data.lock();
+            if let Some(cwls_results) = db.find_linkshell_members(linkshell_id, &mut game_data) {
                 self.cwls_results = cwls_results;
             } else {
                 // If we somehow are told about an empty linkshell, ensure we can at least provide a blank member list so the client doesn't experience oddities beyond that.
@@ -152,7 +152,7 @@ impl ZoneConnection {
         &mut self,
         target_content_id: u64,
         linkshell_id: u64,
-    ) -> LogMessageType {
+    ) -> Option<LogMessageType> {
         let successful_invite;
         let target_actor_id;
         let target_name;
@@ -168,7 +168,7 @@ impl ZoneConnection {
                     "Unable to determine player {}'s permissions for linkshell {linkshell_id}! Rejecting request!",
                     self.player_data.character.content_id as u64
                 );
-                return LogMessageType::UnableToInviteToCWLS;
+                return Some(LogMessageType::UnableToInviteToCWLS);
             };
 
             if our_perms < CWLSPermissionRank::Leader {
@@ -177,16 +177,16 @@ impl ZoneConnection {
                     self.player_data.character.content_id as u64,
                     target_content_id
                 );
-                return LogMessageType::UnableToInviteToCWLS;
+                return Some(LogMessageType::UnableToInviteToCWLS);
             }
 
-            let Some(target_ids) = db.find_character_ids(Some(target_content_id), None) else {
-                return LogMessageType::UnableToInviteToCWLS;
+            let Some(target_ids) = db.find_character(Some(target_content_id), None) else {
+                return Some(LogMessageType::UnableToInviteToCWLS);
             };
 
             // If the target is already in this linkshell, report as such to the inviter. No need to log a warn or error for this, it's not an error state.
             if db.is_in_linkshell(target_content_id, linkshell_id) {
-                return LogMessageType::PlayerAlreadyInYourCWLS;
+                return Some(LogMessageType::PlayerAlreadyInYourCWLS);
             }
 
             // Next, see how many shells the target is in, and don't continue if they're in too many.
@@ -206,7 +206,7 @@ impl ZoneConnection {
                     self.player_data.character.content_id as u64,
                     target_content_id
                 );
-                return LogMessageType::PlayerInTooManyCWLSes;
+                return Some(LogMessageType::PlayerInTooManyCWLSes);
             }
 
             // Then check if the target linkshell is full.
@@ -214,7 +214,7 @@ impl ZoneConnection {
                 tracing::error!(
                     "invite_to_linkshell: Unable to determine if the linkshell is full! Rejecting request!"
                 );
-                return LogMessageType::UnableToInviteToCWLS;
+                return Some(LogMessageType::UnableToInviteToCWLS);
             };
 
             if linkshell_full {
@@ -223,7 +223,7 @@ impl ZoneConnection {
                     self.player_data.character.content_id as u64,
                     target_content_id
                 );
-                return LogMessageType::CWLSIsFull;
+                return Some(LogMessageType::CWLSIsFull);
             }
 
             successful_invite = db.add_member_to_linkshell(
@@ -259,10 +259,10 @@ impl ZoneConnection {
                 .send(ToServer::SendLinkshellInvite(target_actor_id, ipc))
                 .await;
         } else {
-            return LogMessageType::UnableToInviteToCWLS;
+            return Some(LogMessageType::UnableToInviteToCWLS);
         }
 
-        LogMessageType::Default
+        None
     }
 
     pub async fn received_linkshell_invite(&mut self, invite_info: CrossworldLinkshellInvite) {
@@ -440,8 +440,8 @@ impl ZoneConnection {
                 return;
             };
 
-            let mut gamedata = self.gamedata.lock();
-            let Some(members) = db.find_linkshell_members(linkshell_id, &mut gamedata) else {
+            let mut game_data = self.game_data.lock();
+            let Some(members) = db.find_linkshell_members(linkshell_id, &mut game_data) else {
                 return;
             };
 
@@ -477,7 +477,7 @@ impl ZoneConnection {
                 return;
             }
 
-            target_ids = db.find_character_ids(Some(target_content_id), None);
+            target_ids = db.find_character(Some(target_content_id), None);
         }
         if let Some(ref target_ids) = target_ids
             && target_ids.actor_id.is_valid()
@@ -520,8 +520,7 @@ impl ZoneConnection {
                 {
                     let mut db = self.database.lock();
 
-                    let Some(found_name) = db.find_character_ids(Some(possible_successor), None)
-                    else {
+                    let Some(found_name) = db.find_character(Some(possible_successor), None) else {
                         return;
                     };
 
@@ -651,7 +650,7 @@ impl ZoneConnection {
         {
             let mut db = self.database.lock();
 
-            let Some(target_ids) = db.find_character_ids(Some(content_id), None) else {
+            let Some(target_ids) = db.find_character(Some(content_id), None) else {
                 return;
             };
 

@@ -9,8 +9,8 @@ use crate::FromServer;
 use kawari::{
     common::{CharacterMode, ObjectId, ObjectTypeId, Position},
     ipc::zone::{
-        ActionEffect, ActionResult, ActionType, BattleNpcSubKind, CharacterDataFlag, DamageElement,
-        DamageKind, DamageType, EffectKind, ObjectKind, ServerZoneIpcData, ServerZoneIpcSegment,
+        ActionEffect, ActionType, BattleNpcSubKind, CharacterDataFlag, DamageElement, DamageKind,
+        DamageType, ObjectKind, ServerZoneIpcData, ServerZoneIpcSegment, TargetEffect, TargetEffectKind,
         SpawnNpc,
     },
 };
@@ -182,7 +182,7 @@ pub fn command(
         }
         common.status_effects = Default::default();
         common.position =
-            Position(template.position.0 + glam::Vec3::new(4.0, 0.0, index as f32 * 3.0));
+            Position(template.position.0 + glam::Vec3A::new(4.0, 0.0, index as f32 * 3.0));
         if autonomous {
             (common.position, common.rotation) = feast_match::team_spawn(team, index);
         }
@@ -215,6 +215,9 @@ pub fn command(
                 newly_hated_actor: None,
                 currently_invulnerable: false,
                 status_effects: Default::default(),
+                last_wander_timestamp: Instant::now(),
+                parameters: Default::default(),
+                casting: false,
             },
         );
         instance.feast_dummies.insert(
@@ -236,7 +239,7 @@ pub fn command(
     instance.cancel_actor_tasks(owner);
     network.lock().send_to_by_actor_id(
         owner,
-        FromServer::ActorControlSelf(kawari::ipc::zone::ActorControlCategory::CancelCast {}),
+        FromServer::ActorControlSelf(super::feast::cancel_cast(0)),
         DestinationNetwork::ZoneClients,
     );
     if let Some(actor) = instance.find_actor_mut(owner) {
@@ -244,7 +247,7 @@ pub fn command(
         common.health_points = common.max_health_points;
         common.resource_points = common.max_resource_points;
     }
-    super::action::update_actor_hp_mp(network.clone(), instance, owner);
+    super::actor::update_actor_hp_mp(network.clone(), instance, owner);
     super::feast::notice(
         network,
         owner,
@@ -345,9 +348,9 @@ fn tick_bots(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, now: I
                 spawn.common.resource_points = spawn.common.max_resource_points;
                 spawn.common.target_id = ObjectTypeId::default();
             }
-            super::set_character_mode(instance, &mut network.lock(), id, CharacterMode::Normal, 0);
+            super::set_character_mode(instance, &mut network.lock(), id, CharacterMode::Normal, 0, true);
             move_bot(instance, network, id, position.0, rotation);
-            super::action::update_actor_hp_mp(network.clone(), instance, id);
+            super::actor::update_actor_hp_mp(network.clone(), instance, id);
             continue;
         }
         if !bot.attacking || now < bot.cast_until {
@@ -358,8 +361,8 @@ fn tick_bots(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, now: I
         let moving = now >= bot.next_move;
         let runtime = instance.feast_match.as_ref().unwrap();
         let roster = &runtime.rules.players;
-        let distance = |p: glam::Vec3| position.distance_squared(p);
-        let nearest = |points: Vec<glam::Vec3>| {
+        let distance = |p: glam::Vec3A| position.distance_squared(p);
+        let nearest = |points: Vec<glam::Vec3A>| {
             points
                 .into_iter()
                 .min_by(|a, b| distance(*a).total_cmp(&distance(*b)))
@@ -369,14 +372,14 @@ fn tick_bots(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, now: I
             runtime
                 .supplies
                 .kit_positions(team)
-                .map(glam::Vec3::from_array)
+                .map(glam::Vec3A::from_array)
                 .chain(
                     runtime
                         .rules
                         .drops
                         .iter()
                         .filter(|d| capacity && d.team != team && d.medals > 0)
-                        .map(|d| glam::Vec3::from_array(d.position)),
+                        .map(|d| glam::Vec3A::from_array(d.position)),
                 )
                 .collect(),
         );
@@ -480,7 +483,7 @@ fn move_bot(
     instance: &mut Instance,
     network: &Arc<Mutex<NetworkState>>,
     id: ObjectId,
-    position: glam::Vec3,
+    position: glam::Vec3A,
     rotation: f32,
 ) {
     use kawari::common::{JumpState, MoveAnimationState, MoveAnimationType};
@@ -519,9 +522,9 @@ fn strike(
         object_id: target,
         ..Default::default()
     };
-    let mut effects = [ActionEffect::default(); 8];
-    effects[0].kind = EffectKind::Damage {
-        damage_kind: DamageKind::Normal,
+    let mut effects = [TargetEffect::default(); 8];
+    effects[0].0 = TargetEffectKind::Damage {
+        damage_kind: DamageKind::default(),
         damage_type: DamageType::Physical,
         damage_element: DamageElement::Unaspected,
         bonus_percent: 0,
@@ -531,13 +534,12 @@ fn strike(
     };
     {
         let mut net = network.lock();
-        let result = ActionResult {
+        let result = ActionEffect {
             action_id: 870,
             spell_id: 870,
             action_type: ActionType::Action,
             animation_target_id: target_id,
-            target_id_again: target_id,
-            effect_count: 1,
+            targets: vec![target_id],
             effects,
             animation_lock: kawari::common::ANIMATION_LOCK_TIME,
             global_sequence: net.global_action_sequence,
@@ -548,13 +550,13 @@ fn strike(
             source,
             instance,
             FromServer::PacketSegment(
-                ServerZoneIpcSegment::new(ServerZoneIpcData::ActionResult(result)),
+                ServerZoneIpcSegment::new(ServerZoneIpcData::ActionEffect1(result)),
                 source,
             ),
             DestinationNetwork::ZoneClients,
         );
     }
-    super::action::update_actor_hp_mp(network.clone(), instance, target);
+    super::actor::update_actor_hp_mp(network.clone(), instance, target);
 }
 
 #[cfg(test)]
@@ -635,7 +637,7 @@ mod tests {
             .find_actor_mut(enemy)
             .unwrap()
             .get_common_spawn_mut()
-            .position = Position(glam::Vec3::new(10.0, 0.0, 0.0));
+            .position = Position(glam::Vec3A::new(10.0, 0.0, 0.0));
         instance.feast_dummies.get_mut(&enemy).unwrap().next_attack = Instant::now();
         tick_bots(&mut instance, &network, Instant::now());
         assert_eq!(
@@ -744,7 +746,7 @@ mod tests {
             .find_actor_mut(dummy)
             .unwrap()
             .get_common_spawn_mut()
-            .position = Position(glam::Vec3::new(2.0, 0.0, 0.0));
+            .position = Position(glam::Vec3A::new(2.0, 0.0, 0.0));
         let ready = Instant::now() - Duration::from_secs(1);
         instance.feast_dummies.get_mut(&dummy).unwrap().next_attack = ready;
         tick(&mut instance, &network); // Passive even when its timer is ready.

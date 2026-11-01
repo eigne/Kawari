@@ -1,4 +1,7 @@
-use crate::{CharaMake, GameData, RemakeMode, WorldDatabase, inventory::Inventory};
+use crate::{
+    CharaMake, ClientId, GameData, RemakeMode, ServerHandle, ToServer, WorldDatabase,
+    inventory::Inventory,
+};
 use kawari::{
     common::determine_initial_starting_zone,
     config::get_config,
@@ -15,12 +18,13 @@ use parking_lot::Mutex;
 use tokio::net::TcpStream;
 
 /// Represents a single connection between an instance of the world server and the lobby server.
-// TODO: Implement the ToServer protocol for CustomIpcConnection so we can notify the global server about some things that happen outside of the world server (e.g., deleted characters need to tell the global state that they're not in those linkshells anymore so online players can be told, and so that a new leader can be promoted if needed)
 pub struct CustomIpcConnection {
     pub socket: TcpStream,
     pub state: ConnectionState,
     pub database: Arc<Mutex<WorldDatabase>>,
-    pub gamedata: Arc<Mutex<GameData>>,
+    pub game_data: Arc<Mutex<GameData>>,
+    pub id: ClientId,
+    pub handle: ServerHandle,
 }
 
 impl CustomIpcConnection {
@@ -52,7 +56,7 @@ impl CustomIpcConnection {
 
                 let city_state;
                 {
-                    let mut game_data = self.gamedata.lock();
+                    let mut game_data = self.game_data.lock();
 
                     city_state = game_data
                         .get_citystate(chara_make.classjob_id as u16)
@@ -62,7 +66,7 @@ impl CustomIpcConnection {
                 let mut inventory = Inventory::default();
                 let (content_id, actor_id);
                 {
-                    let mut game_data = self.gamedata.lock();
+                    let mut game_data = self.game_data.lock();
 
                     inventory.equip_classjob_items(chara_make.classjob_id as u16, &mut game_data);
 
@@ -145,7 +149,7 @@ impl CustomIpcConnection {
 
                 let characters;
                 {
-                    let mut game_data = self.gamedata.lock();
+                    let mut game_data = self.game_data.lock();
 
                     let mut database = self.database.lock();
                     characters = database.get_character_list(
@@ -191,7 +195,7 @@ impl CustomIpcConnection {
             } => {
                 let message;
                 {
-                    let mut game_data = self.gamedata.lock();
+                    let mut game_data = self.game_data.lock();
                     let mut database = self.database.lock();
                     if let Err(err) =
                         database.import_character(&mut game_data, *service_account_id, path)
@@ -246,7 +250,7 @@ impl CustomIpcConnection {
                 let mut database = self.database.lock();
                 database.delete_characters(*service_account_id);
             }
-            CustomIpcData::RequestFullCharacterList {} => {
+            CustomIpcData::RequestFullCharacterList => {
                 let json;
                 {
                     let mut database = self.database.lock();
@@ -261,6 +265,14 @@ impl CustomIpcConnection {
                     ..Default::default()
                 })
                 .await;
+            }
+            CustomIpcData::ReloadFestivals => {
+                self.handle.send(ToServer::ReloadFestivals).await;
+            }
+            CustomIpcData::SpawnBattleNpc { bnpc_base_id } => {
+                self.handle
+                    .send(ToServer::SpawnBattleNpc(*bnpc_base_id))
+                    .await;
             }
             _ => {
                 panic!("The server is recieving a response or unknown custom IPC! {data:#?}")

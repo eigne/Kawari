@@ -1,8 +1,9 @@
 use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 use bitflags::Flags;
-use mlua::{IntoLua, Lua};
+use mlua::{IntoLua, Lua, Value};
 use parking_lot::Mutex;
+use physis::race::{Gender, Race, Tribe};
 use strum::IntoEnumIterator;
 
 use crate::{
@@ -12,9 +13,7 @@ use crate::{
 use kawari::{
     common::{HandlerType, WORLD_NAME},
     config::get_config,
-    ipc::zone::{
-        Condition, DamageKind, DamageType, EventType, GameMasterRank, SceneFlags, ServerNoticeFlags,
-    },
+    ipc::zone::{Condition, DamageType, EventType, GameMasterRank, SceneFlags, ServerNoticeFlags},
 };
 
 use super::EffectsBuilder;
@@ -32,8 +31,6 @@ impl KawariLua {
     pub fn new() -> Self {
         let mut lua = Lua::new();
 
-        // TODO: we should use a global static here so we can define this at the enum level
-        // Specifically something like the linkme crate
         Self::register_flags::<ServerNoticeFlags>(&mut lua, "SERVER_NOTICE");
         Self::register_enum::<GameMasterRank>(&mut lua, "GM_RANK");
         Self::register_flags::<SceneFlags>(&mut lua, ""); // TODO: might want to prefix these at some point
@@ -41,21 +38,51 @@ impl KawariLua {
         Self::register_enum::<HandlerType>(&mut lua, "HANDLER_TYPE");
         Self::register_enum::<CurrencyKind>(&mut lua, "CURRENCY");
         Self::register_enum::<CrystalKind>(&mut lua, "CRYSTAL");
-        Self::register_enum::<DamageKind>(&mut lua, "DAMAGE_KIND");
         Self::register_enum::<DamageType>(&mut lua, "DAMAGE_TYPE");
         Self::register_enum::<Condition>(&mut lua, "CONDITION");
 
-        let config = get_config();
-        lua.globals()
-            .set("WORLD_ID", config.world.world_id)
+        // Needed by some GM commands and events
+        let race_func = lua
+            .create_function(|_, value: Value| {
+                Ok(Race::from_repr(value.as_i32().unwrap() as u8)
+                    .unwrap()
+                    .to_string())
+            })
             .unwrap();
-        lua.globals().set("WORLD_NAME", WORLD_NAME).unwrap();
+        lua.globals().set("race_from_repr", race_func).unwrap();
 
-        // Load Global.lua
-        let file_name = config.filesystem.locate_script_file("Global.lua");
-        lua.load(std::fs::read(file_name).expect("Failed to locate scripts directory!"))
-            .exec()
+        let tribe_func = lua
+            .create_function(|_, value: Value| {
+                Ok(Tribe::from_repr(value.as_i32().unwrap() as u8)
+                    .unwrap()
+                    .to_string())
+            })
             .unwrap();
+        lua.globals().set("tribe_from_repr", tribe_func).unwrap();
+
+        let gender_func = lua
+            .create_function(|_, value: Value| {
+                Ok(Gender::from_repr(value.as_i32().unwrap() as u8)
+                    .unwrap()
+                    .to_string())
+            })
+            .unwrap();
+        lua.globals().set("gender_from_repr", gender_func).unwrap();
+
+        // Not needed for tests
+        if !cfg!(test) {
+            let config = get_config();
+            lua.globals()
+                .set("WORLD_ID", config.world.world_id)
+                .unwrap();
+            lua.globals().set("WORLD_NAME", WORLD_NAME).unwrap();
+
+            // Load Global.lua
+            let file_name = config.filesystem.locate_script_file("Global.lua");
+            lua.load(std::fs::read(file_name).expect("Failed to locate scripts directory!"))
+                .exec()
+                .unwrap();
+        }
 
         Self(lua)
     }
@@ -112,10 +139,10 @@ impl KawariLua {
 
             for search_dir in search_dirs {
                 let effects_dir = format!("{search_dir}/{name}");
-                for entry in std::fs::read_dir(&effects_dir)
-                    .expect("Didn't find effects directory?")
-                    .flatten()
-                {
+                let Ok(effects_dir) = std::fs::read_dir(&effects_dir) else {
+                    continue;
+                };
+                for entry in effects_dir.flatten() {
                     for entry in std::fs::read_dir(entry.path())
                         .expect("Failed to read into effects directory")
                         .flatten()
@@ -146,6 +173,7 @@ impl KawariLua {
         // Locate these based on the ID in their filename
         load_based_on_filename("effects", &mut extra_lua_state.effect_scripts);
         load_based_on_filename("actions", &mut extra_lua_state.action_scripts);
+        load_based_on_filename("fates", &mut extra_lua_state.fate_scripts);
 
         lua.set_app_data(extra_lua_state);
         lua.globals().set("registerAction", register_action_func)?;
@@ -204,6 +232,7 @@ pub struct KawariLuaState {
     pub gm_command_scripts: HashMap<u32, String>,
     pub effect_scripts: HashMap<u32, String>,
     pub zone_eobj_scripts: HashMap<u32, String>,
+    pub fate_scripts: HashMap<u32, String>,
 }
 
 #[cfg(test)]

@@ -15,6 +15,7 @@ use kawari::ipc::kawari::{CustomIpcData, CustomIpcSegment};
 use kawari::packet::send_custom_world_packet;
 use kawari::web_static_dir;
 use kawari_login::{LoginDatabase, LoginError};
+use minijinja::value::Serde;
 use minijinja::{Environment, context, path_loader};
 use parking_lot::Mutex;
 use physis::resource::SqPackResource;
@@ -201,6 +202,14 @@ async fn get_max_ex(
     let max_ex = database.get_max_expansion(params.service.parse().unwrap());
 
     serde_json::to_string(&max_ex.unwrap()).unwrap()
+}
+
+async fn get_service_accounts(State(state): State<LoginServerState>) -> String {
+    // TODO: introduce a better failure state
+    let mut database = state.database.lock();
+    let accounts = database.get_service_accounts();
+
+    serde_json::to_string(&accounts).unwrap()
 }
 
 async fn login() -> Html<String> {
@@ -413,7 +422,7 @@ async fn login_history(State(state): State<LoginServerState>, jar: CookieJar) ->
 
         return Html(
             template
-                .render(context! { past_logins => past_logins, game_service_name => GAME_SERVICE})
+                .render(context! { past_logins => Serde(&past_logins), game_service_name => GAME_SERVICE})
                 .unwrap(),
         );
     }
@@ -438,10 +447,22 @@ async fn login_history_with_sid(
         let config = get_config();
 
         return Html(
-                template
-                    .render(context! { past_logins => past_logins, generated_sid => generated_sid, game_service_name => GAME_SERVICE, login_server => config.login.server_name, lobby_port => config.lobby.port, lobby_host => config.lobby.server_name, game_version => SUPPORTED_GAME_VERSION, frontier_host => config.frontier.server_name, login_host => config.login.server_name, server_url => config.web.server_name, enable_registration => config.login.enable_registration  })
-                    .unwrap(),
-            );
+            template
+                .render(context! {
+                    past_logins => Serde(&past_logins),
+                    generated_sid => generated_sid,
+                    game_service_name => GAME_SERVICE,
+                    login_server => config.login.server_name.clone(),
+                    lobby_port => config.lobby.port,
+                    lobby_host => config.lobby.server_name,
+                    game_version => SUPPORTED_GAME_VERSION,
+                    frontier_host => config.frontier.server_name,
+                    login_host => config.login.server_name,
+                    server_url => config.web.server_name,
+                    enable_registration => config.login.enable_registration
+                })
+                .unwrap(),
+        );
     }
 
     Html("You need to be logged in!".to_string())
@@ -516,7 +537,7 @@ async fn main() {
 
     let config = get_config();
 
-    let sqpack_resource = SqPackResource::from_existing(&config.filesystem.game_path);
+    let sqpack_resource = SqPackResource::from_existing(&config.filesystem.game_path());
     let num_expansions = sqpack_resource.repositories.len() - 1; // Base game is always one
 
     let state = LoginServerState {
@@ -534,6 +555,7 @@ async fn main() {
         .route("/_private/service_accounts", get(check_session))
         .route("/_private/users", get(get_users))
         .route("/_private/max_ex", get(get_max_ex))
+        .route("/_private/all_service_accounts", get(get_service_accounts))
         // public website
         .route("/oauth/oa/oauthlogin", get(login))
         .route("/oauth/oa/oauthlogin", post(do_login))

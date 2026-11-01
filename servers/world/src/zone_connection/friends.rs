@@ -2,14 +2,14 @@
 use crate::{ToServer, ZoneConnection};
 use kawari::{
     common::ObjectId,
-    ipc::zone::{ServerZoneIpcData, ServerZoneIpcSegment},
+    ipc::zone::{FriendGroupIconInfo, ServerZoneIpcData, ServerZoneIpcSegment},
 };
 impl ZoneConnection {
     pub async fn refresh_friend_list(&mut self) {
         // Only refresh if we ran out of results from a prior run.
         if self.friend_results.is_empty() {
             let mut db = self.database.lock();
-            let mut game_data = self.gamedata.lock();
+            let mut game_data = self.game_data.lock();
             self.friend_results =
                 db.find_friend_list(&mut game_data, self.player_data.character.content_id);
 
@@ -68,6 +68,20 @@ impl ZoneConnection {
             unk1: 1,
         });
 
+        self.send_ipc_self(ipc).await;
+    }
+
+    pub async fn set_friend_group_icon(&mut self, icon_info: &FriendGroupIconInfo) {
+        {
+            let mut db = self.database.lock();
+            db.set_friend_group_icon(
+                self.player_data.character.content_id,
+                icon_info.content_id as i64,
+                icon_info.icon,
+            );
+        }
+
+        let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::FriendGroupIcon(icon_info.clone()));
         self.send_ipc_self(ipc).await;
     }
 }

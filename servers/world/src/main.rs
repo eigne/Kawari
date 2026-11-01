@@ -1,30 +1,36 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Instant, SystemTime};
 
 use axum::Router;
 use axum::routing::get;
 use kawari::common::{
-    ContainerType, DEBUG_COMMAND_TRIGGER, DirectorEvent, DirectorTrigger, DutyOption, FestivalId,
-    HandlerId, HandlerType, ItemOperationKind, LogMessageType, MaxEx, ObjectId, ObjectTypeId,
-    ObjectTypeKind, PlayerStateFlags1, PlayerStateFlags2, PlayerStateFlags3, Position,
-    QuestSpecialFlags, calculate_max_level,
+    BasicServiceAccountData, ClientLanguage, ContainerType, DEBUG_COMMAND_TRIGGER, FestivalId,
+    HandlerId, HandlerType, InstanceContentType, ItemOperationKind, LogMessageType, ObjectId,
+    ObjectTypeId, ObjectTypeKind, PlayerStateFlags1, PlayerStateFlags2, PlayerStateFlags3,
+    Position, QuestSpecialFlags, TAB_SHARED_FATE_COUNT, TerritoryIntendedUse, WarpType,
+    calculate_max_level, in_housing_area,
 };
+
 use kawari::config::get_config;
 use kawari_world::inventory::{Item, MAX_LARGE_STORAGE, Storage, get_next_free_slot};
-use physis::{TerritoryIntendedUse, equipment::EquipSlot};
+use physis::equipment::EquipSlot;
 
 use kawari::ipc::chat::ClientChatIpcData;
 
 use kawari::ipc::zone::{
-    ActorControlCategory, CWLSLeaveReason, Conditions, ContentFinderUserAction, CrossRealmListing,
-    CrossRealmListings, EventType, FurnitureTranslatedForObserver, ItemInfo,
-    LinkshellInviteResponse, MarketBoardItem, OnlineStatus, OnlineStatusMask, PlayerSetup,
-    SceneFlags, SearchInfo, SocialListRequestType, TrustContent, TrustInformation, WarpType,
+    ActorControlCategory, CWLSLeaveReason, ClientTriggerTarget, Conditions,
+    ContentFinderUserAction, CrossRealmListing, CrossRealmListings, DutyFinderSetting,
+    DutySupportInformation, EventLogMessage, EventType, FurnitureTranslatedForObserver, ItemInfo,
+    LinkshellInviteResponse, MarketBoardHistory, MarketBoardHistoryEntry, MarketBoardItem,
+    OnlineStatus, OnlineStatusMask, PlayerSetup, SceneFlags, SearchInfo, SocialListRequestType,
+    TrustContent, TrustInformation,
 };
 
 use kawari::ipc::zone::{
-    Blacklist, BlacklistedCharacter, ClientTriggerCommand, ClientZoneIpcData, ReadyCheckReply,
-    ServerZoneIpcData, ServerZoneIpcSegment,
+    Blacklist, BlacklistedCharacter, ClientTriggerCommand, ClientZoneIpcData,
+    FellowshipActivityTag, FellowshipSearchInfo, ReadyCheckReply, ServerZoneIpcData,
+    ServerZoneIpcSegment, SocialListUILanguages,
 };
 
 use kawari::common::{CharacterMode, NETWORK_TIMEOUT, RECEIVE_BUFFER_SIZE};
@@ -51,6 +57,7 @@ use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
 use kawari::common::INVENTORY_ACTION_ACK_GENERAL;
+use kawari::packet::PredefinedOpcode;
 
 fn spawn_main_loop(
     game_data: Arc<Mutex<GameData>>,
@@ -95,10 +102,10 @@ fn spawn_initial_setup(
     socket: TcpStream,
     lua: Arc<Mutex<KawariLua>>,
     database: Arc<Mutex<WorldDatabase>>,
-    gamedata: Arc<Mutex<GameData>>,
+    game_data: Arc<Mutex<GameData>>,
     handle: ServerHandle,
 ) {
-    let _kill = tokio::spawn(initial_setup(id, socket, lua, database, gamedata, handle));
+    let _kill = tokio::spawn(initial_setup(id, socket, lua, database, game_data, handle));
 }
 
 /// The initial setup loop, which figures out what the remote connection wants and branches off to provide a chat connection, zone connection, or custom IPC connection.
@@ -120,7 +127,9 @@ async fn initial_setup(
                     socket,
                     state: ConnectionState::None,
                     database: database.clone(),
-                    gamedata: game_data.clone(),
+                    game_data: game_data.clone(),
+                    id,
+                    handle,
                 };
                 // Handle the first batch of segments before handing off control to the loop proper.
                 let segments = connection.parse_packet(&buf[..n]);
@@ -151,24 +160,22 @@ async fn initial_setup(
                     handle: handle.clone(),
                     database: database.clone(),
                     lua: lua.clone(),
-                    gamedata: game_data.clone(),
+                    game_data: game_data.clone(),
                     last_keep_alive: Instant::now(),
                     gracefully_logged_out: false,
                     obsfucation_data: ObsfucationData::default(),
                     queued_content: None,
+                    duty_settings: None,
                     conditions: Conditions::default(),
                     queued_tasks: Vec::new(),
                     old_zone_id: 0,
                     old_position: Position::default(),
                     old_rotation: 0.0,
-                    content_handler_id: HandlerId::default(),
                     teleport_reason: TeleportReason::NotSpecified,
                     active_minion: 0,
                     party_id: 0,
                     rejoining_party: false,
                     login_time: None,
-                    content_settings: None,
-                    current_instance_id: None,
                     glamour_information: None,
                     event_handler_id: None,
                     recipe: None,
@@ -185,8 +192,13 @@ async fn initial_setup(
                     spawned_in: false,
                     offered_teleport: None,
                     is_trading: false,
-                    director_vars: None,
                     dyeing_information: None,
+                    marketboard_request_item_id: 0,
+                    hide_spectator_ui: false,
+                    initial_login: true,
+                    fate_motivation_npcs: HashMap::new(),
+                    content_handler_id: None,
+                    can_share_teleport: false,
                 };
 
                 // Handle setup before passing off control to the zone connection.
@@ -208,7 +220,7 @@ async fn initial_setup(
                             if !connection.player_data.character.actor_id.is_valid() {
                                 let player_data;
                                 {
-                                    let mut game_data = connection.gamedata.lock();
+                                    let mut game_data = connection.game_data.lock();
                                     let mut database = connection.database.lock();
                                     player_data = database
                                         .find_player_data(ObjectId(actor_id), &mut game_data);
@@ -409,6 +421,9 @@ async fn client_chat_loop(
                                             ClientChatIpcData::SendAllianceMessage(_data) => {
                                                 tracing::info!("Chatting in alliances is unimplemented");
                                             }
+                                            ClientChatIpcData::DiceRollCWLS(data) | ClientChatIpcData::DiceRollParty(data) => {
+                                                connection.send_dice_roll(*data).await;
+                                            }
                                             ClientChatIpcData::Unknown { unk } => {
                                                 tracing::warn!("Unknown chat packet {:?} recieved ({} bytes)", data.header.op_code, unk.len());
                                             }
@@ -433,14 +448,15 @@ async fn client_chat_loop(
             msg = internal_recv.recv() => match msg {
                 Some(msg) => match msg {
                     FromServer::TellMessageReceived(from_actor_id, message_info) => connection.tell_message_received(from_actor_id, message_info.clone()).await,
-                    FromServer::ChatDisconnected() => {
+                    FromServer::ChatDisconnected => {
                         tracing::info!("ChatConnection {:#?} received shutdown, disconnecting!", connection.id);
                         break;
                     }
                     FromServer::SetPartyChatChannel(channel_id) => connection.set_party_chatchannel(channel_id).await,
                     FromServer::PartyMessageReceived(message_data) => connection.party_message_received(message_data).await,
-                    FromServer::MustRefreshChatChannels() => connection.refresh_chatchannels().await,
+                    FromServer::MustRefreshChatChannels => connection.refresh_chatchannels().await,
                     FromServer::CWLSMessageReceived(message_info) => connection.cwls_message_received(message_info).await,
+                    FromServer::ChatDiceRoll(from_actor_id, roll_data) => connection.dice_roll_received(from_actor_id, roll_data).await,
                     _ => tracing::error!("ChatConnection {:#?} received a FromServer message we don't care about: {:#?}, ensure you're using the right client network or that you've implemented a handler for it if we actually care about it!", client_handle.id, msg),
                 },
                 None => break,
@@ -538,6 +554,13 @@ async fn process_packet(
             return false;
         }
     } else {
+        if connection.hide_spectator_ui {
+            connection
+                .actor_control_self(ActorControlCategory::HideSpectatorUI {})
+                .await;
+            connection.hide_spectator_ui = false;
+        }
+
         connection.last_keep_alive = Instant::now();
 
         let segments = connection.parse_packet(&buf[..n]);
@@ -579,7 +602,7 @@ async fn process_packet(
                                 return false;
                             };
 
-                            let expansion: MaxEx = serde_json::from_str(
+                            let expansion: BasicServiceAccountData = serde_json::from_str(
                                 &login_reply.body_mut().read_to_string().unwrap(),
                             )
                             .unwrap();
@@ -617,18 +640,6 @@ async fn process_packet(
                                 connection.player_data.classjob.levels.0.to_vec();
                             padded_levels.resize(CLASSJOB_ARRAY_SIZE, padded_levels[0]);
 
-                            let chara_make;
-                            let city_state;
-                            {
-                                let mut database = connection.database.lock();
-                                chara_make = database.get_chara_make(
-                                    connection.player_data.character.content_id as u64,
-                                );
-                                city_state = database.get_city_state(
-                                    connection.player_data.character.content_id as u64,
-                                );
-                            }
-
                             // Player Setup
                             {
                                 let mut player_state_flags1 = PlayerStateFlags1::empty();
@@ -657,7 +668,6 @@ async fn process_packet(
                                     quest_special_flags.insert(QuestSpecialFlags::LEGACY);
                                 }
 
-                                let config = get_config();
                                 let ipc = ServerZoneIpcSegment::new(
                                     ServerZoneIpcData::PlayerSetup(PlayerSetup {
                                         content_id: connection.player_data.character.content_id
@@ -670,14 +680,51 @@ async fn process_packet(
                                         expansion: expansion.max_ex as u8,
                                         name: connection.player_data.character.name.clone(),
                                         actor_id: connection.player_data.character.actor_id,
-                                        race: chara_make.customize.race as u8,
-                                        gender: chara_make.customize.gender as u8,
-                                        tribe: chara_make.customize.tribe as u8,
-                                        city_state,
-                                        nameday_month: chara_make.birth_month as u8,
-                                        nameday_day: chara_make.birth_day as u8,
-                                        deity: chara_make.guardian as u8,
-                                        current_class: connection.player_data.classjob.current_class
+                                        race: connection
+                                            .player_data
+                                            .customize
+                                            .chara_make
+                                            .customize
+                                            .race
+                                            as u8,
+                                        sex: connection
+                                            .player_data
+                                            .customize
+                                            .chara_make
+                                            .customize
+                                            .gender
+                                            as u8,
+                                        tribe: connection
+                                            .player_data
+                                            .customize
+                                            .chara_make
+                                            .customize
+                                            .tribe
+                                            as u8,
+                                        start_town: connection.player_data.customize.city_state
+                                            as u8,
+                                        birth_month: connection
+                                            .player_data
+                                            .customize
+                                            .chara_make
+                                            .birth_month
+                                            as u8,
+                                        birth_day: connection
+                                            .player_data
+                                            .customize
+                                            .chara_make
+                                            .birth_day
+                                            as u8,
+                                        guardian_deity: connection
+                                            .player_data
+                                            .customize
+                                            .chara_make
+                                            .guardian
+                                            as u8,
+                                        current_classjob_id: connection
+                                            .player_data
+                                            .classjob
+                                            .current_class
                                             as u8,
                                         first_class: connection.player_data.classjob.first_class
                                             as u8,
@@ -691,7 +738,10 @@ async fn process_packet(
                                             .clone(),
                                         minions: connection.player_data.unlock.minions.data.clone(),
                                         mounts: connection.player_data.unlock.mounts.data.clone(),
-                                        homepoint: connection.player_data.aetheryte.homepoint
+                                        home_aetheryte_id: connection
+                                            .player_data
+                                            .aetheryte
+                                            .homepoint
                                             as u16,
                                         favourite_aetheryte_count: 1,
                                         favorite_aetheryte_ids: [8, 0, 0, 0],
@@ -849,11 +899,26 @@ async fn process_packet(
                                             .cleared_misc_content
                                             .data_truncated(),
                                         can_do_triple_triad_matches: true,
-                                        ui_festival_ids: config
-                                            .world
+                                        ui_festival_ids: connection
+                                            .config
                                             .active_festivals
                                             .map(FestivalId),
                                         quest_special_flags,
+                                        companion_name: connection.player_data.buddy.name.clone(),
+                                        buddy_levels: connection
+                                            .player_data
+                                            .buddy
+                                            .levels
+                                            .0
+                                            .clone()
+                                            .try_into()
+                                            .unwrap(),
+                                        companion_current_exp: connection.player_data.buddy.exp
+                                            as u32,
+                                        companion_rank: connection.player_data.buddy.rank as u8,
+                                        companion_stars: connection.player_data.buddy.stars as u8,
+                                        companion_color: connection.player_data.buddy.color as u8,
+                                        completed_lovm_stages: 255, // TODO: placeholder to show them in the Duty Finder
                                         ..Default::default()
                                     }),
                                 );
@@ -862,7 +927,7 @@ async fn process_packet(
 
                             let level;
                             {
-                                let mut game_data = connection.gamedata.lock();
+                                let mut game_data = connection.game_data.lock();
 
                                 level = connection
                                     .player_data
@@ -959,7 +1024,8 @@ async fn process_packet(
                         }
                         ClientZoneIpcData::ClientTrigger(trigger) => {
                             match trigger.trigger {
-                                ClientTriggerCommand::Resurrect { kind: 8 } => {
+                                // Returning after death; other revive kinds use the shared server path.
+                                ClientTriggerCommand::AcceptRevive { kind: 8 } => {
                                     connection
                                         .handle
                                         .send(ToServer::ReturnAfterDeath(
@@ -969,10 +1035,7 @@ async fn process_packet(
                                         ))
                                         .await;
                                 }
-                                ClientTriggerCommand::Resurrect { kind } => {
-                                    tracing::warn!(kind, "Unsupported resurrection request");
-                                }
-                                ClientTriggerCommand::RequestTitleList {} => {
+                                ClientTriggerCommand::RequestTitleList => {
                                     let ipc =
                                         ServerZoneIpcSegment::new(ServerZoneIpcData::TitleList {
                                             unlock_bitmask: connection
@@ -984,7 +1047,7 @@ async fn process_packet(
                                         });
                                     connection.send_ipc_self(ipc).await;
                                 }
-                                ClientTriggerCommand::FinishZoning {} => {
+                                ClientTriggerCommand::FinishZoning => {
                                     connection
                                         .handle
                                         .send(ToServer::ZoneIn(
@@ -997,14 +1060,24 @@ async fn process_packet(
                                     // Reset so it doesn't get stuck to Aetheryte:
                                     connection.teleport_reason = TeleportReason::NotSpecified;
                                 }
-                                ClientTriggerCommand::BeginContentsReplay {} => {
+                                ClientTriggerCommand::BeginContentsReplay => {
+                                    connection.conditions.set_condition(
+                                        kawari::ipc::zone::Condition::DutyRecorderPlayback,
+                                    );
+                                    connection.send_conditions().await;
+
                                     connection
                                         .actor_control_self(
                                             ActorControlCategory::BeginContentsReplay { unk1: 1 },
                                         )
                                         .await;
                                 }
-                                ClientTriggerCommand::EndContentsReplay {} => {
+                                ClientTriggerCommand::EndContentsReplay => {
+                                    connection.conditions.remove_condition(
+                                        kawari::ipc::zone::Condition::DutyRecorderPlayback,
+                                    );
+                                    connection.send_conditions().await;
+
                                     connection
                                         .actor_control_self(
                                             ActorControlCategory::EndContentsReplay { unk1: 1 },
@@ -1020,7 +1093,7 @@ async fn process_packet(
 
                                     // SetMode isn't important, no, but it's included for accuracy.
                                     connection
-                                        .set_character_mode(CharacterMode::Normal, 0)
+                                        .set_character_mode(CharacterMode::Normal, 0, true)
                                         .await;
 
                                     // Retail indeed does send an AC, not an ACS for this.
@@ -1052,31 +1125,6 @@ async fn process_packet(
                                         })
                                         .await;
 
-                                    // Then these are also sent!
-                                    connection
-                                        .actor_control_self(ActorControlCategory::SetPetEntityId {
-                                            unk1: 0,
-                                        })
-                                        .await;
-
-                                    connection
-                                        .actor_control_self(ActorControlCategory::CompanionUnlock {
-                                            unk1: 0,
-                                            unk2: 0,
-                                        })
-                                        .await;
-
-                                    connection
-                                        .actor_control_self(
-                                            ActorControlCategory::SetPetParameters {
-                                                pet_id: 0,
-                                                unk2: 0,
-                                                unk3: 0,
-                                                unk4: 7,
-                                            },
-                                        )
-                                        .await;
-
                                     // TODO: Remove this `let party_id` in an upcoming party refactor, this is temporary
                                     let party_id = if connection.party_id != 0 {
                                         Some(connection.party_id)
@@ -1098,123 +1146,13 @@ async fn process_packet(
                                 ClientTriggerCommand::SeenCutscene { id } => {
                                     connection.player_data.unlock.cutscene_seen.set(id);
                                 }
-                                ClientTriggerCommand::DirectorTrigger {
-                                    handler_id,
-                                    trigger,
-                                } => {
-                                    // TODO: move to server state? why is this here?
-
-                                    match trigger {
-                                        DirectorTrigger::Sync { .. } => {
-                                            // Always send a sync response for now
-                                            connection
-                                                .actor_control_self(
-                                                    ActorControlCategory::DirectorEvent {
-                                                        handler_id,
-                                                        event: DirectorEvent::SyncResponse {
-                                                            arg1: 1,
-                                                            arg2: 0,
-                                                            arg3: 0,
-                                                            arg4: 0,
-                                                        },
-                                                    },
-                                                )
-                                                .await;
-                                        }
-                                        DirectorTrigger::SummonStrikingDummy { .. } => {
-                                            tracing::info!(
-                                                "Spawning a striking dummy is unsupported!"
-                                            );
-                                        }
-                                        DirectorTrigger::GoldSaucerUnk1 { .. } => {
-                                            // dummied out
-                                        }
-                                        DirectorTrigger::GoldSaucerUnk2 { .. } => {
-                                            // hardcoded for now
-
-                                            connection
-                                                .actor_control_self(
-                                                    ActorControlCategory::DirectorEvent {
-                                                        handler_id,
-                                                        event: DirectorEvent::Unknown {
-                                                            id: 9,
-                                                            arg1: 74,
-                                                            arg2: 1,
-                                                            arg3: 0,
-                                                            arg4: 0,
-                                                        },
-                                                    },
-                                                )
-                                                .await;
-
-                                            connection
-                                                .actor_control_self(
-                                                    ActorControlCategory::DirectorEvent {
-                                                        handler_id,
-                                                        event: DirectorEvent::Unknown {
-                                                            id: 6,
-                                                            arg1: 7773571, // TODO: hardcoded to the air force one attendant for now
-                                                            arg2: 1775917801,
-                                                            arg3: 0,
-                                                            arg4: 0,
-                                                        },
-                                                    },
-                                                )
-                                                .await;
-
-                                            connection
-                                                .actor_control_self(
-                                                    ActorControlCategory::DirectorEvent {
-                                                        handler_id,
-                                                        event: DirectorEvent::Unknown {
-                                                            id: 11,
-                                                            arg1: 3,
-                                                            arg2: 0,
-                                                            arg3: 0,
-                                                            arg4: 0,
-                                                        },
-                                                    },
-                                                )
-                                                .await;
-
-                                            connection
-                                                .handle
-                                                .send(ToServer::SpawnLayoutNpc(
-                                                    connection.player_data.character.actor_id,
-                                                    7773571, // TODO: hardcoded to airforce one NPC for now
-                                                ))
-                                                .await;
-                                        }
-                                        DirectorTrigger::VariantVote { route } => {
-                                            connection
-                                                .handle
-                                                .send(ToServer::VariantVote(
-                                                    connection.player_data.character.actor_id,
-                                                    route,
-                                                ))
-                                                .await;
-
-                                            connection
-                                                .actor_control_self(
-                                                    ActorControlCategory::DirectorEvent {
-                                                        handler_id,
-                                                        event: DirectorEvent::HideVariantVoteRoute,
-                                                    },
-                                                )
-                                                .await;
-                                        }
-                                        _ => tracing::info!(
-                                            "DirectorTrigger: {handler_id} {trigger:?}"
-                                        ),
-                                    }
-                                }
-                                ClientTriggerCommand::OpenGoldSaucerGeneralTab {} => {
+                                ClientTriggerCommand::OpenGoldSaucerGeneralTab => {
                                     let ipc = ServerZoneIpcSegment::new(
                                         ServerZoneIpcData::GoldSaucerInformation { unk: [0; 40] },
                                     );
                                     connection.send_ipc_self(ipc).await;
                                 }
-                                ClientTriggerCommand::OpenTrustWindow {} => {
+                                ClientTriggerCommand::OpenTrustWindow => {
                                     // We have to send at least one valid trust to the client, otherwise the window never shows.
                                     let ipc = ServerZoneIpcSegment::new(
                                         ServerZoneIpcData::TrustInformation(TrustInformation {
@@ -1222,22 +1160,55 @@ async fn process_packet(
                                                 trust_content_id: 1, // Holminster Switch
                                                 last_selected_characters: [0xFF; 16],
                                             }],
-                                            levels: [0; 34],
-                                            exp: [0; 34],
+                                            levels: [0; TrustInformation::NUM_CHARACTERS],
+                                            exp: [0; TrustInformation::NUM_CHARACTERS],
                                         }),
                                     );
                                     connection.send_ipc_self(ipc).await;
                                 }
-                                ClientTriggerCommand::OpenDutySupportWindow {} => {
+                                ClientTriggerCommand::OpenDutySupportWindow => {
+                                    let mut available_content =
+                                        Vec::with_capacity(DutySupportInformation::INDICE_COUNT);
+                                    {
+                                        let mut game_data = connection.game_data.lock();
+                                        let content_finder_conditions =
+                                            game_data.list_dawn_content_content_finder_conditions();
+
+                                        for (i, cfc) in content_finder_conditions {
+                                            let instance_id = game_data
+                                                .find_content_for_content_finder_id(cfc as u16)
+                                                .unwrap();
+                                            let content_type = game_data
+                                                .find_type_for_content(instance_id)
+                                                .unwrap();
+                                            let unlocked = match content_type {
+                                                InstanceContentType::Dungeon => connection
+                                                    .player_data
+                                                    .content
+                                                    .unlocked_dungeons
+                                                    .contains(instance_id as u32 - 1),
+                                                InstanceContentType::Raid => connection
+                                                    .player_data
+                                                    .content
+                                                    .unlocked_raids
+                                                    .contains(instance_id as u32 - 30001),
+                                                _ => false,
+                                            };
+                                            if unlocked {
+                                                available_content.push(i as u8);
+                                            }
+                                        }
+                                    }
+
                                     // We have to send at least one available duty to the client, otherwise it crashes.
                                     let ipc = ServerZoneIpcSegment::new(
-                                        ServerZoneIpcData::DutySupportInformation {
-                                            available_content: vec![1],
-                                        },
+                                        ServerZoneIpcData::DutySupportInformation(
+                                            DutySupportInformation { available_content },
+                                        ),
                                     );
                                     connection.send_ipc_self(ipc).await;
                                 }
-                                ClientTriggerCommand::OpenPortraitsWindow {} => {
+                                ClientTriggerCommand::OpenPortraitsWindow => {
                                     let ipc = ServerZoneIpcSegment::new(
                                         ServerZoneIpcData::PortraitsInformation { unk: [0; 56] },
                                     );
@@ -1278,7 +1249,7 @@ async fn process_packet(
                                     connection.glamour_information = Some(trigger.trigger.clone());
                                 }
                                 ClientTriggerCommand::BeginOrEndFishing { end } => {
-                                    let handler_id = HandlerId::new(HandlerType::Fishing, 1).0;
+                                    let handler_id = HandlerId::new(HandlerType::Fishing, 1);
                                     if !end {
                                         connection
                                             .start_event(
@@ -1309,15 +1280,13 @@ async fn process_packet(
                                             )
                                             .await;
 
-                                        let ipc = ServerZoneIpcSegment::new(
-                                            ServerZoneIpcData::LogMessage {
-                                                handler_id: HandlerId(handler_id),
-                                                message_type: 1110,
-                                                params_count: 1,
-                                                item_id: 28,
-                                                item_quantity: 0,
-                                            },
-                                        );
+                                        let ipc = EventLogMessage {
+                                            handler_id,
+                                            message_type: LogMessageType::FishingCastLine as u32,
+                                            params: vec![28],
+                                        }
+                                        .package()
+                                        .unwrap();
                                         connection.send_ipc_self(ipc).await;
 
                                         connection
@@ -1347,14 +1316,14 @@ async fn process_packet(
                                     let gathering_point_bonus;
                                     let point_type;
                                     {
-                                        let mut gamedata = connection.gamedata.lock();
+                                        let mut game_data = connection.game_data.lock();
                                         (
                                             base_id,
                                             level,
                                             count,
                                             gathering_point_bonus,
                                             point_type,
-                                        ) = gamedata.get_gathering_point(id);
+                                        ) = game_data.get_gathering_point(id);
                                     }
 
                                     // TODO: document in EXDSchema that 3 seems to mean levequest ones
@@ -1375,7 +1344,7 @@ async fn process_packet(
                                     }
                                 }
                                 ClientTriggerCommand::BeginCraft { end, id } => {
-                                    let handler_id = HandlerId::new(HandlerType::Craft, 1).0;
+                                    let handler_id = HandlerId::new(HandlerType::Craft, 1);
                                     if !end {
                                         connection
                                             .start_event(
@@ -1398,8 +1367,8 @@ async fn process_packet(
 
                                         let recipe;
                                         {
-                                            let mut gamedata = connection.gamedata.lock();
-                                            recipe = gamedata.get_recipe(id);
+                                            let mut game_data = connection.game_data.lock();
+                                            recipe = game_data.get_recipe(id);
                                         }
 
                                         // TODO: wrong scene flags
@@ -1446,7 +1415,7 @@ async fn process_packet(
                                     );
                                     connection.send_ipc_self(ipc).await;
                                 }
-                                ClientTriggerCommand::ToggleNoviceStatus { .. } => {
+                                ClientTriggerCommand::ToggleNoviceStatus => {
                                     if connection.player_data.search_info.online_status
                                         != OnlineStatus::NewAdventurer
                                     {
@@ -1504,8 +1473,8 @@ async fn process_packet(
                                 }
                                 ClientTriggerCommand::SetInteriorLightLevel { level, unk } => {
                                     // TODO: Also reject if they're not the owner/shared tenant
-                                    let intended_use = connection.get_zone_intended_use();
-                                    if !connection.in_housing_area(intended_use) {
+                                    let intended_use = lua_player.zone_data.intended_use;
+                                    if !in_housing_area(intended_use) {
                                         continue;
                                     }
 
@@ -1530,8 +1499,8 @@ async fn process_packet(
                                 }
                                 ClientTriggerCommand::FurnitureMenuToggled { closed } => {
                                     // TODO: Also reject if they're not the owner/shared tenant
-                                    let intended_use = connection.get_zone_intended_use();
-                                    if !connection.in_housing_area(intended_use) {
+                                    let intended_use = lua_player.zone_data.intended_use;
+                                    if !in_housing_area(intended_use) {
                                         continue;
                                     }
 
@@ -1541,9 +1510,7 @@ async fn process_packet(
                                         );
 
                                         connection
-                                            .actor_control_self(
-                                                ActorControlCategory::FurnitureMenu {},
-                                            )
+                                            .actor_control_self(ActorControlCategory::FurnitureMenu)
                                             .await;
                                     } else {
                                         connection.conditions.remove_condition(
@@ -1554,8 +1521,8 @@ async fn process_packet(
                                 }
                                 ClientTriggerCommand::RequestHousingInventory { storeroom } => {
                                     // TODO: Also reject if they're not the owner/shared tenant
-                                    let intended_use = connection.get_zone_intended_use();
-                                    if !connection.in_housing_area(intended_use) {
+                                    let intended_use = lua_player.zone_data.intended_use;
+                                    if !in_housing_area(intended_use) {
                                         continue;
                                     }
 
@@ -1575,9 +1542,9 @@ async fn process_packet(
                                     slot,
                                     ..
                                 } => {
-                                    let intended_use = connection.get_zone_intended_use();
+                                    let intended_use = lua_player.zone_data.intended_use;
                                     // TODO: Also reject if they're not the owner/shared tenant
-                                    if !connection.in_housing_area(intended_use) {
+                                    if !in_housing_area(intended_use) {
                                         continue;
                                     }
 
@@ -1672,15 +1639,15 @@ async fn process_packet(
                                     container_index,
                                     ..
                                 } => {
-                                    let intended_use = connection.get_zone_intended_use();
+                                    let intended_use = lua_player.zone_data.intended_use;
                                     // TODO: Also reject if they're not the owner/shared tenant
-                                    if !connection.in_housing_area(intended_use) {
+                                    if !in_housing_area(intended_use) {
                                         continue;
                                     }
 
-                                    let catalog_id;
+                                    let item_id;
                                     {
-                                        let mut gamedata = connection.gamedata.lock();
+                                        let mut game_data = connection.game_data.lock();
                                         let Some(the_item) = connection
                                             .player_data
                                             .house_inventory
@@ -1689,12 +1656,12 @@ async fn process_packet(
                                             continue;
                                         };
                                         let Some(the_id) =
-                                            gamedata.get_furniture_catalog_id(the_item.item_id)
+                                            game_data.get_furniture_item_id(the_item.item_id)
                                         else {
                                             continue;
                                         };
 
-                                        catalog_id = the_id;
+                                        item_id = the_id;
                                     }
 
                                     // This acts as a preview, and we don't actually spawn the furniture until the client sends a PlaceFurniture. Therefore, we don't network this.
@@ -1709,7 +1676,7 @@ async fn process_packet(
                                                 ServerZoneIpcData::InteriorFurniturePlaced {
                                                     storage_id: container_type,
                                                     slot: container_index,
-                                                    catalog_id,
+                                                    item_id,
                                                     unk1: 1,
                                                     stain,
                                                     unk2: [0; 3],
@@ -1729,7 +1696,7 @@ async fn process_packet(
                                                     plot_index: 0xFF, // During preview mode, the plot index and slot are 0xFF.
                                                     slot: 0xFF,
                                                     unk1: [0; 2],
-                                                    catalog_id,
+                                                    item_id,
                                                     unk2: 0,
                                                     stain,
                                                     unk3: [0; 3],
@@ -1744,15 +1711,19 @@ async fn process_packet(
                                             .await;
                                     }
                                 }
-                                ClientTriggerCommand::RequestPlayerName {} => {
-                                    connection
-                                        .send_ipc_self(ServerZoneIpcSegment::new(
-                                            ServerZoneIpcData::PlayerName {
-                                                content_id: trigger.content_id.unwrap_or_default(),
-                                                name: "It's a mystery".to_string(), // Dummied out name for now
-                                            },
-                                        ))
-                                        .await;
+                                ClientTriggerCommand::RequestPlayerName => {
+                                    if let ClientTriggerTarget::ContentId(content_id) =
+                                        trigger.target
+                                    {
+                                        connection
+                                            .send_ipc_self(ServerZoneIpcSegment::new(
+                                                ServerZoneIpcData::PlayerName {
+                                                    content_id,
+                                                    name: "It's a mystery".to_string(), // Dummied out name for now
+                                                },
+                                            ))
+                                            .await;
+                                    }
                                 }
                                 ClientTriggerCommand::TeleportOfferReply { decline_teleport } => {
                                     if !decline_teleport
@@ -1770,14 +1741,98 @@ async fn process_packet(
                                     }
                                 }
                                 ClientTriggerCommand::OpenSharedFATEWindow { page } => {
+                                    let start_index = TAB_SHARED_FATE_COUNT * page as usize;
+                                    let fate_counts = &connection.player_data.quest.shared_fates.0
+                                        [start_index..start_index + 6];
+                                    let mut fate_count_maximum = [0u8; 6];
+                                    {
+                                        for (j, i) in (start_index..start_index + 6).enumerate() {
+                                            let mut game_data = connection.game_data.lock();
+                                            fate_count_maximum[j] = game_data
+                                                .get_fate_progress_maximum_count(i as u32)
+                                                .unwrap_or_default();
+                                        }
+                                    }
+
+                                    let ipc = ServerZoneIpcSegment::new(
+                                        ServerZoneIpcData::SharedFATEInformation {
+                                            page: page as u8,
+                                            fate_count: fate_counts.try_into().unwrap(),
+                                            fate_count_maximum,
+                                        },
+                                    );
+                                    connection.send_ipc_self(ipc).await;
+                                }
+                                ClientTriggerCommand::FateLevelSync { fate_id, unk1, .. } => {
+                                    tracing::info!("Syncing level for fate {fate_id} {unk1}");
+
+                                    // Toggles the syncing on and off
+                                    if connection.synced_level.is_none() {
+                                        let mut game_data = connection.game_data.lock();
+                                        connection.synced_level =
+                                            game_data.get_fate_max_level(fate_id);
+                                    } else {
+                                        connection.synced_level = None;
+                                    }
+
+                                    connection.send_stats().await;
+                                    connection.update_class_info().await;
+
                                     connection
-                                        .send_ipc_self(ServerZoneIpcSegment::new(
-                                            ServerZoneIpcData::SharedFATEInformation {
-                                                page: page as u8,
-                                                unk1: [0; 15], // Dummied out for now
-                                            },
+                                        .actor_control_self(ActorControlCategory::FateLevelSynced {
+                                            fate_id,
+                                        })
+                                        .await;
+                                }
+                                ClientTriggerCommand::EquipGlasses { slot, id } => {
+                                    connection.player_data.equipped_glasses_ids[slot as usize] =
+                                        id as u16;
+
+                                    connection
+                                        .handle
+                                        .send(ToServer::EquipGlasses(
+                                            connection.player_data.character.actor_id,
+                                            slot,
+                                            id,
                                         ))
                                         .await;
+                                }
+                                ClientTriggerCommand::RegisterDutySupport {
+                                    dawn_content_id,
+                                    ..
+                                } => {
+                                    let content_finder_condition_id;
+                                    {
+                                        let mut game_data = connection.game_data.lock();
+                                        content_finder_condition_id = game_data
+                                            .get_dawn_content_cfc_id(dawn_content_id)
+                                            .unwrap();
+                                    }
+
+                                    connection
+                                        .register_for_content(
+                                            [content_finder_condition_id as u16, 0, 0, 0, 0],
+                                            DutyFinderSetting::default(),
+                                        )
+                                        .await;
+                                }
+                                ClientTriggerCommand::StartOrStopPerforming { perform_id } => {
+                                    if perform_id == 0 {
+                                        connection
+                                            .set_character_mode(CharacterMode::Normal, 0, true)
+                                            .await;
+                                    } else {
+                                        connection
+                                            .set_character_mode(
+                                                CharacterMode::Performance,
+                                                perform_id as u8,
+                                                true,
+                                            )
+                                            .await;
+                                    }
+                                }
+                                ClientTriggerCommand::ZoneDiceRoll { num_sides } => {
+                                    connection.send_dice_roll(num_sides as u16).await;
                                 }
                                 _ => {
                                     // inform the server of our trigger, it will handle sending it to other clients
@@ -1963,7 +2018,6 @@ async fn process_packet(
                             }
 
                             // Send the message to the global server to be processed further
-                            let config = get_config();
                             let info = MessageInfo {
                                 sender_actor_id: connection.player_data.character.actor_id,
                                 sender_account_id: connection
@@ -1971,7 +2025,7 @@ async fn process_packet(
                                     .character
                                     .service_account_id
                                     as u64,
-                                sender_world_id: config.world.world_id,
+                                sender_world_id: connection.config.world_id,
                                 sender_position: connection.player_data.volatile.position,
                                 sender_name: connection.player_data.character.name.clone(),
                                 channel: chat_message.channel,
@@ -2044,7 +2098,8 @@ async fn process_packet(
                                     connection.id,
                                     connection.player_data.character.actor_id,
                                     *exit_box,
-                                    None,
+                                    WarpType::Normal,
+                                    0,
                                 ))
                                 .await;
                         }
@@ -2071,7 +2126,8 @@ async fn process_packet(
                             connection
                                 .send_inventory_ack(
                                     action.context_id,
-                                    INVENTORY_ACTION_ACK_GENERAL as u16,
+                                    INVENTORY_ACTION_ACK_GENERAL,
+                                    0,
                                 )
                                 .await;
 
@@ -2088,18 +2144,21 @@ async fn process_packet(
                                         src_storage_id: action.src_storage_id,
                                         src_container_index: action.src_container_index,
                                         src_stack: action.src_stack,
-                                        src_catalog_id: action.src_catalog_id,
+                                        src_item_id: action.src_item_id,
                                         dummy_container: ContainerType::DiscardingItemSentinel,
                                         dst_storage_id: ContainerType::DiscardingItemSentinel,
                                         dst_container_index: u16::MAX,
                                         dst_actor_id: ObjectId::default(),
                                         dst_stack: 0,
-                                        dst_catalog_id: 0,
+                                        dst_item_id: 0,
                                     },
                                 );
                                 connection.send_ipc_self(ipc).await;
                                 connection
-                                    .send_inventory_transaction_finish(0x90, 0x200)
+                                    .send_inventory_transaction_finish(
+                                        ItemOperationKind::UnkDiscard,
+                                        0x200,
+                                    )
                                     .await;
                             }
 
@@ -2124,8 +2183,8 @@ async fn process_packet(
 
                                 let id;
                                 {
-                                    let mut gamedata = connection.gamedata.lock();
-                                    id = gamedata.get_soul_crystal_item_id(
+                                    let mut game_data = connection.game_data.lock();
+                                    id = game_data.get_soul_crystal_item_id(
                                         connection.player_data.classjob.current_class as u16,
                                     );
                                 }
@@ -2189,7 +2248,7 @@ async fn process_packet(
                             if connection
                                 .start_event(
                                     *actor_id,
-                                    handler_id.0,
+                                    *handler_id,
                                     EventType::Talk,
                                     0,
                                     events,
@@ -2296,6 +2355,25 @@ async fn process_packet(
                                 tracing::warn!("There's no current event to yield from!");
                             }
                         }
+                        ClientZoneIpcData::EventYieldHandler32(handler) => {
+                            tracing::info!(message = "Event yielded", handler_id = %handler.handler_id, yield_id = handler.yield_id, scene = handler.scene, params = ?&handler.params[..handler.num_results as usize]);
+
+                            if let Some(event) = events.last() {
+                                event
+                                    .0
+                                    .on_yield(
+                                        &event.1,
+                                        connection,
+                                        handler.scene,
+                                        handler.yield_id,
+                                        &handler.params[..handler.num_results as usize],
+                                        lua_player,
+                                    )
+                                    .await;
+                            } else {
+                                tracing::warn!("There's no current event to yield from!");
+                            }
+                        }
                         ClientZoneIpcData::EventYieldHandler128(handler) => {
                             tracing::info!(message = "Event yielded", handler_id = %handler.handler_id, yield_id = handler.yield_id, scene = handler.scene, params = ?&handler.params[..handler.num_results as usize]);
 
@@ -2338,11 +2416,11 @@ async fn process_packet(
                             connection.send_ipc_self(ipc).await;
                         }
                         ClientZoneIpcData::QueueDuties(queue_duties) => {
-                            connection.content_settings = Some(queue_duties.settings);
-                            lua_player.content_data.settings =
-                                DutyOption::from_content_flags(queue_duties.settings).bits(); // TODO: is this the best place to update this?
                             connection
-                                .register_for_content(queue_duties.content_ids)
+                                .register_for_content(
+                                    queue_duties.content_ids,
+                                    queue_duties.settings,
+                                )
                                 .await;
                         }
                         ClientZoneIpcData::QueueRoulette { roulette_id, .. } => {
@@ -2353,12 +2431,17 @@ async fn process_packet(
 
                             let duty_id;
                             {
-                                let mut game_data = connection.gamedata.lock();
+                                let mut game_data = connection.game_data.lock();
                                 // TODO: take into account whether these duties are unlocked
                                 duty_id = game_data.pick_roulette_duty(roulette) as u16;
                             }
 
-                            connection.register_for_content([duty_id, 0, 0, 0, 0]).await;
+                            connection
+                                .register_for_content(
+                                    [duty_id, 0, 0, 0, 0],
+                                    DutyFinderSetting::default(),
+                                )
+                                .await;
                         }
                         ClientZoneIpcData::ContentFinderAction { action, .. } => {
                             if *action == ContentFinderUserAction::Accepted {
@@ -2376,12 +2459,14 @@ async fn process_packet(
                                 }
 
                                 connection
-                                    .join_content(connection.queued_content.unwrap())
+                                    .join_content(
+                                        connection.queued_content.unwrap(),
+                                        connection.duty_settings.unwrap(),
+                                    )
                                     .await;
                             }
 
                             // If we don't send this, the content finder gets stuck.
-                            // TODO: this may be screwing up the in-duty menu, probably need to fill it with data!
                             let ipc =
                                 ServerZoneIpcSegment::new(ServerZoneIpcData::UnkContentFinder {
                                     unk: [0; 16],
@@ -2480,7 +2565,10 @@ async fn process_packet(
 
                             // And that we're done modifying the inventory.
                             connection
-                                .send_inventory_transaction_finish(567, 3584)
+                                .send_inventory_transaction_finish(
+                                    ItemOperationKind::UnkGearSetEquipped,
+                                    3584,
+                                )
                                 .await;
 
                             // Retail also re-sends the equipped container
@@ -2508,6 +2596,7 @@ async fn process_packet(
                                     ActorControlCategory::ToggleWeapon {
                                         shown: false,
                                         unk_flag: 1,
+                                        unk2: 1,
                                     },
                                 )
                                 .await;
@@ -2519,7 +2608,7 @@ async fn process_packet(
                             connection
                                 .start_event(
                                     actor_id,
-                                    handler_id.0,
+                                    *handler_id,
                                     EventType::WithinRange,
                                     *event_arg,
                                     events,
@@ -2549,6 +2638,7 @@ async fn process_packet(
                                     ActorControlCategory::ToggleWeapon {
                                         shown: false,
                                         unk_flag: 1,
+                                        unk2: 1,
                                     },
                                 )
                                 .await;
@@ -2560,7 +2650,7 @@ async fn process_packet(
                             connection
                                 .start_event(
                                     actor_id,
-                                    handler_id.0,
+                                    *handler_id,
                                     EventType::OutsideRange,
                                     *event_arg,
                                     events,
@@ -2608,13 +2698,57 @@ async fn process_packet(
                             connection.send_ipc_self(ipc).await;
                         }
                         ClientZoneIpcData::RequestFellowships { .. } => {
-                            tracing::info!("Fellowships is unimplemented");
+                            // Report back that they're not in a fellowship
+                            // TODO: Implement this for real!
+                            let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::Fellowships {
+                                unk1: [0; 808],
+                            });
+                            connection.send_ipc_self(ipc).await;
                         }
                         ClientZoneIpcData::RequestCrossworldLinkshells { .. } => {
                             connection.send_crossworld_linkshells(true).await;
                         }
                         ClientZoneIpcData::SearchFellowships { .. } => {
-                            tracing::info!("Fellowships is unimplemented");
+                            // TODO: Actually implement Fellowship searches, for now none of the player's search criteria are used.
+                            let fellowships = vec![
+                                FellowshipSearchInfo {
+                                    community_id: 1,
+                                    master_content_id: 1,
+                                    recruiter_content_id: 1,
+                                    recruitment_deadline: 0xFFFF_FFFF,
+                                    languages: SocialListUILanguages::JAPANESE
+                                        | SocialListUILanguages::ENGLISH
+                                        | SocialListUILanguages::GERMAN
+                                        | SocialListUILanguages::FRENCH,
+                                    primary_language: ClientLanguage::English,
+                                    recruiter_world_id: connection.config.world_id,
+                                    master_world_id: connection.config.world_id,
+                                    current_member_count: 999,
+                                    target_member_count: 1000,
+                                    activity1: FellowshipActivityTag::Chatting,
+                                    unk1: [0; 4],
+                                    activity2: FellowshipActivityTag::DomanMahjong,
+                                    activity3: FellowshipActivityTag::Glamours,
+                                    fellowship_name: "Kawari Fellowship Test".to_string(),
+                                    recruiter_name: "Kawari Player".to_string(),
+                                    master_name: "Kawari Player".to_string(),
+                                    fellowship_description: "The Fellowship's description.".into(),
+                                },
+                                FellowshipSearchInfo::default(),
+                                FellowshipSearchInfo::default(),
+                                FellowshipSearchInfo::default(),
+                            ];
+
+                            let ipc = ServerZoneIpcSegment::new(
+                                ServerZoneIpcData::SearchFellowshipsResults {
+                                    unk1: 0xFFFF_FFFF,
+                                    sequence_end: 0xFFFF_FFFF,
+                                    sequence_current: 0,
+                                    fellowships,
+                                },
+                            );
+
+                            connection.send_ipc_self(ipc).await;
                         }
                         ClientZoneIpcData::StartCountdown {
                             starter_actor_id,
@@ -2642,6 +2776,12 @@ async fn process_packet(
                         }
                         ClientZoneIpcData::SetClientLanguage { language } => {
                             connection.player_data.volatile.client_language = *language;
+
+                            // We need to commit this to the database again since this is read everywhere.
+                            {
+                                let mut database = connection.database.lock();
+                                database.commit_volatile(&connection.player_data);
+                            }
                         }
                         ClientZoneIpcData::RequestCharaInfoFromContentIds { .. } => {
                             tracing::info!(
@@ -2764,7 +2904,7 @@ async fn process_packet(
                             let search_info;
                             {
                                 let mut database = connection.database.lock();
-                                let mut game_data = connection.gamedata.lock();
+                                let mut game_data = connection.game_data.lock();
                                 search_info =
                                     database.get_search_info(&mut game_data, *content_id as i64);
                             }
@@ -2810,7 +2950,7 @@ async fn process_packet(
                                 .mask()
                                 .last()
                                 .copied()
-                                .unwrap_or(OnlineStatus::Online); // TODO: unsure if this makes sense?
+                                .unwrap_or(OnlineStatus::Online);
                             connection.player_data.search_info.comment =
                                 search_info.comment.clone();
                             connection.player_data.search_info.selected_languages =
@@ -2838,7 +2978,12 @@ async fn process_packet(
                             connection.send_ipc_self(ipc).await;
                         }
                         ClientZoneIpcData::EnterTerritoryEvent { handler_id } => {
-                            connection.setup_director().await;
+                            connection
+                                .handle
+                                .send(ToServer::EnterTerritoryEvent(
+                                    connection.player_data.character.actor_id,
+                                ))
+                                .await;
 
                             connection
                                 .start_event(
@@ -2846,7 +2991,7 @@ async fn process_packet(
                                         object_id: connection.player_data.character.actor_id,
                                         object_type: ObjectTypeKind::None,
                                     },
-                                    handler_id.0,
+                                    *handler_id,
                                     EventType::EnterTerritory,
                                     connection.player_data.volatile.zone_id as u32,
                                     events,
@@ -2855,27 +3000,26 @@ async fn process_packet(
                                 .await;
                             if let Some(event) = events.last_mut() {
                                 event.0.on_enter_territory(&event.1, lua_player).await;
+                            } else {
+                                tracing::warn!(
+                                    "No event started from EnterTerritoryEvent?! This probably means its missing a handler for its type."
+                                );
                             }
                         }
-                        ClientZoneIpcData::Trade { sequence, unk1, .. } => {
+                        ClientZoneIpcData::Trade { sequence, .. } => {
                             // TODO: This needs a lot more research, but it's good enough for now to act as a stub to prevent client softlocks
                             // When trading, the client sends the trade opcode twice for unknown (at this time) reasons, so we need to keep track of where we're at in the sequence
-                            let action_type;
+                            let unk1;
                             if !connection.is_trading {
                                 tracing::info!("Trading is unimplemented");
-                                action_type = 0x1607; // Some ack to let the client proceed with the trade sequence
+                                unk1 = 22; // Some ack to let the client proceed with the trade sequence
                                 connection.is_trading = true;
                             } else {
-                                action_type = 0x207; // Some ack to tell the client that the target can't trade at this time
+                                unk1 = 2; // Some ack to tell the client that the target can't trade at this time
                                 connection.is_trading = false;
                             }
 
-                            connection
-                                .send_inventory_ack(
-                                    ((*unk1 as u32) << 16) | *sequence as u32,
-                                    action_type,
-                                )
-                                .await;
+                            connection.send_inventory_ack(*sequence, 7, unk1).await;
                         }
                         ClientZoneIpcData::ShareStrategyBoard {
                             content_id,
@@ -3006,35 +3150,35 @@ async fn process_packet(
                                     items: vec![
                                         MarketBoardItem {
                                             item_id: 1659,
-                                            count: 3,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1649,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1621,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 31542,
-                                            count: 3,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1657,
-                                            count: 3,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1642,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1613,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1650,
-                                            count: 2,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1648,
@@ -3042,15 +3186,15 @@ async fn process_packet(
                                         },
                                         MarketBoardItem {
                                             item_id: 1643,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1616,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1639,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1635,
@@ -3058,11 +3202,11 @@ async fn process_packet(
                                         },
                                         MarketBoardItem {
                                             item_id: 1606,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1637,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1633,
@@ -3070,15 +3214,15 @@ async fn process_packet(
                                         },
                                         MarketBoardItem {
                                             item_id: 1627,
-                                            count: 2,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1625,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1622,
-                                            count: 0,
+                                            count: 1,
                                         },
                                         MarketBoardItem {
                                             item_id: 1614,
@@ -3086,14 +3230,14 @@ async fn process_packet(
                                         },
                                         MarketBoardItem {
                                             item_id: 92,
-                                            count: 0,
+                                            count: 1,
                                         },
                                     ],
                                 });
                             connection.send_ipc_self(ipc).await;
                         }
-                        ClientZoneIpcData::SetFriendGroupIcon { .. } => {
-                            tracing::warn!("Setting friend group icons is unimplemented");
+                        ClientZoneIpcData::SetFriendGroupIcon(icon_info) => {
+                            connection.set_friend_group_icon(icon_info).await;
                         }
                         ClientZoneIpcData::CreateLocalLinkshellRequest { .. } => {
                             tracing::warn!("Creating local linkshells is unimplemented");
@@ -3229,11 +3373,10 @@ async fn process_packet(
                             linkshell_id,
                             content_id,
                         } => {
-                            let result = connection
+                            if let Some(result) = connection
                                 .invite_to_linkshell(*content_id, *linkshell_id)
-                                .await;
-
-                            if result != LogMessageType::Default {
+                                .await
+                            {
                                 connection.send_linkshell_error(result).await;
                             }
                         }
@@ -3276,6 +3419,7 @@ async fn process_packet(
                                     *recipient_content_id,
                                     *attached_items,
                                     message.clone(),
+                                    data.header.op_code.get_opcode() as u32,
                                 )
                                 .await;
                         }
@@ -3292,7 +3436,11 @@ async fn process_packet(
                             ..
                         } => {
                             connection
-                                .delete_letter(*sender_content_id, *timestamp)
+                                .delete_letter(
+                                    *sender_content_id,
+                                    *timestamp,
+                                    data.header.op_code.get_opcode() as u32,
+                                )
                                 .await;
                         }
                         ClientZoneIpcData::RewardDeliveryRequest { .. } => {
@@ -3304,7 +3452,11 @@ async fn process_packet(
                             ..
                         } => {
                             connection
-                                .take_attachments_from_letter(*sender_content_id, *timestamp)
+                                .take_attachments_from_letter(
+                                    *sender_content_id,
+                                    *timestamp,
+                                    data.header.op_code.get_opcode() as u32,
+                                )
                                 .await;
                         }
                         ClientZoneIpcData::RemoveFriend {
@@ -3324,7 +3476,8 @@ async fn process_packet(
                                     connection.player_data.volatile.zone_id as u16,
                                     Some(*target_position),
                                     Some(*rotation),
-                                    Some((WarpType::Dive, 218, 1, 6)),
+                                    WarpType::Dive,
+                                    474,
                                 )
                                 .await;
                         }
@@ -3345,7 +3498,8 @@ async fn process_packet(
                                             connection.id,
                                             connection.player_data.character.actor_id,
                                             *param1,
-                                            Some((WarpType::Event, 15, 2, 4)),
+                                            WarpType::Event,
+                                            526,
                                         ))
                                         .await;
                                 }
@@ -3356,7 +3510,8 @@ async fn process_packet(
                                             connection.player_data.volatile.zone_id as u16,
                                             Some(*position),
                                             Some(connection.player_data.volatile.rotation as f32),
-                                            Some((WarpType::Dive, 227, 1, 6)),
+                                            WarpType::Dive,
+                                            483,
                                         )
                                         .await;
                                 }
@@ -3376,10 +3531,10 @@ async fn process_packet(
                             plot_index,
                             ..
                         } => {
-                            let intended_use = connection.get_zone_intended_use();
+                            let intended_use = lua_player.zone_data.intended_use;
 
                             // TODO: Also reject if they're not the owner/shared tenant
-                            if !connection.in_housing_area(intended_use) {
+                            if !in_housing_area(intended_use) {
                                 tracing::error!(
                                     "The player attempted to place furniture while not within a housing zone! Rejecting request!"
                                 );
@@ -3412,12 +3567,11 @@ async fn process_packet(
                                 continue;
                             };
 
-                            let catalog_id;
+                            let item_id;
                             {
-                                let mut gamedata = connection.gamedata.lock();
-                                let result =
-                                    gamedata.get_furniture_catalog_id(transfer_item.item_id);
-                                catalog_id = result.unwrap_or_default();
+                                let mut game_data = connection.game_data.lock();
+                                let result = game_data.get_furniture_item_id(transfer_item.item_id);
+                                item_id = result.unwrap_or_default();
                             }
 
                             let desired_pages = connection
@@ -3491,7 +3645,7 @@ async fn process_packet(
                                     connection.player_data.character.actor_id,
                                     result.container,
                                     result.slot,
-                                    catalog_id,
+                                    item_id,
                                     stain,
                                     *position,
                                     indoors,
@@ -3518,10 +3672,10 @@ async fn process_packet(
                             unk2,
                             unk3,
                         } => {
-                            let intended_use = connection.get_zone_intended_use();
+                            let intended_use = lua_player.zone_data.intended_use;
 
                             // TODO: Also reject if they're not the owner/shared tenant
-                            if !connection.in_housing_area(intended_use) {
+                            if !in_housing_area(intended_use) {
                                 tracing::warn!(
                                     "Client attempted to move furniture when not in a housing area! Rejecting request!"
                                 );
@@ -3654,6 +3808,79 @@ async fn process_packet(
                         ClientZoneIpcData::DyeInformation(dye_information) => {
                             connection.dyeing_information = Some(dye_information.clone());
                         }
+                        ClientZoneIpcData::RequestRecruitingPartyCount { .. } => {
+                            // Send an empty packet so it's at least says zero!
+                            let ipc = ServerZoneIpcSegment::new(
+                                ServerZoneIpcData::RecruitingPartyCount { unk1: [0; 968] },
+                            );
+                            connection.send_ipc_self(ipc).await;
+                        }
+                        ClientZoneIpcData::UnkMarketBoardRequest1 { item_id, .. } => {
+                            connection.marketboard_request_item_id = *item_id;
+
+                            // Send hits information
+                            let ipc =
+                                ServerZoneIpcSegment::new(ServerZoneIpcData::MarketBoardHits {
+                                    unk1: 0,
+                                    hits: 1,
+                                });
+                            connection.send_ipc_self(ipc).await;
+
+                            // Send dummy information so the list is populated and Dalamud self-tests work
+                            let ipc = ServerZoneIpcSegment::new(
+                                ServerZoneIpcData::MarketBoardHistory(MarketBoardHistory {
+                                    item_id: *item_id as u16,
+                                    entries: vec![
+                                        MarketBoardHistoryEntry {
+                                            unk1: 0,
+                                            price: 1,
+                                            timestamp: 0,
+                                            quantity: 1,
+                                            unk3: 0,
+                                            name: "Test Retainer".to_string()
+                                        };
+                                        20
+                                    ],
+                                }),
+                            );
+                            connection.send_ipc_self(ipc).await;
+                        }
+                        ClientZoneIpcData::UnkMarketBoardRequest2 { unk1, request_id } => {
+                            tracing::info!("{unk1} {request_id}");
+                            let ipc = ServerZoneIpcSegment::new(
+                                ServerZoneIpcData::MarketBoardOfferings {
+                                    unk1: [0; 44],
+                                    item_id: connection.marketboard_request_item_id,
+                                    unk2: Vec::default(),
+                                    request_id: *request_id,
+                                    unk3: 0,
+                                    unk4: 0,
+                                },
+                            );
+                            connection.send_ipc_self(ipc).await;
+                        }
+                        ClientZoneIpcData::PerformanceNote { .. } => {
+                            // TODO: what to do with these?
+                        }
+                        ClientZoneIpcData::CreateFellowship { .. } => {
+                            let ipc =
+                                ServerZoneIpcSegment::new(ServerZoneIpcData::ShowLinkshellError {
+                                    log_message: LogMessageType::UnableToCreateMoreFellowships
+                                        as u16,
+                                    unk: 0, // I don't have a capture of this yet, but zero works fine.
+                                });
+
+                            connection.send_ipc_self(ipc).await;
+                        }
+                        ClientZoneIpcData::SearchFellowshipsJoin { .. } => {
+                            let ipc =
+                                ServerZoneIpcSegment::new(ServerZoneIpcData::ShowLinkshellError {
+                                    log_message: LogMessageType::UnableToJoinMoreFellowships as u16,
+                                    unk: 0x0124_0E82, // Observed in a capture, but it doesn't seem to matter what we set it to, zero works too.
+                                });
+
+                            connection.send_ipc_self(ipc).await;
+                        }
                         ClientZoneIpcData::Unknown { unk } => {
                             tracing::warn!(
                                 "Unknown Zone packet {:?} recieved ({} bytes)",
@@ -3684,7 +3911,7 @@ async fn process_packet(
             connection.process_lua_player(lua_player, events).await;
         }
 
-        // update lua player
+        // Update lua player
         lua_player.player_data = connection.player_data.clone();
     }
 
@@ -3745,7 +3972,7 @@ async fn process_server_msg(
                     .await;
                 connection.active_minion = minion_id;
             }
-            FromServer::ActorDespawnsMinion() => {
+            FromServer::ActorDespawnsMinion => {
                 connection
                     .handle
                     .send(ToServer::ActorDespawnsMinion(
@@ -3753,9 +3980,6 @@ async fn process_server_msg(
                     ))
                     .await;
                 connection.active_minion = 0;
-            }
-            FromServer::UpdateConfig(actor_id, config) => {
-                connection.update_config(actor_id, config).await
             }
             FromServer::ActorEquip(
                 actor_id,
@@ -3790,8 +4014,7 @@ async fn process_server_msg(
                 position,
                 rotation,
                 lua_zone,
-                initial_login,
-                director_vars,
+                handler_id,
             ) => {
                 connection
                     .handle_zone_change(
@@ -3800,10 +4023,8 @@ async fn process_server_msg(
                         weather_id,
                         position,
                         rotation,
-                        initial_login,
-                        director_vars,
                         &lua_zone,
-                        &mut lua_player.content_data,
+                        handler_id,
                     )
                     .await;
                 lua_player.zone_data = lua_zone;
@@ -3925,7 +4146,7 @@ async fn process_server_msg(
             FromServer::StrategyBoardRealtimeUpdate(update_data) => {
                 connection.strategy_board_updated(update_data).await
             }
-            FromServer::StrategyBoardRealtimeFinished() => {
+            FromServer::StrategyBoardRealtimeFinished => {
                 connection.strategy_board_realtime_finished().await
             }
             FromServer::WaymarkUpdated(id, placement_mode, position, zone_id) => {
@@ -3943,7 +4164,7 @@ async fn process_server_msg(
                     object_id: connection.player_data.character.actor_id,
                     object_type: ObjectTypeKind::None,
                 };
-                let handler_id = HandlerId::new(HandlerType::GimmickRect, 1).0;
+                let handler_id = HandlerId::new(HandlerType::GimmickRect, 1);
 
                 connection
                     .start_event(
@@ -3965,7 +4186,7 @@ async fn process_server_msg(
                     )
                     .await;
             }
-            FromServer::IncrementRestedExp() => connection.add_rested_exp_seconds(10).await,
+            FromServer::IncrementRestedExp => connection.add_rested_exp_seconds(10).await,
             FromServer::Countdown(account_id, content_id, name, starter_actor_id, duration) => {
                 connection
                     .start_countdown(account_id, content_id, name, starter_actor_id, duration)
@@ -3976,7 +4197,7 @@ async fn process_server_msg(
                     .target_sign_toggled(sign_id, from_actor_id, target_actor)
                     .await
             }
-            FromServer::LeaveContent() => {
+            FromServer::LeaveContent => {
                 connection
                     .handle
                     .send(ToServer::LeaveContent(
@@ -3988,19 +4209,19 @@ async fn process_server_msg(
                     ))
                     .await;
             }
-            FromServer::FinishEvent() => {
+            FromServer::FinishEvent => {
                 connection.event_finish(events).await;
             }
-            FromServer::FishBite() => {
+            FromServer::FishBite => {
                 let handler_id = HandlerId::new(HandlerType::Fishing, 1).0;
 
-                let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::LogMessage {
+                let ipc = EventLogMessage {
                     handler_id: HandlerId(handler_id),
-                    message_type: 1127,
-                    params_count: 0,
-                    item_id: 0,
-                    item_quantity: 0,
-                });
+                    message_type: LogMessageType::FishingNoBite as u32,
+                    ..Default::default()
+                }
+                .package()
+                .unwrap();
                 connection.send_ipc_self(ipc).await;
 
                 connection
@@ -4015,7 +4236,7 @@ async fn process_server_msg(
             FromServer::ActorDismounted(from_actor_id) => {
                 // SetMode seems unnecessary (the dismount sequence works without it) but it's included for accuracy.
                 connection
-                    .set_character_mode(CharacterMode::Normal, 0)
+                    .set_character_mode(CharacterMode::Normal, 0, true)
                     .await;
                 connection.player_data.volatile.current_mount = 0;
                 connection
@@ -4125,17 +4346,17 @@ async fn process_server_msg(
                     .friend_removed(their_content_id, their_name)
                     .await;
             }
-            FromServer::NewLetterArrived() => {
+            FromServer::NewLetterArrived => {
                 connection.send_mailbox_status().await;
             }
-            FromServer::PlayDirectorCutscene(cutscene_id) => {
+            FromServer::PlayDirectorCutscene(cutscene_id, content_handler_id) => {
                 connection
                     .start_event(
                         ObjectTypeId {
                             object_id: connection.player_data.character.actor_id,
                             object_type: ObjectTypeKind::None,
                         },
-                        connection.content_handler_id.0,
+                        content_handler_id,
                         EventType::GameProgress,
                         1,
                         events,
@@ -4159,7 +4380,7 @@ async fn process_server_msg(
             FromServer::FurniturePlaced(
                 storage_id,
                 slot,
-                catalog_id,
+                item_id,
                 stain,
                 position,
                 indoors,
@@ -4172,7 +4393,7 @@ async fn process_server_msg(
                             ServerZoneIpcData::InteriorFurniturePlaced {
                                 storage_id,
                                 slot,
-                                catalog_id,
+                                item_id,
                                 unk1: 1,
                                 stain,
                                 unk2: [0; 3],
@@ -4189,7 +4410,7 @@ async fn process_server_msg(
                                 plot_index,
                                 slot: slot as u8,
                                 unk1: [0; 2],
-                                catalog_id,
+                                item_id,
                                 unk2: 0,
                                 stain,
                                 unk3: [0; 3],
@@ -4218,6 +4439,52 @@ async fn process_server_msg(
                             },
                         ),
                     ))
+                    .await;
+            }
+            FromServer::SyncMaxLevel(synced_level) => {
+                let current_level;
+                {
+                    let game_data = connection.game_data.lock();
+                    current_level = connection.current_level(&game_data);
+                }
+
+                if current_level > synced_level as u16 {
+                    connection.synced_level = Some(synced_level);
+                    connection.update_class_info().await;
+                    connection.send_stats().await;
+                }
+            }
+            FromServer::PlayInitialCutscene(duration, settings) => {
+                lua_player.play_scene(
+                    1,
+                    SceneFlags::NO_DEFAULT_CAMERA
+                        | SceneFlags::CONDITION_CUTSCENE
+                        | SceneFlags::HIDE_HOTBAR
+                        | SceneFlags::SILENT_ENTER_TERRI_ENV
+                        | SceneFlags::SILENT_ENTER_TERRI_BGM
+                        | SceneFlags::SILENT_ENTER_TERRI_SE
+                        | SceneFlags::DISABLE_STEALTH
+                        | SceneFlags::DISABLE_CANCEL_EMOTE
+                        | SceneFlags::INVIS_AOE
+                        | SceneFlags::UNK1,
+                    vec![
+                        0, // BGM, according to sapphire?
+                        0, 0, 5, 14400, 0, 0, 0, 0, 0, duration, settings,
+                    ],
+                )
+            }
+            FromServer::FATEComplete => {
+                connection.record_fate_completion();
+            }
+            FromServer::CheckTeleportSharingEligibility(aetheryte_id) => {
+                connection.check_tele_sharing_eligibility(aetheryte_id);
+            }
+            FromServer::SetCharacterMode(mode, arg) => {
+                connection.set_character_mode(mode, arg, false).await;
+            }
+            FromServer::ZoneDiceRoll(from_actor_id, roll_data) => {
+                connection
+                    .dice_roll_received(from_actor_id, roll_data)
                     .await;
             }
             _ => {

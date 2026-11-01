@@ -18,7 +18,6 @@ fastrand = { workspace = true }
 axum-extra = { workspace = true }
 minijinja = { workspace = true }
 tower-http = { workspace = true }
-ureq = { workspace = true }
 serde_json = { workspace = true }
 diesel = { workspace = true }
 diesel_migrations = { workspace = true }

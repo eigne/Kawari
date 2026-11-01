@@ -6,6 +6,7 @@ use std::{
     },
 };
 
+use icarus::Quest::QuestSheet;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -16,25 +17,28 @@ use crate::{
 };
 use kawari::{
     common::{
-        CharacterMode, ContainerType, JumpState, LegacyEquipmentModelId, LogMessageType,
-        MoveAnimationState, MoveAnimationType, ObjectId, ObjectTypeId, Position, WeaponModelId,
+        CharacterMode, ContainerType, HandlerId, JumpState, LegacyEquipmentModelId,
+        MoveAnimationState, MoveAnimationType, ObjectId, ObjectTypeId, Position, WarpType,
+        WeaponModelId,
     },
     ipc::{
-        chat::{CWLinkshellMessage, ChatChannelType, PartyMessage, TellMessage},
+        chat::{
+            CWLinkshellMessage, ChatChannelType, ChatDiceRollResult, PartyMessage, TellMessage,
+        },
         zone::{
             ActionRequest, ActorControlCategory, CWLSLeaveReason, CWLSPermissionRank,
-            ClientTrigger, Conditions, Config, CrossworldLinkshellInvite, InviteReply, InviteType,
-            OnlineStatus, PartyMemberEntry, PartyMemberPositions, PartyUpdateStatus,
-            ReadyCheckReply, ServerZoneIpcSegment, SpawnNpc, SpawnObject, SpawnPlayer,
-            SpawnTreasure, StrategyBoard, StrategyBoardUpdate, WarpType, WaymarkPlacementMode,
-            WaymarkPosition, WaymarkPreset,
+            ClientTrigger, Conditions, Config, CrossworldLinkshellInvite, DutyFinderSetting,
+            InviteReply, InviteType, OnlineStatus, PartyMemberEntry, PartyMemberPositions,
+            PartyUpdateStatus, ReadyCheckReply, ServerZoneIpcSegment, SpawnNpc, SpawnObject,
+            SpawnPlayer, SpawnTreasure, StrategyBoard, StrategyBoardUpdate, WaymarkPlacementMode,
+            WaymarkPosition, WaymarkPreset, ZoneDiceRollResult,
         },
     },
 };
 
 use super::lua::LuaZone;
 
-use bstr::BString;
+use physis::sestring::SeString;
 
 #[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
 pub struct ClientId(usize);
@@ -83,7 +87,7 @@ pub struct MessageInfo {
     /// The channel the message is intended for (say, shout, yell, custom emote (/em)).
     pub channel: ChatChannelType,
     /// The chat message itself.
-    pub message: BString,
+    pub message: SeString,
 }
 
 #[derive(Clone, Debug)]
@@ -113,8 +117,6 @@ pub enum FromServer {
     ActorControlSelf(ActorControlCategory),
     /// Opt-in legacy Feast director compatibility probe.
     FeastDirectorProbe(bool),
-    /// Update an actor's equip display flags.
-    UpdateConfig(ObjectId, Config),
     /// Update an actor's model IDs.
     ActorEquip(
         ObjectId,
@@ -126,26 +128,17 @@ pub enum FromServer {
     /// We need to summon a player's minion, and tell other clients
     ActorSummonsMinion(u32),
     /// We need to despawn a player's minion, and tell other clients
-    ActorDespawnsMinion(),
+    ActorDespawnsMinion,
     /// The player should lose this effect.
     LoseEffect(u16, u16, ObjectId),
     // TODO: temporary
     Conditions(Conditions),
     /// To inform the connection of the zone they're loading into.
-    ChangeZone(
-        u16,
-        u16,
-        u16,
-        Position,
-        f32,
-        LuaZone,
-        bool,
-        Option<ServerZoneIpcSegment>,
-    ),
+    ChangeZone(u16, u16, u16, Position, f32, LuaZone, Option<HandlerId>),
     /// We need to inform the recipent about the direct message they're receiving.
     TellMessageReceived(ObjectId, TellMessage),
     /// We need to tell our chat connection that our zone connection has disconnected.
-    ChatDisconnected(),
+    ChatDisconnected,
     /// Inform the chat connection that its zone connection has joined a party.
     SetPartyChatChannel(u32),
     /// Inform the client that they've received a social invite (party, friends list, free company). Other social features have their own dedicated opcodes and FromServer responses.
@@ -163,7 +156,7 @@ pub enum FromServer {
         Option<(u64, u32, ObjectId, Vec<PartyMemberEntry>)>,
     ),
     /// Inform the client of the result of a social invite they have sent.
-    InviteCharacterResult(u64, LogMessageType, InviteType, String),
+    InviteCharacterResult(u64, u16, InviteType, String),
     /// Inform the client they were in a party, and request that they inform us of their return.
     RejoinPartyAfterDisconnect(u64),
     /// Send an arbitrary IPC segment to the client.
@@ -183,7 +176,7 @@ pub enum FromServer {
     /// Inform the client that the board sharer has made a real-time update.
     StrategyBoardRealtimeUpdate(StrategyBoardUpdate),
     /// Inform the client that the board sharer has ended their real-time sharing session.
-    StrategyBoardRealtimeFinished(),
+    StrategyBoardRealtimeFinished,
     /// Inform the client that a waymark was placed or updated.
     WaymarkUpdated(u8, WaymarkPlacementMode, WaymarkPosition, i32),
     /// Inform the client that a waymark preset was applied.
@@ -191,17 +184,17 @@ pub enum FromServer {
     /// Inform the client that they entered an instance exit range.
     EnteredInstanceEntranceRange(u32),
     /// Inform the client to increment the rested EXP by 10 seconds.
-    IncrementRestedExp(),
+    IncrementRestedExp,
     /// Inform the client about a countdown that was started in their party.
     Countdown(u64, u64, String, ObjectId, u16),
     /// Inform the client that a sign/marker was applied to a target by someone in their party.
     TargetSignToggled(u32, ObjectId, ObjectTypeId),
     /// Request the client to begin preparing to leave this content.
-    LeaveContent(),
+    LeaveContent,
     /// Request the client to finish their current event.
-    FinishEvent(),
+    FinishEvent,
     /// When a fish bites.
-    FishBite(),
+    FishBite,
     /// Inform the client that another player has dismounted.
     ActorDismounted(ObjectId),
     /// Inform the client of the whereabouts of their party members.
@@ -229,19 +222,33 @@ pub enum FromServer {
     /// Inform the zone connection about their current mount's model id. Helps persist mounts across zone transitions and through log-outs.
     SetCurrentMount(u16),
     /// Inform the chat connection that it needs to refresh its non-party ChatChannels due to some event necessitating it.
-    MustRefreshChatChannels(),
+    MustRefreshChatChannels,
     /// Inform the client that a friend removal has taken place.
     FriendRemoved(u64, String),
     /// Inform the client that a new letter has arrived in their mailbox.
-    NewLetterArrived(),
+    NewLetterArrived,
     /// Plays a cutscene from the instance director.
-    PlayDirectorCutscene(u32),
+    PlayDirectorCutscene(u32, HandlerId),
     /// Inform the client that another player has placed a piece of furniture.
     FurniturePlaced(ContainerType, u16, u16, u8, Position, bool, f32, u8),
     /// Inform the client that another player has moved or rotated a piece of furniture.
     FurnitureTranslated((bool, u8), u16, Position, f32, bool),
     /// Inform the client that another player in their party has offered them a teleport.
     TeleportOffered(u32, TeleportQuery),
+    /// Sync to this new max level.
+    SyncMaxLevel(u8),
+    /// Play the initial cutscene for instanced content.
+    PlayInitialCutscene(u32, u32),
+    /// A FATE was completed. This is meant to track SHARED FATE completion and not much else yet.
+    FATEComplete,
+    /// Instruct the client's zone connection to check if the teleport can be shared.
+    CheckTeleportSharingEligibility(u32),
+    /// Inform the client of their player's new CharacterMode.
+    SetCharacterMode(CharacterMode, u8),
+    /// Inform the chat connection that someone (or their own player) in one of their ChatChannels sent a dice roll.
+    ChatDiceRoll(ObjectId, ChatDiceRollResult),
+    /// Inform the zone connection that someone (or their own player) in the vicinity sent a dice roll.
+    ZoneDiceRoll(ObjectId, ZoneDiceRollResult),
 }
 
 #[derive(Debug, Clone)]
@@ -306,10 +313,11 @@ pub enum ToServer {
         u16,
         Option<Position>,
         Option<f32>,
-        Option<(WarpType, u8, u8, u8)>,
+        WarpType,
+        u16,
     ),
     /// The player walks through a zone change line or passes through an underwater portal (e.g. in Ruby Sea).
-    EnterZoneJump(ClientId, ObjectId, u32, Option<(WarpType, u8, u8, u8)>),
+    EnterZoneJump(ClientId, ObjectId, u32, WarpType, u16),
     /// The connection disconnected.
     Disconnected(ClientId, ObjectId),
     /// A fatal error occured.
@@ -392,13 +400,11 @@ pub enum ToServer {
     /// The client returned online and we need to inform other party members.
     PartyMemberReturned(ObjectId, i32, u64),
     /// The client is requesting to join the following content.
-    JoinContent(ClientId, ObjectId, u16),
+    JoinContent(ClientId, ObjectId, u16, DutyFinderSetting),
     /// The c lient is requesting to leave their current content, the connection is in charge of keeping track of the old position.
     LeaveContent(ClientId, ObjectId, u16, Position, f32),
     /// Update the global server state of the client's conditions.
     UpdateConditions(ObjectId, Conditions),
-    /// (Temporary) Signal to the server to commence the duty.
-    CommenceDuty(ObjectId),
     /// (Temporary) Signal to the server to kill this actor.
     Kill(ClientId, ObjectId),
     /// Inform the server to update our HP to this value.
@@ -422,7 +428,7 @@ pub enum ToServer {
     /// The client started a countdown in their party.
     StartCountdown(u64, ObjectId, u64, u64, String, ObjectId, u16),
     /// The client yields from a GimmickAccessor.
-    GimmickAccessor(ObjectId, ObjectId, Vec<i32>),
+    GimmickAccessor(u32, ObjectId, ObjectId, Vec<i32>),
     /// The client begins fishing.
     Fish(ClientId, ObjectId),
     /// Warp to a specified pop range in a new territory.
@@ -469,8 +475,6 @@ pub enum ToServer {
     Jump(ClientId, String),
     /// Teleport the player to this one.
     Call(ObjectId, String),
-    /// Spawns an NPC defined by the layout or drop-in.
-    SpawnLayoutNpc(ObjectId, u32),
     /// The client places a piece of furniture.
     PlaceFurniture(
         ObjectId,
@@ -487,8 +491,22 @@ pub enum ToServer {
     TranslateFurniture(ObjectId, (bool, u8), u16, Position, f32, bool),
     /// The client offers a teleport to nearby party members.
     OfferTeleportToParty(Option<u64>, ObjectId, u16, TeleportQuery),
-    /// A Variant Dungeon route was chosen.
-    VariantVote(ObjectId, u32),
+    /// The client equips new glasses.
+    EquipGlasses(ObjectId, u32, u32),
+    /// The client is ready to initialize its directors.
+    ReadyDirectorData(ObjectId),
+    /// The client is ready to initialize map effects and other director data.
+    EnterTerritoryEvent(ObjectId),
+    /// This player is now ready for the instanced content to begin.
+    ReadyToCommence(ObjectId),
+    /// The client uses the /dice command to send a dice roll to one of their ChatChannels.
+    ChatDiceRoll(ObjectId, ChatDiceRollResult),
+    /// The client uses the /random command to send a dice roll to nearby players in the vicinity.
+    ZoneDiceRoll(ObjectId, ZoneDiceRollResult),
+    /// Tell the server to reload the active festivals in all running instances.
+    ReloadFestivals,
+    /// For the SpawnBatteNpc custom IPC.
+    SpawnBattleNpc(u32),
 }
 
 #[derive(Clone, Debug)]
@@ -507,4 +525,59 @@ impl ServerHandle {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         ClientId(id)
     }
+}
+
+/// Turns a Quest row ID into a "normal" one. For example: 65537 to 1.
+pub fn adjust_quest_id(quest_id: u32) -> u32 {
+    quest_id.saturating_sub(QuestSheet::STARTING_ROW)
+}
+
+pub fn fetch_entries<T>(
+    next_index: &mut u16,
+    data: &mut Vec<T>,
+    increment_by: usize,
+    state: &mut usize,
+) -> Vec<T>
+where
+    T: Clone + std::default::Default,
+{
+    let mut ret: Vec<T>;
+    if data.len() > increment_by {
+        *next_index += increment_by as u16;
+        ret = data.drain(0..increment_by).collect();
+    } else {
+        *next_index = 0;
+        ret = std::mem::take(data);
+        ret.resize(increment_by, T::default());
+    }
+
+    if !data.is_empty() {
+        *state += increment_by;
+    } else {
+        *state = 0;
+    }
+
+    ret
+}
+
+/// Rolls an n-sided die, up to n = 999 inclusive.
+pub fn roll_die(num_sides: u16) -> (u16, u16) {
+    let mut sides_clamped = num_sides;
+
+    // We can't use the standard clamp for this: when the side count is 0, it means the client wants the default of 999 sides.
+    // This does matter: it causes the client to display different text.
+    // Examples:
+    // /dice will display {Random! <some value from 1-999>} (in the client-sent packet, the number of sides specified would be 0, and the server will also send back 0 sides).
+    // /dice 999 will display {Random! <some value from 1-999> (1-999)}.
+    // /dice 456 will display {Random! <some value from 1-456> (1-456)}.
+    if !(1..=999).contains(&sides_clamped) {
+        sides_clamped = 999;
+    }
+
+    // We do a clamp here from 0-999 inclusive to ensure the client will display the correct text, as described above.
+    let sides_result = num_sides.clamp(0, 999);
+
+    let roll_result = fastrand::u16(1..sides_clamped + 1); // +1 since this range is exclusive, and we *do* allow the maximum value to be rolled.
+
+    (sides_result, roll_result)
 }

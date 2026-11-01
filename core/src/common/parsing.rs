@@ -1,49 +1,32 @@
 //! Specialized, but overall generic functions for mapping values to bytes should go here.
 
-use bstr::{BString, ByteSlice};
-use glam::Vec3;
+use std::ffi::CString;
+
+use glam::Vec3A;
 
 use crate::common::Position;
 
 pub(crate) fn read_bool_from<T: std::convert::From<u8> + std::cmp::PartialEq>(x: T) -> bool {
-    x == T::from(1u8)
+    x != T::from(0u8)
 }
 
 pub(crate) fn write_bool_as<T: std::convert::From<u8>>(x: &bool) -> T {
     if *x { T::from(1u8) } else { T::from(0u8) }
 }
 
-pub(crate) fn read_string(byte_stream: Vec<u8>) -> String {
-    read_sestring(byte_stream).to_string()
+pub(crate) fn read_string(mut byte_stream: Vec<u8>) -> String {
+    // Ensure we don't include the nul terminator
+    let end = byte_stream
+        .iter()
+        .position(|b| *b == 0)
+        .unwrap_or(byte_stream.len());
+    byte_stream.truncate(end);
+    String::from_utf8(byte_stream).unwrap_or_default()
 }
 
 pub(crate) fn write_string(str: &String) -> Vec<u8> {
-    write_sestring(&BString::from(str.to_owned()))
-}
-
-// TODO: Write an actual SEString parser to replace or wrap usage of BString
-// TODO: In the future, maybe expand this to call an internal function that decides from a boolean whether to do SEString parsing or not so we can pass through regular strings as-is (i.e. have read_string call read_sestring(byte_stream, false)).
-pub(crate) fn read_sestring(byte_stream: Vec<u8>) -> BString {
-    let mut byte_stream = byte_stream;
-    byte_stream.push(0); // Guard against streams that don't have a null terminator
-
-    // Find the index of the null terminator.
-    let index = byte_stream.iter().position(|b| *b == 0x00).unwrap();
-
-    BString::from(&byte_stream[..index])
-}
-
-pub(crate) fn write_sestring(str: &BString) -> Vec<u8> {
-    let mut byte_stream: Vec<u8> = str.bytes().collect();
-
-    let index = byte_stream.iter().position(|b| *b == 0x00);
-
-    // If this string doesn't have a null terminator for some reason, add our own.
-    if index.is_none() {
-        byte_stream.push(0);
-    }
-
-    byte_stream
+    let c_string = CString::new(&**str).unwrap_or_default();
+    c_string.as_bytes_with_nul().to_vec()
 }
 
 /// Converts a quantized rotation to degrees in f32
@@ -71,11 +54,11 @@ pub(crate) fn write_packed_float(float: &f32) -> u16 {
 }
 
 pub(crate) fn read_packed_position(packed: [u16; 3]) -> Position {
-    Position(Vec3 {
-        x: read_packed_float(packed[0]),
-        y: read_packed_float(packed[1]),
-        z: read_packed_float(packed[2]),
-    })
+    Position(Vec3A::from_array([
+        read_packed_float(packed[0]),
+        read_packed_float(packed[1]),
+        read_packed_float(packed[2]),
+    ]))
 }
 
 pub(crate) fn write_packed_position(pos: &Position) -> [u16; 3] {

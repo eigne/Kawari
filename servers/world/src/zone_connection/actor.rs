@@ -4,12 +4,11 @@ use crate::{ToServer, ZoneConnection, common::SpawnKind};
 use kawari::{
     common::{
         CharacterMode, EquipDisplayFlag, JumpState, MoveAnimationState, MoveAnimationType,
-        ObjectId, ObjectTypeId, Position,
+        ObjectId, ObjectTypeId, ObjectTypeKind, Position,
     },
-    config::get_config,
     ipc::zone::{
         ActorControl, ActorControlCategory, ActorControlSelf, ActorControlTarget, ActorMove,
-        CommonSpawn, Config, DisplayFlag, ObjectKind, PlayerSubKind, ServerZoneIpcData,
+        CommonSpawn, DisplayFlag, ObjectKind, PlayerSubKind, ServerZoneIpcData,
         ServerZoneIpcSegment, SpawnObject, SpawnPlayer, SpawnTreasure,
     },
 };
@@ -72,13 +71,40 @@ impl ZoneConnection {
         // There is no reason for us to spawn our own player again. It's probably a bug!
         assert!(actor_id != self.player_data.character.actor_id);
 
-        let ipc = match spawn {
+        let ipc = match &spawn {
             SpawnKind::Player(spawn) => {
-                ServerZoneIpcSegment::new(ServerZoneIpcData::SpawnPlayer(spawn))
+                ServerZoneIpcSegment::new(ServerZoneIpcData::SpawnPlayer(spawn.clone()))
             }
-            SpawnKind::Npc(spawn) => ServerZoneIpcSegment::new(ServerZoneIpcData::SpawnNpc(spawn)),
+            SpawnKind::Npc(spawn) => {
+                ServerZoneIpcSegment::new(ServerZoneIpcData::SpawnNpc(spawn.clone()))
+            }
         };
         self.send_ipc_from(actor_id, ipc).await;
+
+        // TODO: I don't really love that this is here, is there a better place we can put it?
+        // TODO: this doesn't work for spawning into a zone with an existing fate too
+        if let SpawnKind::Npc(spawn) = spawn
+            && spawn.common.fate_id != 0
+            && spawn
+                .common
+                .display_flags
+                .contains(DisplayFlag::FATE_START_NPC)
+        {
+            let ipc =
+                ServerZoneIpcSegment::new(ServerZoneIpcData::ActorControlSelf(ActorControlSelf {
+                    category: ActorControlCategory::FateStartNpc {
+                        actor_id: ObjectTypeId {
+                            object_id: actor_id,
+                            object_type: ObjectTypeKind::EObjOrNpc,
+                        },
+                    },
+                }));
+
+            self.send_ipc_self(ipc).await;
+
+            self.fate_motivation_npcs
+                .insert(actor_id, spawn.common.fate_id);
+        }
     }
 
     pub async fn delete_actor(&mut self, actor_id: ObjectId, spawn_index: u8) {
@@ -151,13 +177,12 @@ impl ZoneConnection {
     /// Spawn the player actor. The client will handle replacing the existing one, if it exists.
     pub async fn respawn_player(&mut self, start_invisible: bool) -> SpawnPlayer {
         let common = self.get_player_common_spawn(start_invisible);
-        let config = get_config();
 
         let spawn = SpawnPlayer {
             account_id: self.player_data.character.service_account_id as u64,
             content_id: self.player_data.character.content_id as u64,
-            current_world_id: config.world.world_id,
-            home_world_id: config.world.world_id,
+            current_world_id: self.config.world_id,
+            home_world_id: self.config.world_id,
             gm_rank: self.player_data.character.gm_rank,
             online_status: self.get_actual_online_status(),
             common: common.clone(),
@@ -176,18 +201,10 @@ impl ZoneConnection {
         spawn
     }
 
-    pub async fn update_config(&mut self, actor_id: ObjectId, config: Config) {
-        let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::Config(config));
-
-        self.send_ipc_from(actor_id, ipc).await;
-    }
-
     fn get_player_common_spawn(&self, start_invisible: bool) -> CommonSpawn {
         let inventory = &self.player_data.inventory;
 
-        let mut database = self.database.lock();
-        let chara_make = database.get_chara_make(self.player_data.character.content_id as u64);
-        let mut look = chara_make.customize;
+        let mut look = self.player_data.customize.chara_make.customize.clone();
 
         // There seems to be no display flag for this, so clear the bit out
         if self
@@ -205,7 +222,7 @@ impl ZoneConnection {
         }
 
         let base_parameters = self.base_parameters(); // TODO: maybe cache this?
-        let mut game_data = self.gamedata.lock();
+        let mut game_data = self.game_data.lock();
 
         CommonSpawn {
             class_job: self.player_data.classjob.current_class as u8,
@@ -224,16 +241,14 @@ impl ZoneConnection {
             second_model_stain_ids: inventory.second_model_stain_ids(),
             position: self.player_data.volatile.position,
             rotation: self.player_data.volatile.rotation as f32,
-            voice: chara_make.voice_id as u8,
+            voice: self.player_data.customize.chara_make.voice_id as u8,
             active_minion: self.active_minion as u16,
-            handler_id: self.content_handler_id,
             // TODO: Dismount if entering a duty? Towns are probably fine to leave alone.
             current_mount: self.player_data.volatile.current_mount as u16,
-            mode: if self.player_data.volatile.current_mount != 0 {
-                CharacterMode::Mounted
-            } else {
-                CharacterMode::default()
-            },
+            mode: self.player_data.volatile.mode,
+            mode_arg: self.player_data.volatile.mode_arg as u8,
+            glasses_ids: self.player_data.equipped_glasses_ids,
+            handler_id: self.content_handler_id.unwrap_or_default(),
             ..Default::default()
         }
     }
@@ -258,14 +273,25 @@ impl ZoneConnection {
     }
 
     /// Sets this actor's CharacterMode and informs other clients.
-    pub async fn set_character_mode(&mut self, mode: CharacterMode, arg: u8) {
-        self.handle
-            .send(ToServer::SetCharacterMode(
-                self.player_data.character.actor_id,
-                mode,
-                arg,
-            ))
-            .await;
+    pub async fn set_character_mode(&mut self, mode: CharacterMode, arg: u8, inform_server: bool) {
+        if inform_server {
+            self.handle
+                .send(ToServer::SetCharacterMode(
+                    self.player_data.character.actor_id,
+                    mode,
+                    arg,
+                ))
+                .await;
+        }
+        self.player_data.volatile.mode = mode;
+        self.player_data.volatile.mode_arg = arg as i32;
+
+        // Inform other players of our new mode
+        self.broadcast_actor_control(ActorControlCategory::SetMode {
+            mode,
+            mode_arg: arg as u32,
+        })
+        .await;
     }
 
     pub async fn spawn_treasure(&mut self, spawn: SpawnTreasure) {

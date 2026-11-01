@@ -14,7 +14,7 @@ fn format_value(value: &Value) -> String {
 
             format!("[{}]", values_str.join(", "))
         }
-        _ => todo!(),
+        _ => unimplemented!(),
     }
 }
 
@@ -103,6 +103,26 @@ fn main() {
             output_str.push_str("}\n");
             output_str.push_str("}\n");
 
+            // Used for item ops/mail constants because const fns in traits doesn't exist yet
+            output_str.push_str(&format!("impl {key} {{\n"));
+            output_str.push_str("/// Returns the integer opcode.\n");
+            output_str.push_str("pub(crate) const fn get_opcode(&self) -> u16 {\n");
+            output_str.push_str("match self {\n");
+
+            for opcode in opcodes {
+                let opcode = opcode.as_mapping().unwrap();
+                let name = opcode.get("name").unwrap().as_str().unwrap();
+                let opcode = opcode.get("opcode").unwrap().as_u64().unwrap();
+
+                output_str.push_str(&format!("{key}::{name} => {opcode},\n"));
+            }
+
+            output_str.push_str(&format!("{key}::Unknown(opcode) => *opcode,\n"));
+
+            output_str.push_str("}\n\n");
+            output_str.push_str("}\n\n");
+            output_str.push_str("}\n");
+
             output_str.push_str(&format!("impl PredefinedOpcode for {key} {{\n"));
 
             // sizes
@@ -141,19 +161,7 @@ fn main() {
             // opcodes
             output_str.push_str("/// Returns the integer opcode.\n");
             output_str.push_str("fn get_opcode(&self) -> u16 {\n");
-            output_str.push_str("match self {\n");
-
-            for opcode in opcodes {
-                let opcode = opcode.as_mapping().unwrap();
-                let name = opcode.get("name").unwrap().as_str().unwrap();
-                let opcode = opcode.get("opcode").unwrap().as_u64().unwrap();
-
-                output_str.push_str(&format!("{key}::{name} => {opcode},\n"));
-            }
-
-            output_str.push_str(&format!("{key}::Unknown(opcode) => *opcode,\n"));
-
-            output_str.push_str("}\n\n");
+            output_str.push_str("self.get_opcode()\n");
             output_str.push_str("}\n\n");
 
             // comments
@@ -194,7 +202,6 @@ fn main() {
 
         let mut type_map: HashMap<&str, &str> = HashMap::new();
         type_map.insert("LOBBY_GAME_VERSION", "u32");
-        type_map.insert("BASE_INVENTORY_ACTION", "u32");
         type_map.insert("OBFUSCATION_ENABLED_MODE", "u8");
         type_map.insert("OBFUSCATION_TABLE_RADIXES", "[i32; 3]");
         type_map.insert("OBFUSCATION_TABLE_MAX", "[i32; 3]");
@@ -261,6 +268,18 @@ fn main() {
 
         output_str.push_str("_ => None,\n");
         output_str.push_str("}\n");
+        output_str.push_str("}\n");
+
+        output_str.push_str("pub fn festival_list() -> &'static [(u16, &'static str)] {\n");
+        output_str.push_str("&[\n");
+        for value in yml.as_sequence().unwrap() {
+            output_str.push_str(&format!(
+                "({}, \"{}\"),\n",
+                value.get("Id").unwrap().as_i64().unwrap(),
+                value.get("Name").unwrap().as_str().unwrap()
+            ));
+        }
+        output_str.push_str("]\n");
         output_str.push_str("}\n");
 
         std::fs::write("src/festivals.rs", output_str).expect("Failed to write constants file!");

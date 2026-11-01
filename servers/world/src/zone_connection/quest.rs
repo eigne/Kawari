@@ -1,8 +1,9 @@
 //! Quests!
 
-use crate::{ZoneConnection, inventory::Storage, zone_connection::PersistentQuest};
+use crate::{
+    ZoneConnection, common::adjust_quest_id, inventory::Storage, zone_connection::PersistentQuest,
+};
 use kawari::{
-    common::adjust_quest_id,
     constants::COMPLETED_QUEST_BITMASK_SIZE,
     ipc::zone::{
         ActiveQuest, QuestActiveList, QuestTracker, ServerZoneIpcData, ServerZoneIpcSegment,
@@ -117,13 +118,19 @@ impl ZoneConnection {
         // Grant rewards
         let rewards;
         {
-            let mut gamedata = self.gamedata.lock();
-            rewards = gamedata.get_quest_rewards(id);
+            let mut game_data = self.game_data.lock();
+            rewards = game_data.get_quest_rewards(id);
         }
 
         // Add gil
         // TODO: send log message
-        self.player_data.inventory.currency.get_slot_mut(0).quantity += rewards.1;
+        self.player_data.inventory.currency.get_slot_mut(0).quantity = self
+            .player_data
+            .inventory
+            .currency
+            .get_slot_mut(0)
+            .quantity
+            .saturating_add_unsigned(rewards.1);
         self.send_inventory().await;
 
         // Add exp
@@ -203,5 +210,12 @@ impl ZoneConnection {
     pub async fn incomplete_all_quests(&mut self) {
         self.player_data.quest.completed.data = vec![0x0; COMPLETED_QUEST_BITMASK_SIZE];
         self.send_quest_information().await;
+    }
+
+    pub fn record_fate_completion(&mut self) {
+        let mut game_data = self.game_data.lock();
+        if let Some(row) = game_data.get_fate_progress_ui_row(self.player_data.volatile.zone_id) {
+            self.player_data.quest.shared_fates.0[row as usize] += 1;
+        }
     }
 }

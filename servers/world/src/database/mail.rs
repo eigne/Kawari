@@ -1,6 +1,5 @@
 use super::{WorldDatabase, models, schema::mail::dsl::*, unixepoch};
 use crate::inventory::GenericStorage;
-use bstr::BString;
 use diesel::prelude::*;
 use kawari::{
     common::WORLD_NAME,
@@ -9,6 +8,7 @@ use kawari::{
         MAX_MAIL_ATTACHMENTS_STORAGE, PREVIEW_MSG_MAX_LENGTH,
     },
 };
+use physis::sestring::SeString;
 
 impl WorldDatabase {
     /// Adds a letter from `my_content_id` to `their_content_id`'s mailbox. In reality, it's just a flat table with *everyone*'s mail.
@@ -17,7 +17,7 @@ impl WorldDatabase {
         my_content_id: u64,
         their_content_id: u64,
         letter_kind: kawari::ipc::zone::LetterType,
-        letter_message: BString,
+        letter_message: SeString,
         attachments: crate::inventory::GenericStorage<MAX_MAIL_ATTACHMENTS_STORAGE>,
     ) {
         let next_id = if let Ok(highest) = mail
@@ -45,7 +45,7 @@ impl WorldDatabase {
             timestamp: time,
             recipient_content_id: their_content_id as i64,
             sender_content_id: my_content_id as i64,
-            message: serde_json::to_string(&letter_message).unwrap(),
+            message: serde_json::to_string(&letter_message.as_bytes()).unwrap(),
             attached_items: serde_json::to_string(&attachments).unwrap(),
         };
 
@@ -76,7 +76,7 @@ impl WorldDatabase {
             };
 
             preview.sender_name = if let Some(sender_info) =
-                self.find_character_ids(Some(letter.sender_content_id as u64), None)
+                self.find_character(Some(letter.sender_content_id as u64), None)
             {
                 sender_info.name.clone()
             } else if letter.sender_content_id as u64 == u64::MAX {
@@ -87,8 +87,10 @@ impl WorldDatabase {
             };
 
             // Adjust the preview message to be no longer than PREVIEW_MSG_MAX_LENGTH bytes.
-            let full_message: BString =
+            // We create message_bytes explicitly because serde currently has difficulty interpreting what we want from it.
+            let message_bytes: Vec<u8> =
                 serde_json::from_str(&letter.message.clone()).unwrap_or_default();
+            let full_message: SeString = SeString::parse(&message_bytes);
             preview.message = full_message;
             preview.message.truncate(PREVIEW_MSG_MAX_LENGTH);
 
@@ -134,8 +136,10 @@ impl WorldDatabase {
             .unwrap();
 
         // The message body can be no longer than LETTER_MSG_MAX_LENGTH bytes. This is probably redundant due to insertion handling this, but if manual db edits are done, this should catch any issues.
-        let mut the_message: BString =
+        // We create message_bytes explicitly because serde currently has difficulty interpreting what we want from it.
+        let message_bytes: Vec<u8> =
             serde_json::from_str(&the_mail.message.clone()).unwrap_or_default();
+        let mut the_message: SeString = SeString::parse(&message_bytes);
         the_message.truncate(LETTER_MSG_MAX_LENGTH);
 
         let the_letter = Letter {

@@ -43,6 +43,7 @@ diesel::table! {
         unlocked_map_markers -> Text,
         completed_levequests -> Text,
         gathered_gathering_items -> Text,
+        shared_fates -> Text,
     }
 }
 
@@ -70,6 +71,8 @@ diesel::table! {
         title -> Integer,
         is_online -> Bool,
         client_language -> Integer,
+        mode -> Integer,
+        mode_arg -> Integer,
         current_mount -> Integer,
     }
 }
@@ -80,6 +83,7 @@ diesel::table! {
     inventory (content_id) {
         content_id -> BigInt,
         contents -> Text,
+        equipped_glasses_ids -> Text,
     }
 }
 
@@ -235,6 +239,20 @@ diesel::table! {
 
 diesel::joinable!(grand_company -> character (content_id));
 
+diesel::table! {
+    buddy (content_id) {
+        content_id -> BigInt,
+        name -> Text,
+        rank -> Integer,
+        stars -> Integer,
+        levels -> Text,
+        exp -> Integer,
+        color -> Integer,
+    }
+}
+
+diesel::joinable!(buddy -> character (content_id));
+
 diesel::allow_tables_to_appear_in_same_query!(
     character,
     classjob,
@@ -250,4 +268,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     mentor,
     search_info,
     grand_company,
+    buddy,
 );

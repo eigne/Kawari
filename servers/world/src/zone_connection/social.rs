@@ -1,41 +1,13 @@
 //! Other social features, as well as invite sending and replies.
-use crate::{ToServer, ZoneConnection};
+use crate::{ToServer, ZoneConnection, common::roll_die};
 use kawari::{
-    common::{LogMessageType, timestamp_secs},
+    common::{ObjectId, timestamp_secs},
     ipc::zone::{
         InviteReply, InviteType, InviteUpdateType, OnlineStatus, OnlineStatusMask, PlayerEntry,
         SearchUIClassJobMask, SearchUIGrandCompanies, ServerZoneIpcData, ServerZoneIpcSegment,
-        SocialList, SocialListRequestType, SocialListUILanguages,
+        SocialList, SocialListRequestType, SocialListUILanguages, ZoneDiceRollResult,
     },
 };
-
-pub fn fetch_entries<T>(
-    next_index: &mut u16,
-    data: &mut Vec<T>,
-    increment_by: usize,
-    state: &mut usize,
-) -> Vec<T>
-where
-    T: Clone + std::default::Default,
-{
-    let mut ret: Vec<T>;
-    if data.len() > increment_by {
-        *next_index += increment_by as u16;
-        ret = data.drain(0..increment_by).collect();
-    } else {
-        *next_index = 0;
-        ret = std::mem::take(data);
-        ret.resize(increment_by, T::default());
-    }
-
-    if !data.is_empty() {
-        *state += increment_by;
-    } else {
-        *state = 0;
-    }
-
-    ret
-}
 
 impl ZoneConnection {
     pub async fn send_invite_update(
@@ -93,7 +65,7 @@ impl ZoneConnection {
         let inviter_info;
         {
             let mut db = self.database.lock();
-            inviter_info = db.find_character_ids(Some(inviter_content_id), None);
+            inviter_info = db.find_character(Some(inviter_content_id), None);
         }
 
         if let Some(inviter_info) = inviter_info {
@@ -188,13 +160,13 @@ impl ZoneConnection {
     pub async fn invite_character_result(
         &mut self,
         content_id: u64,
-        message_id: LogMessageType,
+        message_id: u16,
         invite_type: InviteType,
         character_name: String,
     ) {
         let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::InviteCharacterResult {
             content_id,
-            message_id: message_id as u16,
+            message_id,
             world_id: self.config.world_id,
             invite_type,
             unk1: 1,
@@ -223,7 +195,7 @@ impl ZoneConnection {
             } else {
                 None
             };
-            recipient_info = db.find_character_ids(content_id, character_name);
+            recipient_info = db.find_character(content_id, character_name);
         }
 
         let Some(recipient_info) = recipient_info else {
@@ -356,8 +328,8 @@ impl ZoneConnection {
         let mask = self.get_online_status_mask();
         let priorities;
         {
-            let mut gamedata = self.gamedata.lock();
-            priorities = gamedata.online_status_priorities();
+            let mut game_data = self.game_data.lock();
+            priorities = game_data.online_status_priorities();
         }
         let mut priorities: Vec<(usize, &u8)> = priorities.iter().enumerate().collect();
         priorities.sort_by(|(_, a_priority), (_, b_priority)| {
@@ -376,8 +348,6 @@ impl ZoneConnection {
 
     /// Updates the online status not just on yourself but also informing other players.
     pub async fn update_online_status(&mut self) {
-        // TODO: re-review this now that OnlineStatusMask can be calculated independently from any ZoneConnection
-
         let online_status_mask = self.get_online_status_mask();
 
         let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::SetOnlineStatus(online_status_mask));
@@ -408,7 +378,7 @@ impl ZoneConnection {
         // First, grab up to 200 online players.
         {
             let mut db = self.database.lock();
-            let mut game_data = self.gamedata.lock();
+            let mut game_data = self.game_data.lock();
             self.search_results =
                 db.find_online_players(&mut game_data, self.player_data.character.content_id);
             self.search_index = 0;
@@ -522,7 +492,7 @@ impl ZoneConnection {
             }
 
             // If all other search conditions succeed, filter by area. This one is last instead of 4th, because there currently isn't a good condition to check against. The location check *always* happens if name, classjob and level all pass. You can't search for no areas, essentially.
-            let mut game_data = self.gamedata.lock();
+            let mut game_data = self.game_data.lock();
 
             // If the player is in an invalid zone somehow, or isn't in a region being searched for, they're not relevant.
             let Some(player_region) = game_data.get_territory_placenamezone_data(player.zone_id)
@@ -544,5 +514,36 @@ impl ZoneConnection {
             num_results: self.search_results.len() as u32,
         });
         self.send_ipc_self(ipc).await;
+    }
+
+    pub async fn send_dice_roll(&mut self, num_sides: u16) {
+        let (roll_maximum, roll_result) = roll_die(num_sides);
+
+        let result = ZoneDiceRollResult {
+            account_id: self.player_data.character.service_account_id as u64,
+            content_id: self.player_data.character.content_id as u64,
+            actor_id: self.player_data.character.actor_id,
+            world_id: self.config.world_id,
+            roll_result,
+            num_sides: roll_maximum,
+            unk: 0x100,
+            name: self.player_data.character.name.clone(),
+        };
+
+        self.handle
+            .send(ToServer::ZoneDiceRoll(
+                self.player_data.character.actor_id,
+                result,
+            ))
+            .await;
+    }
+
+    pub async fn dice_roll_received(
+        &mut self,
+        from_actor_id: ObjectId,
+        result: ZoneDiceRollResult,
+    ) {
+        let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ZoneDiceRollResult(result));
+        self.send_ipc_from(from_actor_id, ipc).await;
     }
 }

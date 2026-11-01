@@ -18,8 +18,10 @@ EOBJ_WAVERIDER_GATE_KEY = 2000255
 EOBJ_KEY_TO_THE_HOLE = 2000256
 EOBJ_NEXT_DOOR2 = 2001539
 EOBJ_RAMBADE_DOOR2 = 2000236
-EOBJ_SHORTCUT = 2000700
-EOBJ_EXIT = 2000139
+EOBJ_UNNATURAL_RIPPLES1 = 2000405
+EOBJ_UNNATURAL_RIPPLES2 = 2000406
+EOBJ_UNNATURAL_RIPPLES3 = 2000407
+EOBJ_UNNATURAL_RIPPLES4 = 2000408
 
 EOBJ_CORAL_IDS = {
     EOBJ_BLUE_CORAL_FORMATION,
@@ -93,6 +95,7 @@ SHORTCUT_AFTER_DENN = 7372594
 EVENT_ACTION_INTERACT = 24
 
 LOG_MESSAGE_SEQ0 = 2034 -- You hear something move in the distance
+LOG_MESSAGE_POSION = 2035 -- You are doused with poison!
 
 EFFECT_POSION = 18
 
@@ -108,16 +111,18 @@ local coral_color
 -- Whether the party has the key to The Hole
 local has_hole
 -- Whether the party has the key to Captain's Quarters
-local has_captains_quarters
+local has_captains_quarters_key
 -- Whether the party has the key to Waverider Gate
-local has_waverider_gate
+local has_waverider_gate_key
 -- Whether the Chopper boss was defeated
 local chopper_defeated
 -- Whether the final boss cutscene played
 local seen_final_cutscene
+-- Whether Chopper was spawned
+local chopper_spawned
 
 function onSetup(director)
-    coral_color = math.random(0, 2)
+    coral_color = math.random(0, #EOBJ_CORAL_IDS - 1)
 
     -- Take down initial boss walls
     director:hide_eobj(EOBJ_CATTERY_BOSS_WALL)
@@ -139,17 +144,29 @@ function setSequence(director, sequence)
     director:set_data(0, sequence)
 end
 
+-- TODO: This should be handled using the existing boss system
+function beginBattleMusic(director)
+    director:set_bgm(37)
+end
+
+function endBattleMusic(director)
+    director:set_bgm(0)
+end
+
 function onGimmickAccessor(director, actor_id, id, params)
     -- -1 = will not touch the coral
     -- 0 = will touch the coral
-    if has_value(EOBJ_CORAL_IDS, id) and params[1] == 0 then
+    if has_value(EOBJ_CORAL_IDS, id) then
         director:event_action(EVENT_ACTION_INTERACT, actor_id, id)
         return
     elseif id == EOBJ_INCONSPICUOUS_SWITCH then
         if not chopper_defeated then
-            -- Set battle music
-            director:set_bgm(37)
-            director:spawn_boss(BNPC_CHOPPER, EOBJ_CATTERY_BOSS_WALL, EOBJ_CATTERY_BOSS_LINE, PLACE_CATTERY)
+            if not chopper_spawned then
+                chopper_spawned = true
+
+                beginBattleMusic(director)
+                director:spawn_boss(BNPC_CHOPPER, EOBJ_CATTERY_BOSS_WALL, EOBJ_CATTERY_BOSS_LINE, PLACE_CATTERY)
+            end
         else
             director:event_action(EVENT_ACTION_INTERACT, actor_id, id)
             return
@@ -158,28 +175,37 @@ function onGimmickAccessor(director, actor_id, id, params)
         director:event_action(EVENT_ACTION_INTERACT, actor_id, id)
         return
     elseif id == EOBJ_THE_HOLE_DOOR then
-        if has_hole_key then
-            -- TODO: what happens if they don't have access to The Hole?
-            director:event_action(EVENT_ACTION_INTERACT, actor_id, id)
-            return
-        end
+        director:event_action(EVENT_ACTION_INTERACT, actor_id, id)
+        return
     elseif id == EOBJ_CAPTAINS_QUARTERS_DOOR then
-        if has_captains_quarters then
-            director:event_action(EVENT_ACTION_INTERACT, actor_id, id)
-            return
-        end
+        director:event_action(EVENT_ACTION_INTERACT, actor_id, id)
+        return
     elseif id == EOBJ_WAVERIDER_GATE then
-        if has_waverider_gate then
-            director:event_action(EVENT_ACTION_INTERACT, actor_id, id)
-            return
-        end
-    elseif id == EOBJ_EXIT then
-        director:abandon_duty(actor_id) -- TODO: should be generically handled
-    elseif id == EOBJ_SHORTCUT then
-        director:use_shortcut(actor_id) -- TODO: should be generically handled
+        director:event_action(EVENT_ACTION_INTERACT, actor_id, id)
+        return
     end
 
     director:finish_gimmick(actor_id)
+end
+
+function isGimmickFunctional(id)
+    if id == EOBJ_INCONSPICUOUS_SWITCH then
+        if not chopper_defeated and chopper_spawned then
+            return false -- Switch is non-functional if you attempt to use it while Chopper is still alive
+        else
+            return true
+        end
+    elseif id == EOBJ_THE_HOLE_DOOR then
+        return has_hole_key
+    elseif id == EOBJ_CAPTAINS_QUARTERS_DOOR then
+        return has_captains_quarters_key
+    elseif id == EOBJ_WAVERIDER_GATE then
+        return has_waverider_gate_key
+    elseif id == EOBJ_UNNATURAL_RIPPLES1 or id == EOBJ_UNNATURAL_RIPPLES2 or id == EOBJ_UNNATURAL_RIPPLES3 or id == EOBJ_UNNATURAL_RIPPLES4 then
+        return false -- Currently not used
+    end
+
+    return true
 end
 
 function onGimmickRect(director, target)
@@ -209,13 +235,13 @@ function onEventActionCast(director, actor_id, target)
 
         director:hide_eobj(target)
     elseif target == EOBJ_WAVERIDER_GATE_KEY then
-        has_waverider_gate = true
+        has_waverider_gate_key = true
 
         director:hide_eobj(target)
 
         beginSequence4(director)
     elseif target == EOBJ_CAPTAINS_QUARTERS_KEY then
-        has_captains_quarters = true
+        has_captains_quarters_key = true
 
         director:hide_eobj(target)
     elseif target == EOBJ_CAPTAINS_QUARTERS_DOOR then
@@ -231,14 +257,14 @@ end
 function onActorDeath(director, bnpc_id, position)
     if bnpc_id == BNPC_CHOPPER then
         director:spawn_treasure(94) -- Treasure for this boss
-        director:set_bgm(0) -- Reset music
+        endBattleMusic(director)
         chopper_defeated = true
 
         -- Update shortcut
         director:update_shortcut(SHORTCUT_AFTER_CATTERY)
     elseif bnpc_id == BNPC_CAPTAIN1 then
         director:spawn_treasure(95) -- Treasure for this boss
-        director:set_bgm(0) -- Reset music
+        endBattleMusic(director)
         beginSequence3(director)
 
         -- Update shortcut
@@ -249,7 +275,7 @@ function onActorDeath(director, bnpc_id, position)
         director:spawn_eobj(EOBJ_WAVERIDER_GATE_KEY, { x = position.x, y = position.y, z = position.z })
     elseif bnpc_id == BNPC_CAPTAIN2 then
         director:spawn_treasure(96) -- Treasure for this boss
-        director:set_bgm(0) -- Reset music
+        endBattleMusic(director)
         director:hide_eobj(EOBJ_RAMBADE_DOOR2)
 
         beginSequence5(director)
@@ -258,7 +284,7 @@ function onActorDeath(director, bnpc_id, position)
         director:update_shortcut(SHORTCUT_AFTER_CAPTAIN2)
     elseif bnpc_id == BNPC_DENN then
         director:spawn_treasure(93) -- Treasure for this boss
-        director:set_bgm(0) -- Reset music
+        endBattleMusic(director)
 
         -- Update shortcut
         director:update_shortcut(SHORTCUT_AFTER_DENN)
@@ -272,7 +298,7 @@ end
 
 -- Spawns an enemy for getting the coral selection wrong, and douse the player in posion.
 function spawnCoralEnemy(director, actor_id, target)
-    -- TODO: Show message "you were doused with posion"
+    director:log_message(LOG_MESSAGE_POSION, {})
 
     director:gain_effect(actor_id, EFFECT_POSION, 0, 120.0)
 
@@ -287,8 +313,6 @@ end
 
 function beginSequence0(director)
     setSequence(director, SEQ0)
-
-    director:hide_eobj(EOBJ_SHORTCUT)
 
     hideBloodyMemos(director)
     director:hide_eobj(EOBJ_INCONSPICUOUS_SWITCH)
@@ -343,8 +367,7 @@ function beginSequence2(director)
     director:spawn_bnpc(BNPC_REAVER1)
     director:spawn_bnpc(BNPC_REAVER2)
 
-    -- Set battle music
-    director:set_bgm(37)
+    beginBattleMusic(director)
     director:spawn_boss(BNPC_CAPTAIN1, EOBJ_FIRST_RAMBADE_BOSS_WALL, EOBJ_FIRST_RAMBADE_BOSS_LINE, PLACE_FIRST_RAMBADE)
 end
 
@@ -371,8 +394,7 @@ function beginSequence4(director)
     -- Update shortcut
     director:update_shortcut(SHORTCUT_BEFORE_CAPTAIN2)
 
-    -- Set battle music
-    director:set_bgm(37)
+    beginBattleMusic(director)
     director:spawn_boss(BNPC_CAPTAIN2, EOBJ_SECOND_RAMBADE_BOSS_WALL, EOBJ_SECOND_RAMBADE_BOSS_LINE, PLACE_SECOND_RAMBADE)
 end
 

@@ -7,6 +7,7 @@ use kawari::{
     ipc::zone::{EventType, GrandCompany, SceneFlags, ServerZoneIpcSegment},
     packet::PacketSegment,
 };
+use physis::savedata::chardat::CustomizeData;
 
 #[derive(Clone, Debug)]
 pub enum LuaTask {
@@ -20,7 +21,7 @@ pub enum LuaTask {
         warp_id: u32,
     },
     BeginLogOut,
-    FinishEvent {},
+    FinishEvent,
     UnlockClassJob {
         classjob_id: u8,
     },
@@ -34,7 +35,7 @@ pub enum LuaTask {
     Unlock {
         id: u32,
     },
-    UnlockAll {},
+    UnlockAll,
     UnlockAetheryte {
         id: u32,
         on: bool,
@@ -64,13 +65,13 @@ pub enum LuaTask {
     },
     AddItem {
         id: u32,
-        quantity: u32,
+        quantity: i32,
         send_client_update: bool,
     },
     UnlockContent {
         id: u16,
     },
-    UnlockAllContent {},
+    UnlockAllContent,
     AddExp {
         amount: i32,
     },
@@ -98,61 +99,52 @@ pub enum LuaTask {
     ToggleGlassesStyle {
         id: u32,
     },
-    ToggleGlassesStyleAll {},
+    ToggleGlassesStyleAll,
     ToggleOrnament {
         id: u32,
     },
-    ToggleOrnamentAll {},
+    ToggleOrnamentAll,
     UnlockBuddyEquip {
         id: u32,
     },
-    UnlockBuddyEquipAll {},
+    UnlockBuddyEquipAll,
     ToggleChocoboTaxiStand {
         id: u32,
     },
-    ToggleChocoboTaxiStandAll {},
+    ToggleChocoboTaxiStandAll,
     ToggleCaughtFish {
         id: u32,
     },
-    ToggleCaughtFishAll {},
+    ToggleCaughtFishAll,
     ToggleCaughtSpearfish {
         id: u32,
     },
-    ToggleCaughtSpearfishAll {},
+    ToggleCaughtSpearfishAll,
     ToggleTripleTriadCard {
         id: u32,
     },
-    ToggleTripleTriadCardAll {},
+    ToggleTripleTriadCardAll,
     ToggleAdventure {
         id: u32,
     },
-    ToggleAdventureAll {},
+    ToggleAdventureAll,
     ToggleCutsceneSeen {
         id: u32,
         value: bool,
     },
-    ToggleCutsceneSeenAll {},
+    ToggleCutsceneSeenAll,
     ToggleMinion {
         id: u32,
     },
-    ToggleMinionAll {},
+    ToggleMinionAll,
     ToggleAetherCurrent {
         id: u32,
     },
-    ToggleAetherCurrentAll {},
+    ToggleAetherCurrentAll,
     ToggleAetherCurrentCompFlgSet {
         id: u32,
     },
-    ToggleAetherCurrentCompFlgSetAll {},
-    SetRace {
-        race: u8,
-    },
-    SetTribe {
-        tribe: u8,
-    },
-    SetSex {
-        sex: u8,
-    },
+    ToggleAetherCurrentCompFlgSetAll,
     // previously, this was kept as a separate thing apart from tasks
     // but I discovered that this doesn't mix well - for example with play_scene (segment-based) and start_event (task)
     // this is because segments were always sent before tasks and there wasn't strong ordering
@@ -161,7 +153,7 @@ pub enum LuaTask {
         segment: PacketSegment<ServerZoneIpcSegment>,
     },
     // NOTE: this is mostly a workaround in a limitation in the scripting API
-    StartTalkEvent {},
+    StartTalkEvent,
     AcceptQuest {
         id: u32,
     },
@@ -176,9 +168,6 @@ pub enum LuaTask {
     RegisterForContent {
         content_id: u16,
     },
-    CommenceDuty {
-        director_id: u32,
-    },
     QuestSequence {
         id: u32,
         sequence: u8,
@@ -189,16 +178,16 @@ pub enum LuaTask {
     IncompleteQuest {
         id: u32,
     },
-    Kill {},
-    AbandonContent {},
+    Kill,
+    AbandonContent,
     SetHomepoint {
         homepoint: u16,
     },
-    ReturnToHomepoint {},
+    ReturnToHomepoint,
     JoinContent {
         id: u32,
     },
-    FinishCastingGlamour {},
+    FinishCastingGlamour,
     PlayScene {
         scene: u16,
         scene_flags: SceneFlags,
@@ -213,12 +202,12 @@ pub enum LuaTask {
         territory_id: u16,
         pop_range_id: u32,
     },
-    RemoveCooldowns {},
+    RemoveCooldowns,
     ToggleHowTo {
         value: bool,
         id: u32,
     },
-    SendMailboxStatus {},
+    SendMailboxStatus,
     SetGrandCompany {
         company: GrandCompany,
     },
@@ -231,5 +220,8 @@ pub enum LuaTask {
     Call {
         name: String,
     },
-    FinishDyeing {},
+    FinishDyeing,
+    SetCustomize {
+        customize: CustomizeData,
+    },
 }

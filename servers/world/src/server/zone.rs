@@ -1,12 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
-use glam::{Affine3A, EulerRot, Vec3};
+use glam::{Affine3A, EulerRot, Vec3A};
 use parking_lot::Mutex;
 use physis::{
-    TerritoryIntendedUse,
     layer::{
         ExitRangeInstanceObject, InstanceObject, LayerEntryData, PopRangeInstanceObject,
-        TriggerBoxShape,
+        ServerPathInstanceObject, TriggerBoxShape,
     },
     lgb::Lgb,
     lvb::Lvb,
@@ -14,10 +13,12 @@ use physis::{
 
 use crate::{
     ClientId, FromServer, GameData, StatusEffects, TerritoryNameKind, ToServer,
-    lua::LuaZone,
+    lua::{KawariLua, LuaZone},
     server::{
         NetworkedActor, WorldServer,
-        instance::{Instance, QueuedTaskData},
+        actor::{create_npc_common_spawn, set_character_mode},
+        fate::inform_fate_spawn,
+        instance::{Instance, QueuedTaskData, remove_actor_from_instance},
         network::{DestinationNetwork, NetworkState},
     },
     zone_connection::{BaseParameters, TeleportQuery},
@@ -26,24 +27,25 @@ use kawari::{
     common::{
         CharacterMode, DistanceRange, DropIn, DropInLayer, DropInObjectData, ENTRANCE_CIRCLE_IDS,
         EOBJ_EXIT, EOBJ_HOUSING_ENTRANCE, EOBJ_SHORTCUT, EOBJ_SHORTCUT_EXPLORER_MODE, EventState,
-        HandlerType, ObjectId, Position, WARP_DELAY, euler_to_direction, internal_housing_row,
+        GimmickRectTriggerType, HandlerType, ObjectId, Position, TerritoryIntendedUse, WARP_DELAY,
+        WarpType, euler_to_direction, internal_housing_row,
     },
     config::get_config,
     ipc::zone::{
-        ActorControlCategory, ActorSetPos, BattleNpcSubKind, CharacterDataFlag, CommonSpawn,
-        Conditions, DisplayFlag, ObjectKind, ServerZoneIpcData, ServerZoneIpcSegment, SpawnNpc,
-        SpawnObject, SpawnTreasure, WarpType,
+        ActorControlCategory, ActorSetPos, CharacterDataFlag, CommonSpawn, Conditions, DisplayFlag,
+        ObjectKind, PrepareZoning, PrepareZoningFlag, ServerZoneIpcData, ServerZoneIpcSegment,
+        SpawnNpc, SpawnObject, SpawnTreasure,
     },
 };
 
 #[derive(Debug)]
 pub enum MapGimmick {
     /// Seen for final boss triggers in Sastasha
-    Generic {},
+    Generic,
     /// Jump pads like the ones in Gold Saucer.
     Jump {
         /// The position to land on.
-        to_position: Vec3,
+        to_position: Vec3A,
         /// The GimmickJump type.
         gimmick_jump_type: u32,
         /// The animation ID to play for the EObj.
@@ -57,14 +59,14 @@ pub enum MapGimmick {
 }
 
 /// Simpler form of a MapRange object designed for collision detection.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MapRange {
     /// Trigger box shape.
     pub trigger_box_shape: TriggerBoxShape,
     /// Position of this range in the world.
-    pub position: Vec3,
+    pub position: Vec3A,
     /// Relative scale of this range.
-    pub scale: Vec3,
+    pub scale: Vec3A,
     /// Whether this map range represents a sanctuary.
     pub sanctuary: bool,
     /// Whether this map range represents a PvP duel area.
@@ -77,21 +79,23 @@ pub struct MapRange {
     pub discovery_id: Option<u8>,
     /// Whether this map range represents an instance exit.
     pub entrance: bool,
+    /// What FATE this MapRange is associated with, if any.
+    pub fate: Option<u32>,
 }
 
 #[derive(Debug)]
 struct HousingPlot {
-    entrance_position: Vec3,
+    entrance_position: Vec3A,
 }
 
 /// Represents a loaded zone
-#[derive(Default, Debug)]
+#[derive(Debug, Default)]
 pub struct Zone {
     pub id: u16,
     pub internal_name: String,
     pub region_name: String,
     pub place_name: String,
-    pub intended_use: u8,
+    pub intended_use: TerritoryIntendedUse,
     pub layer_groups: Vec<Lgb>,
     pub navimesh_path: String,
     pub map_id: u16,
@@ -104,7 +108,9 @@ pub struct Zone {
     layer_set: i32,
     bg_path: String,
     cached_housing_plots: Vec<HousingPlot>,
-    cached_eobj_base_ids: HashMap<ObjectId, u32>,
+    cached_eobj_base_ids: HashMap<u32, u32>,
+    pub cached_pop_ranges: HashMap<u32, (Position, f32)>,
+    pub cached_paths: HashMap<u32, ServerPathInstanceObject>,
 }
 
 impl Zone {
@@ -119,13 +125,20 @@ impl Zone {
             return zone;
         };
 
-        zone.intended_use = row.TerritoryIntendedUse;
+        if let Some(intended_use) = TerritoryIntendedUse::from_repr(row.TerritoryIntendedUse) {
+            zone.intended_use = intended_use;
+        } else {
+            tracing::warn!(
+                "Unknown TerritoryIntendedUse {}, certain featureswill not function. Please report this as a bug.",
+                row.TerritoryIntendedUse
+            );
+        }
         zone.map_id = row.Map;
 
         // e.g. ffxiv/fst_f1/fld/f1f3/level/f1f3
         let bg_path = row.Bg;
         if bg_path.is_empty() {
-            tracing::warn!("Invalid zone id {id}, allowing anyway...");
+            tracing::warn!("Bg path is empty for zone id {id}, allowing anyway...");
             return zone;
         }
 
@@ -141,7 +154,6 @@ impl Zone {
                 }
 
                 let lgb = game_data.resource.parsed::<Lgb>(path);
-
                 if let Err(e) = &lgb {
                     tracing::warn!(
                         "Failed to parse {path}: {e}, this is most likely a bug in Physis and should be reported somewhere!"
@@ -183,11 +195,16 @@ impl Zone {
             search_dirs.push("resources/dropins/".to_string());
 
             'outer: for search_dir in search_dirs {
+                let Ok(search_dir) = std::fs::read_dir(search_dir) else {
+                    continue;
+                };
+
                 // Load drop-ins
-                for entry in std::fs::read_dir(search_dir)
-                    .expect("Didn't find dropins directory?")
-                    .flatten()
-                {
+                for entry in search_dir.flatten() {
+                    if !entry.file_name().to_str().unwrap().ends_with(".json") {
+                        continue;
+                    }
+
                     if let Ok(contents) = std::fs::read_to_string(entry.path()) {
                         match serde_json::from_str::<DropIn>(&contents) {
                             Ok(mut dropin) => {
@@ -212,12 +229,10 @@ impl Zone {
         for layer_group in &zone.layer_groups {
             for chunk in &layer_group.chunks {
                 for layer in &chunk.layers {
-                    if !layer.header.has_layer_set(zone.layer_set as u32) {
-                        continue;
-                    }
+                    // NOTE: We don't check layer set here because it fails pop ranges for Moonfire Faire?
 
                     for object in &layer.objects {
-                        let (scale, _, translation) =
+                        let (scale, rotation, translation) =
                             Affine3A::from(object.transform).to_scale_rotation_translation();
 
                         if let LayerEntryData::EventNPC(npc) = &object.data {
@@ -229,48 +244,45 @@ impl Zone {
                         if let LayerEntryData::MapRange(map_range) = &object.data {
                             zone.map_ranges.push(MapRange {
                                 trigger_box_shape: map_range.parent_data.trigger_box_shape,
-                                position: translation,
-                                scale,
+                                position: translation.into(),
+                                scale: scale.into(),
                                 sanctuary: map_range.rest_bonus_enabled,
-                                duel: false,
-                                gimmick: None,
                                 instance_id: object.instance_id,
                                 discovery_id: if map_range.discovery_enabled {
                                     Some(map_range.discovery_id)
                                 } else {
                                     None
                                 },
-                                entrance: false,
+                                ..Default::default()
                             });
                         }
                         if let LayerEntryData::EventRange(event_range) = &object.data {
                             zone.map_ranges.push(MapRange {
                                 trigger_box_shape: event_range.parent_data.trigger_box_shape,
-                                position: translation,
-                                scale,
-                                sanctuary: false,
-                                // This is guesswork since there's only one dueling location in-game
-                                // TODO: restore duel support by hardcoding its ID
-                                // duel: event_range.unk_flags[0] == 1
-                                //     && event_range.unk_flags[3] == 1
-                                //     && event_range.unk_flags[4] == 1
-                                //     && event_range.unk_flags[5] == 1,
-                                duel: false,
-                                gimmick: None,
+                                position: translation.into(),
+                                scale: scale.into(),
+                                duel: object.instance_id == 6445254, // From the LVD_duel_01 layer in Wolves Den Pier
                                 instance_id: object.instance_id,
-                                discovery_id: None,
-                                // Set later!
-                                entrance: false,
+                                fate: game_data.find_fate_by_event_range(object.instance_id),
+                                ..Default::default()
                             });
+                        }
+                        if let LayerEntryData::PopRange(_) = &object.data {
+                            zone.cached_pop_ranges.insert(
+                                object.instance_id,
+                                (
+                                    Position(translation.into()),
+                                    euler_to_direction(rotation.to_euler(EulerRot::XYZ)),
+                                ),
+                            );
                         }
                     }
 
                     // Second pass for eobjs
                     for object in &layer.objects {
-                        // TODO: restore
-                        // if !layer.header.has_layer_set(zone.layer_set as u32) {
-                        //     continue;
-                        // }
+                        if !layer.header.has_layer_set(zone.layer_set as u32) {
+                            continue;
+                        }
 
                         if let LayerEntryData::EventObject(eobj) = &object.data {
                             let eobj_data = game_data.get_eobj_data(eobj.parent_data.base_id);
@@ -289,13 +301,18 @@ impl Zone {
                                     let sgb_animation_id = gimmick_rect_info.Params[2];
 
                                     // 8 seems to indicate a jumping pad
-                                    if gimmick_rect_info.TriggerIn == 8 {
+                                    if GimmickRectTriggerType::from_repr(
+                                        gimmick_rect_info.TriggerIn,
+                                    )
+                                    .unwrap()
+                                        == GimmickRectTriggerType::Jump
+                                    {
                                         let (_, _, translation) =
                                             Affine3A::from(target_pop_range.0.transform)
                                                 .to_scale_rotation_translation();
 
                                         let map_gimmick = MapGimmick::Jump {
-                                            to_position: translation,
+                                            to_position: translation.into(),
                                             gimmick_jump_type,
                                             sgb_animation_id,
                                             eobj_instance_id: object.instance_id,
@@ -309,7 +326,7 @@ impl Zone {
                                         }
                                     } else {
                                         tracing::warn!(
-                                            "Unsupported Gimmick trigger {}",
+                                            "Unsupported Gimmick trigger for EventObj {}",
                                             gimmick_rect_info.TriggerIn
                                         );
                                     }
@@ -325,19 +342,25 @@ impl Zone {
                                 game_data.lookup_gimmick_rect(object.instance_id)
                         {
                             let mut map_gimmick = None;
-                            match gimmick_rect_info.TriggerIn {
-                                1 | 18 => {
-                                    // FIXME: 1 is seen for cutscene triggers in Sastasha, while 18 is seen for Variant Dungeon routes in A Merchant's Tale. We should make this less "generic".
+                            match GimmickRectTriggerType::from_repr(gimmick_rect_info.TriggerIn)
+                                .unwrap()
+                            {
+                                GimmickRectTriggerType::Cutscene
+                                | GimmickRectTriggerType::VVDRouteTrigger => {
+                                    // FIXME: We should make this less "generic".
                                     map_gimmick = Some(MapGimmick::Generic {});
                                 }
-                                6 => {
+                                GimmickRectTriggerType::FakeExit => {
                                     // Seen for same-zone "exit ranges" like the one in the beginning of Sycrus Tower
                                     map_gimmick = Some(MapGimmick::FakeExit {
                                         exit_pop_range_id: gimmick_rect_info.Params[0],
                                     });
                                 }
+                                GimmickRectTriggerType::FaithTalk => {
+                                    // TODO: not sure what the param for this one means. It obviously plugs into NpcYell somehow
+                                }
                                 _ => tracing::warn!(
-                                    "Unknown GimmickRect type: {} for event range instance {}",
+                                    "Unknown GimmickRect type: {} for EventRange {}",
                                     gimmick_rect_info.TriggerIn,
                                     object.instance_id
                                 ),
@@ -368,7 +391,7 @@ impl Zone {
             .unwrap_or(fallback.to_string());
 
         // create housing plot cache
-        if zone.intended_use == TerritoryIntendedUse::HousingOutdoor as u8 {
+        if zone.intended_use == TerritoryIntendedUse::HousingOutdoor {
             let land_sets = game_data
                 .get_land_sets(internal_housing_row(id).unwrap())
                 .unwrap();
@@ -388,6 +411,16 @@ impl Zone {
                     zone.cached_housing_plots.push(HousingPlot {
                         entrance_position: map_range.position,
                     });
+                }
+            }
+        }
+
+        // create path cache
+        for layer in &zone.dropin_layers {
+            for object in &layer.objects {
+                if let DropInObjectData::ServerPath(server_path) = &object.data {
+                    zone.cached_paths
+                        .insert(object.layout_id, server_path.clone());
                 }
             }
         }
@@ -453,6 +486,7 @@ impl Zone {
             map_id: self.map_id,
             cached_npc_base_ids: self.cached_npc_base_ids.clone(),
             cached_eobj_base_ids: self.cached_eobj_base_ids.clone(),
+            cached_pop_ranges: self.cached_pop_ranges.clone(),
             ..Default::default()
         }
     }
@@ -508,6 +542,12 @@ impl Zone {
         None
     }
 
+    /// Returns a random pop range in this zone.
+    pub fn find_random_pop_range(&self) -> Option<&InstanceObject> {
+        let object_id = fastrand::choice(&self.cached_pop_ranges)?.0;
+        self.find_pop_range(*object_id).map(|x| x.0)
+    }
+
     /// Returns a list of event objects to spawn by default. If `explorer_mode`, replaces the shortcut object.
     ///
     /// For example, the Gold Saucer arcade machines or shortcuts in dungeons.
@@ -536,10 +576,14 @@ impl Zone {
                             eobj.parent_data.base_id
                         };
 
-                        // Hide shortcuts and exits, these will be spawned by the director.
-                        let event_state = if eobj.parent_data.base_id == EOBJ_SHORTCUT
+                        // Hide shortcuts and exits, these are spawned later by the director.
+                        let event_state = if (eobj.parent_data.base_id == EOBJ_SHORTCUT
+                            && !explorer_mode)
                             || eobj.parent_data.base_id == EOBJ_EXIT
                         {
+                            EventState::OFF | EventState::UNK2 | EventState::UNK3
+                        } else if explorer_mode {
+                            // HACK: disable all walls in Explorer Mode
                             EventState::OFF | EventState::UNK2 | EventState::UNK3
                         } else {
                             EventState::empty()
@@ -558,19 +602,22 @@ impl Zone {
                             bind_layout_id: eobj.bound_instance_id,
                             radius: object.transform.scale[0],
                             rotation: euler_to_direction(rotation.to_euler(EulerRot::XYZ)),
-                            position: Position(translation),
+                            position: Position(translation.into()),
                             ..Default::default()
                         };
                         self.cached_objects.insert(eobj.parent_data.base_id, spawn);
+                        // NOTE: I think the use of layout_id here is intentional(?) Try the Grand Company Barracks entrance.
                         self.cached_eobj_base_ids
-                            .insert(spawn.entity_id, spawn.base_id);
+                            .insert(spawn.layout_id, spawn.base_id);
 
                         if pop_type == 1 {
                             object_spawns.push((spawn, layer.header.name.value.clone()));
                         }
                     }
 
-                    if let LayerEntryData::Treasure(treasure) = &object.data {
+                    if let LayerEntryData::Treasure(treasure) = &object.data
+                        && !explorer_mode
+                    {
                         self.cached_treasure.insert(
                             treasure.parent_data.base_id,
                             SpawnTreasure {
@@ -578,7 +625,7 @@ impl Zone {
                                 entity_id: ObjectId(fastrand::u32(..)),
                                 layout_id: object.instance_id,
                                 rotation: euler_to_direction(rotation.to_euler(EulerRot::XYZ)),
-                                position: Position(translation),
+                                position: Position(translation.into()),
                                 ..Default::default()
                             },
                         );
@@ -663,37 +710,7 @@ impl Zone {
                     link_range,
                 } = object.data
                 {
-                    let (model_chara, battalion, customize, rank, equip, behavior) =
-                        game_data.find_bnpc(base_id).unwrap();
-
-                    let usable_hp;
-                    if let Some(hp) = hp {
-                        usable_hp = hp;
-                    } else {
-                        let modifiers = game_data
-                            .get_class_job_modifiers(0)
-                            .expect("Failed to read param grow");
-
-                        let attributes = game_data
-                            .get_racial_base_attributes(0)
-                            .expect("Failed to read racial attributes");
-
-                        let param_grow = game_data
-                            .get_param_grow(level)
-                            .expect("Failed to read param grow");
-
-                        let mut base_parameters = BaseParameters::default();
-                        base_parameters.calculate_based_on_level(
-                            &attributes,
-                            level,
-                            &param_grow,
-                            &modifiers,
-                        );
-                        base_parameters.calculate_potencies(level, &param_grow, None); // TODO: If NPCs have classjob modifiers and such, change that None!
-
-                        usable_hp = base_parameters.hp;
-                    }
-
+                    let base_npc = create_npc_common_spawn(game_data, base_id, name_id, hp, level);
                     let spawn = SpawnNpc {
                         gimmick_id,
                         character_data_flags: if hostile {
@@ -701,27 +718,16 @@ impl Zone {
                         } else {
                             CharacterDataFlag::empty()
                         },
-                        character_data_icon: rank,
                         max_links,
                         link_family,
                         link_range,
                         common: CommonSpawn {
-                            base_id,
-                            name_id,
-                            max_health_points: usable_hp,
-                            health_points: usable_hp,
-                            model_chara,
-                            object_kind: ObjectKind::BattleNpc(BattleNpcSubKind::Enemy),
-                            battalion,
-                            level: level as u8,
                             position: object.position,
                             rotation: object.rotation,
-                            look: customize,
                             layout_id: object.layout_id,
-                            behavior,
-                            ..game_data.get_npc_equip(equip as u32).unwrap_or_default()
+                            ..base_npc.common
                         },
-                        ..Default::default()
+                        ..base_npc
                     };
 
                     self.cached_npcs.insert(object.layout_id, spawn.clone());
@@ -759,7 +765,7 @@ impl Zone {
     }
 
     /// Returns a list of MapRanges that overlap this position.
-    pub fn get_overlapping_map_ranges(&self, position: Vec3) -> Vec<&MapRange> {
+    pub fn get_overlapping_map_ranges(&self, position: Vec3A) -> Vec<&MapRange> {
         let mut overlapping = Vec::new();
 
         for map_range in &self.map_ranges {
@@ -790,16 +796,16 @@ impl Zone {
                     let length = map_range.scale[1] * 2.0;
                     let length_sq = f32::powi(length, 2);
 
-                    let pt1 = Vec3 {
-                        x: map_range.position.x,
-                        y: map_range.position.y - map_range.scale[1],
-                        z: map_range.position.z,
-                    };
-                    let pt2 = Vec3 {
-                        x: map_range.position.x,
-                        y: map_range.position.y + map_range.scale[1],
-                        z: map_range.position.z,
-                    };
+                    let pt1 = Vec3A::from_array([
+                        map_range.position.x,
+                        map_range.position.y - map_range.scale[1],
+                        map_range.position.z,
+                    ]);
+                    let pt2 = Vec3A::from_array([
+                        map_range.position.x,
+                        map_range.position.y + map_range.scale[1],
+                        map_range.position.z,
+                    ]);
 
                     let radius = map_range.scale[0]; // TODO: support individual radii (if that's even a thing, assert please)
                     let radius_sq = f32::powi(radius, 2);
@@ -816,7 +822,13 @@ impl Zone {
     }
 
     // From https://www.flipcode.com/archives/Fast_Point-In-Cylinder_Test.shtml
-    fn cylinder_test(pt1: Vec3, pt2: Vec3, length_sq: f32, radius_sq: f32, test_pt: Vec3) -> f32 {
+    fn cylinder_test(
+        pt1: Vec3A,
+        pt2: Vec3A,
+        length_sq: f32,
+        radius_sq: f32,
+        test_pt: Vec3A,
+    ) -> f32 {
         let dx = pt2.x - pt1.x;
         let dy = pt2.y - pt1.y;
         let dz = pt2.z - pt1.z;
@@ -840,28 +852,24 @@ fn begin_change_zone<'a>(
     data: &'a mut WorldServer,
     network: &mut NetworkState,
     game_data: &mut GameData,
+    lua: &KawariLua,
     destination_zone_id: Option<u16>,
     actor_id: ObjectId,
     warp_type: WarpType,
-    param4: u8,
-    hide_character: u8,
-    unk1: u8,
+    loading_screen_vfx_id: u16,
 ) -> (&'a mut Instance, bool) {
     if let Some(destination_zone_id) = destination_zone_id {
         let mut needs_init_zone = false;
-
-        let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::PrepareZoning {
-            target_zone: destination_zone_id,
+        let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::PrepareZoning(PrepareZoning {
+            territory_type_id: destination_zone_id,
             warp_type,
-            fade_out_time: 1,
             log_message: 0,
-            animation: 0,
-            param4,
-            hide_character,
-            param_7: 0,
-            unk1,
-            unk2: 0,
-        });
+            vfx_id: 0,
+            loading_screen_vfx_id,
+            hide_character: 0,
+            fade_out_delay: 1,
+            flags: PrepareZoningFlag::default(),
+        }));
 
         network.send_to_by_actor_id(
             actor_id,
@@ -876,32 +884,32 @@ fn begin_change_zone<'a>(
             if current_instance.zone.id != destination_zone_id
                 || matches!(warp_type, WarpType::Resurrection)
             {
-                network.remove_actor(current_instance, actor_id);
                 needs_init_zone = true;
             }
         }
 
+        if needs_init_zone {
+            remove_actor_from_instance(data, network, actor_id);
+        }
+
         // then find or create a new instance with the zone id
-        let instance = data.ensure_exists(destination_zone_id, game_data);
+        let instance = data.ensure_exists(destination_zone_id, game_data, lua);
         // Insert an empty actor that will be filled later
         instance.insert_empty_actor(actor_id);
 
         (instance, needs_init_zone)
     } else {
         let instance = data.find_actor_instance_mut(actor_id).unwrap();
-
-        let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::PrepareZoning {
-            target_zone: instance.zone.id,
+        let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::PrepareZoning(PrepareZoning {
+            territory_type_id: instance.zone.id,
             warp_type,
-            fade_out_time: 1,
             log_message: 0,
-            animation: 0,
-            param4,
-            hide_character,
-            param_7: 0,
-            unk1,
-            unk2: 0,
-        });
+            vfx_id: 0,
+            loading_screen_vfx_id,
+            hide_character: 0,
+            fade_out_delay: 1,
+            flags: PrepareZoningFlag::default(),
+        }));
 
         network.send_to_by_actor_id(
             actor_id,
@@ -913,30 +921,41 @@ fn begin_change_zone<'a>(
     }
 }
 
+/// Finds a random position from the pop range. Most have several positions available to stop people from spawning in the same place.
+fn pick_point_in_pop_range(object: &InstanceObject) -> Position {
+    let LayerEntryData::PopRange(pop_range) = &object.data else {
+        return Position(glam::Vec3A::from_array(object.transform.translation));
+    };
+
+    let Some(rand) = fastrand::choice(&pop_range.positions) else {
+        return Position(glam::Vec3A::from_array(object.transform.translation));
+    };
+
+    Position(glam::Vec3A::from_array(object.transform.translation) + glam::Vec3A::from_slice(rand))
+}
+
 /// Sends the needed information to ZoneConnection for a zone change.
 pub fn change_zone_warp_to_pop_range(
     data: &mut WorldServer,
     network: &mut NetworkState,
     game_data: &mut GameData,
+    lua: &KawariLua,
     destination_zone_id: Option<u16>,
     destination_instance_id: u32,
     actor_id: ObjectId,
     from_id: ClientId,
     warp_type: WarpType,
-    param4: u8,
-    hide_character: u8,
-    unk1: u8,
+    loading_screen_vfx_id: u16,
 ) {
     let (target_instance, needs_init_zone) = begin_change_zone(
         data,
         network,
         game_data,
+        lua,
         destination_zone_id,
         actor_id,
         warp_type,
-        param4,
-        hide_character,
-        unk1,
+        loading_screen_vfx_id,
     );
 
     let exit_position;
@@ -944,9 +963,9 @@ pub fn change_zone_warp_to_pop_range(
     if let Some((destination_object, _)) =
         target_instance.zone.find_pop_range(destination_instance_id)
     {
-        let (_, rotation, translation) =
+        let (_, rotation, _) =
             Affine3A::from(destination_object.transform).to_scale_rotation_translation();
-        exit_position = Some(Position(translation));
+        exit_position = Some(pick_point_in_pop_range(destination_object));
         exit_rotation = Some(euler_to_direction(rotation.to_euler(EulerRot::XYZ)));
     } else {
         tracing::warn!(
@@ -971,28 +990,57 @@ pub fn change_zone_warp_to_pop_range(
 /// Sends the needed information to ZoneConnection for a zone change.
 pub fn change_zone_warp_to_entrance(
     network: &mut NetworkState,
+    game_data: &mut GameData,
     target_instance: &mut Instance,
     needs_init_zone: bool,
     from_id: ClientId,
+    warp_type: WarpType,
 ) {
+    let mut destiation_object = None;
+
+    if let Some(director) = &target_instance
+        .directors
+        .iter()
+        .find(|x| x.id.handler_type() == HandlerType::PublicContent)
+    {
+        // Some PublicContent has the pop range defined in the Excel sheet, we can use that if available.
+        if let Some(pop_range_id) = game_data.find_public_content_pop_range(director.id.event_id())
+        {
+            destiation_object = target_instance
+                .zone
+                .find_pop_range(pop_range_id)
+                .map(|(x, _)| x);
+        }
+    }
+
     let exit_position;
     let exit_rotation;
     if target_instance.zone.id == 745 && target_instance.content_finder_condition_id == 476 {
         // Feast has no dungeon entrance circle. Stage in the west jail; the
         // authoritative match runtime assigns the player's team spawn afterward.
-        exit_position = Some(Position(Vec3::new(-58.0, 0.5, 0.0)));
+        exit_position = Some(Position(glam::Vec3A::new(-58.0, 0.5, 0.0)));
         exit_rotation = Some(std::f32::consts::FRAC_PI_2);
-    } else if let Some(destination_object) = target_instance.zone.find_entrance() {
-        let (_, rotation, translation) =
+    } else if let Some(destination_object) = destiation_object.or(target_instance.zone.find_entrance()) {
+        let (_, rotation, _) =
             Affine3A::from(destination_object.transform).to_scale_rotation_translation();
-        exit_position = Some(Position(translation));
+        exit_position = Some(pick_point_in_pop_range(destination_object));
         exit_rotation = Some(euler_to_direction(rotation.to_euler(EulerRot::XYZ)));
     } else {
         tracing::warn!(
             "Failed to find instanced content entrance?! This is a bug in Kawari, please report it!"
         );
-        exit_position = None;
-        exit_rotation = None;
+        // I strongly suspect things like the Battlehall actuall end up doing this anyway (but not as a fallback)
+        if let Some(destination_object) = target_instance.zone.find_random_pop_range() {
+            tracing::warn!("Picking a random poprange as a fallback...");
+
+            let (_, rotation, _) =
+                Affine3A::from(destination_object.transform).to_scale_rotation_translation();
+            exit_position = Some(pick_point_in_pop_range(destination_object));
+            exit_rotation = Some(euler_to_direction(rotation.to_euler(EulerRot::XYZ)));
+        } else {
+            exit_position = None;
+            exit_rotation = None;
+        }
     }
 
     do_change_zone(
@@ -1002,7 +1050,7 @@ pub fn change_zone_warp_to_entrance(
         exit_position,
         exit_rotation,
         from_id,
-        WarpType::Normal,
+        warp_type,
     );
 }
 
@@ -1011,6 +1059,7 @@ pub fn change_zone_to_player(
     network: &mut NetworkState,
     data: &mut WorldServer,
     game_data: &mut GameData,
+    lua: &KawariLua,
     from_id: ClientId,
     to_actor_id: ObjectId,
 ) {
@@ -1029,11 +1078,10 @@ pub fn change_zone_to_player(
         data,
         network,
         game_data,
+        lua,
         Some(destination_zone_id),
         from_actor_id,
         WarpType::Normal,
-        0,
-        0,
         0,
     );
 
@@ -1070,11 +1118,6 @@ fn do_change_zone(
         state.actor_allocator.clear();
         state.object_allocator.clear();
 
-        let director_vars = target_instance
-            .director
-            .as_ref()
-            .map(|director| director.build_var_segment());
-
         // now that we have all of the data needed, inform the connection of where they need to be
         let msg = FromServer::ChangeZone(
             target_instance.zone.id,
@@ -1083,8 +1126,7 @@ fn do_change_zone(
             exit_position.unwrap_or_default(),
             exit_rotation.unwrap_or_default(),
             target_instance.zone.to_lua_zone(target_instance.weather_id),
-            false,
-            director_vars,
+            target_instance.content_handler_id(),
         );
         network.send_to(from_id, msg, DestinationNetwork::ZoneClients);
     } else {
@@ -1093,7 +1135,7 @@ fn do_change_zone(
             position: exit_position.unwrap_or_default(),
             rotation: exit_rotation.unwrap_or_default(),
             warp_type,
-            warp_type_arg: 2, // unknown
+            arg: 2, // unknown
             ..Default::default()
         }));
         target_instance.insert_task(
@@ -1117,18 +1159,12 @@ fn can_return_after_death(actor: &NetworkedActor) -> bool {
 fn prepare_feast_respawn(instance: &mut Instance, network: &mut NetworkState, actor: ObjectId) {
     // Reinitialize the player inside this duty. Looking up territory 745 through
     // ensure_exists would move them into a public instance with content ID zero.
-    let segment = ServerZoneIpcSegment::new(ServerZoneIpcData::PrepareZoning {
-        target_zone: instance.zone.id,
+    let segment = ServerZoneIpcSegment::new(ServerZoneIpcData::PrepareZoning(PrepareZoning {
+        territory_type_id: instance.zone.id,
         warp_type: WarpType::Resurrection,
-        fade_out_time: 1,
-        log_message: 0,
-        animation: 0,
-        param4: 0,
-        hide_character: 0,
-        param_7: 0,
-        unk1: 0,
-        unk2: 0,
-    });
+        fade_out_delay: 1,
+        ..Default::default()
+    }));
     network.send_to_by_actor_id(
         actor,
         FromServer::PacketSegment(segment, actor),
@@ -1231,6 +1267,7 @@ pub fn handle_zone_messages(
     data: Arc<Mutex<WorldServer>>,
     network: Arc<Mutex<NetworkState>>,
     game_data: Arc<Mutex<GameData>>,
+    lua: Arc<Mutex<KawariLua>>,
     msg: &ToServer,
 ) -> bool {
     match msg {
@@ -1256,6 +1293,8 @@ pub fn handle_zone_messages(
                 remove_cooldowns: false,
                 last_combo_action: 0,
                 combo_sequence: 0,
+                autoattack_target: None,
+                autoattack_timing: 0,
             };
 
             super::feast_match::on_zone_loaded(instance, *from_actor_id);
@@ -1268,31 +1307,25 @@ pub fn handle_zone_messages(
             zone_id,
             new_position,
             new_rotation,
-            warp_type_info,
+            warp_type,
+            loading_screen_vfx_id,
         ) => {
             tracing::info!("{from_id:?} is requesting to go to zone {zone_id}");
 
             let mut data = data.lock();
             let mut network = network.lock();
             let mut game_data = game_data.lock();
-
-            let (warp_type, param4, hide_character, unk1) =
-                if let Some((w_type, param, hide, unk)) = warp_type_info {
-                    (*w_type, *param, *hide, *unk)
-                } else {
-                    (WarpType::Normal, 0, 0, 0)
-                };
+            let lua = lua.lock();
 
             let (target_instance, needs_init_zone) = begin_change_zone(
                 &mut data,
                 &mut network,
                 &mut game_data,
+                &lua,
                 Some(*zone_id),
                 *actor_id,
-                warp_type,
-                param4,
-                hide_character,
-                unk1,
+                *warp_type,
+                *loading_screen_vfx_id,
             );
             do_change_zone(
                 &mut network,
@@ -1301,12 +1334,18 @@ pub fn handle_zone_messages(
                 *new_position,
                 *new_rotation,
                 *from_id,
-                warp_type,
+                *warp_type,
             );
 
             true
         }
-        ToServer::EnterZoneJump(from_id, actor_id, exitbox_id, warp_type_info) => {
+        ToServer::EnterZoneJump(
+            from_id,
+            actor_id,
+            exitbox_id,
+            warp_type,
+            loading_screen_vfx_id,
+        ) => {
             let mut data = data.lock();
             let mut network = network.lock();
 
@@ -1335,26 +1374,19 @@ pub fn handle_zone_messages(
                 return true;
             }
 
-            let (warp_type, param4, hide_character, unk1) =
-                if let Some((w_type, param, hide, unk)) = warp_type_info {
-                    (*w_type, *param, *hide, *unk)
-                } else {
-                    (WarpType::Normal, 0, 0, 0)
-                };
-
             let mut game_data = game_data.lock();
+            let lua = lua.lock();
             change_zone_warp_to_pop_range(
                 &mut data,
                 &mut network,
                 &mut game_data,
+                &lua,
                 Some(destination_zone_id),
                 destination_instance_id,
                 *actor_id,
                 *from_id,
-                warp_type,
-                param4,
-                hide_character,
-                unk1,
+                *warp_type,
+                *loading_screen_vfx_id,
             );
 
             true
@@ -1363,6 +1395,7 @@ pub fn handle_zone_messages(
             let mut data = data.lock();
             let mut network = network.lock();
             let mut game_data = game_data.lock();
+            let lua = lua.lock();
 
             // first, find the warp and it's destination
             let (destination_instance_id, destination_zone_id) = game_data
@@ -1373,13 +1406,12 @@ pub fn handle_zone_messages(
                 &mut data,
                 &mut network,
                 &mut game_data,
+                &lua,
                 Some(destination_zone_id),
                 destination_instance_id,
                 *actor_id,
                 *from_id,
                 WarpType::Normal,
-                0,
-                0,
                 0,
             );
 
@@ -1451,19 +1483,19 @@ pub fn handle_zone_messages(
                 "Returning player after death"
             );
             let mut network = network.lock();
+            let lua = lua.lock();
             // A full zone initialization creates a living player with full HP/MP.
             // This must also happen when the homepoint is in the current zone.
             change_zone_warp_to_pop_range(
                 &mut data,
                 &mut network,
                 &mut game_data,
+                &lua,
                 Some(zone_id),
                 pop_range,
                 *actor_id,
                 *from_id,
                 WarpType::Resurrection,
-                0,
-                0,
                 0,
             );
             true
@@ -1472,6 +1504,7 @@ pub fn handle_zone_messages(
             let mut data = data.lock();
             let mut network = network.lock();
             let mut game_data = game_data.lock();
+            let lua = lua.lock();
 
             // first, find the warp and it's destination
             let (destination_instance_id, destination_zone_id) = game_data
@@ -1482,13 +1515,12 @@ pub fn handle_zone_messages(
                 &mut data,
                 &mut network,
                 &mut game_data,
+                &lua,
                 Some(destination_zone_id),
                 destination_instance_id,
                 *actor_id,
                 *from_id,
                 WarpType::Normal,
-                0,
-                0,
                 0,
             );
 
@@ -1498,18 +1530,18 @@ pub fn handle_zone_messages(
             let mut data = data.lock();
             let mut network = network.lock();
             let mut game_data = game_data.lock();
+            let lua = lua.lock();
 
             change_zone_warp_to_pop_range(
                 &mut data,
                 &mut network,
                 &mut game_data,
+                &lua,
                 Some(*territory_id),
                 *pop_range_id,
                 *from_actor_id,
                 *from_id,
                 WarpType::Normal,
-                0,
-                0,
                 0,
             );
 
@@ -1517,6 +1549,15 @@ pub fn handle_zone_messages(
         }
         ToServer::ZoneIn(from_id, from_actor_id, is_teleport) => {
             tracing::info!("Player {from_id:?} has finally zoned in, informing other players...");
+
+            // HACK: maybe there's states where you're dead, zone in and yet not a raise?
+            let mut data = data.lock();
+            let mut is_raise = false;
+            if let Some(instance) = data.find_actor_instance_mut(*from_actor_id)
+                && let Some(actor) = instance.find_actor_mut(*from_actor_id)
+            {
+                is_raise = actor.get_common_spawn().mode == CharacterMode::Dead;
+            }
 
             // Inform all clients to play the zone in animation
             let mut network = network.lock();
@@ -1526,7 +1567,7 @@ pub fn handle_zone_messages(
 
                 let category = ActorControlCategory::ZoneIn {
                     warp_finish_anim: 1,
-                    raise_anim: 0,
+                    raise_anim: if is_raise { 1 } else { 0 },
                     unk1: if *is_teleport { 110 } else { 0 },
                 };
 
@@ -1547,7 +1588,6 @@ pub fn handle_zone_messages(
             network.to_remove.append(&mut to_remove);
 
             // Then update the PlayerSpawn so respawning this player doesn't appear invisible again
-            let mut data = data.lock();
             if let Some(instance) = data.find_actor_instance_mut(*from_actor_id)
                 && let Some(actor) = instance.find_actor_mut(*from_actor_id)
             {
@@ -1555,6 +1595,28 @@ pub fn handle_zone_messages(
                     .get_common_spawn_mut()
                     .display_flags
                     .remove(DisplayFlag::INVISIBLE);
+
+                // Send them the current list of FATEs
+                if let Some(director) = &instance.directors.first()
+                    && director.id.handler_type() == HandlerType::Fate
+                {
+                    for fate in &instance.fates {
+                        inform_fate_spawn(&mut network, *from_actor_id, fate);
+                    }
+                }
+            }
+
+            if let Some(instance) = data.find_actor_instance_mut(*from_actor_id)
+                && is_raise
+            {
+                set_character_mode(
+                    instance,
+                    &mut network,
+                    *from_actor_id,
+                    CharacterMode::Normal,
+                    0,
+                    true,
+                );
             }
 
             true
@@ -1573,10 +1635,12 @@ pub fn handle_zone_messages(
             let mut data = data.lock();
             let mut network = network.lock();
             let mut game_data = game_data.lock();
+            let lua = lua.lock();
             change_zone_warp_to_pop_range(
                 &mut data,
                 &mut network,
                 &mut game_data,
+                &lua,
                 Some(zone_id),
                 *id,
                 *from_actor_id,
@@ -1586,8 +1650,6 @@ pub fn handle_zone_messages(
                 } else {
                     WarpType::None
                 },
-                0,
-                0,
                 0,
             );
 
@@ -1632,7 +1694,7 @@ pub fn handle_zone_messages(
             from_actor_id,
             container,
             slot,
-            catalog_id,
+            item_id,
             stain,
             position,
             indoors,
@@ -1649,7 +1711,7 @@ pub fn handle_zone_messages(
             let msg = FromServer::FurniturePlaced(
                 *container,
                 *slot,
-                *catalog_id,
+                *item_id,
                 *stain,
                 *position,
                 *indoors,

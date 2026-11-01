@@ -4,7 +4,7 @@ use kawari::{
         ContainerType, ERR_INVENTORY_ADD_FAILED, HandlerId, INVENTORY_ACTION_ACK_SHOP,
         LogMessageType, ObjectTypeId,
     },
-    ipc::zone::{ItemInfo, SceneFlags, ServerZoneIpcData, ServerZoneIpcSegment},
+    ipc::zone::{EventLogMessage, ItemInfo, SceneFlags},
 };
 
 use crate::{
@@ -53,20 +53,27 @@ impl SpecialShopEventHandler {
         let result;
 
         {
-            let mut game_data = connection.gamedata.lock();
-            result = game_data.get_specialshop_item(event.id, item_index as u16);
+            let mut game_data = connection.game_data.lock();
+            result = game_data.get_specialshop_item(event.id.0, item_index as u16);
         }
 
         // TODO: Use the ItemCost field to determine which currency is used
 
         if let Some(item_info) = result {
-            if connection.player_data.inventory.currency.gil.quantity >= item_info.price_mid {
+            if connection.player_data.inventory.currency.gil.quantity >= item_info.price_mid as i32
+            {
                 if let Some(add_result) = connection
                     .player_data
                     .inventory
                     .add_in_next_free_slot(Item::new(&item_info, 1))
                 {
-                    connection.player_data.inventory.currency.gil.quantity -= item_info.price_mid;
+                    connection.player_data.inventory.currency.gil.quantity = connection
+                        .player_data
+                        .inventory
+                        .currency
+                        .gil
+                        .quantity
+                        .saturating_sub_unsigned(item_info.price_mid);
                     ShopEventHandler::send_gilshop_item_update(
                         connection,
                         ItemInfo {
@@ -78,13 +85,13 @@ impl SpecialShopEventHandler {
                     .await;
 
                     connection
-                        .send_inventory_ack(u32::MAX, INVENTORY_ACTION_ACK_SHOP as u16)
+                        .send_inventory_ack(u32::MAX, INVENTORY_ACTION_ACK_SHOP, 0)
                         .await;
 
                     ShopEventHandler::send_gilshop_item_update(connection, add_result).await;
                     Self::send_gilshop_ack(
                         connection,
-                        event.id,
+                        event.id.0,
                         item_info.id,
                         1,
                         item_info.price_mid,
@@ -130,14 +137,13 @@ impl SpecialShopEventHandler {
         price_per_item: u32,
         message_type: LogMessageType,
     ) {
-        let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ShopLogMessage {
+        let ipc = EventLogMessage {
             handler_id: HandlerId(event_id),
             message_type: message_type as u32,
-            params_count: 3,
-            item_id,
-            item_quantity,
-            total_sale_cost: item_quantity * price_per_item,
-        });
+            params: vec![item_id, item_quantity, item_quantity * price_per_item],
+        }
+        .package()
+        .unwrap();
         connection.send_ipc_self(ipc).await;
     }
 }

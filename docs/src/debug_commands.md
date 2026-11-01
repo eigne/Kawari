@@ -1,4 +1,4 @@
-# Debug commands
+# Debug Commands
 
 These special debug commands start with `!` and are custom to Kawari.
 
@@ -12,11 +12,13 @@ These special debug commands start with `!` and are custom to Kawari.
 | `!clearconditions` | Forcefully clears all conditions set on your character. |
 | `!emptypacket <opcode> <size>` | Sends an empty IPC packet with a given opcode and size. |
 | `!equip <name>` | Forcefully equip an item, useful for bypassing class/job and other client restrictions. This will *overwrite* any item in that slot! |
-| `!fate <id>` | Spawns a temporary, test FATE for yourself. |
+| `!fate <id>` | Starts this FATE. |
+| `!fateinfo` | Tells you information about the FATE you're standing in. |
+| `!fatecomplete`| Completes the FATE that you're standing in. |
 | `!feast [leave]` | Explore Crystal Tower Training Grounds, or return to Limsa. Requires the territory 745 metadata patch on both server and client; see [Feast setup](development/feast.md#exploration-prototype). |
 | `!festival <id1> <id2> <id3> <id4>` | Sets the festival in the current zone. Multiple festivals can be set together to create interesting effects. |
 | `!finishevent` | Forcefully finishes the current event, useful if the script has an error and you're stuck talking to something. |
-| `!gate` | Spawns a non-functional debug GATE. |
+| `!gate <id>` | Spawns a non-functional debug GATE. |
 | `!item <name>` | Gives you an item matching by name. |
 | `!inspect` | Prints info about the player. |
 | `!itemlevel <level>` | Temporarily set your own item level. |
@@ -26,14 +28,14 @@ These special debug commands start with `!` and are custom to Kawari.
 | `!nudge <distance> <up/down (optional)>` | Teleport forward, back, up or down `distance` yalms. Specifying up or down will move the player up or down instead of forward or back. |
 | `!ofbg <id> <phase (optional)>` | Sets the background scenery to the given `id` during Ocean Fishing content. For a list of ids, refer to the `IKDSpot` Excel sheet. Changing `phase` doesn't seem to do much, but you can try it out here. |
 | `!reload` | Reloads `Global.lua` that is normally only loaded once at start-up. |
-| `!unlock <id>` | Unlock an action, emote, etc. for example: `1` for Return and `4` for Teleport. |
 | `!unlockbuddyequip <id>` | Unlocks the specified BuddyEquip (Companion Barding) ID. |
 | `!unlockcontent <id/all>` | Unlocks the specified instanced content. The ID to use is from the InstanceContent Excel sheet. |
 | `!shortcut <id>` | Teleports to a content shortcut defined in the Lua script. |
 | `!skipintro` | Teleports you to Limsa, unlocks all features and completes all quests. |
 | `!spawnmonster <id>` | Spawn a monster for debugging. |
 | `!whm <on/off/list/status/action>` | Test the Feast-era White Mage ruleset in territory 745. See [Feast White Mage](development/feast-white-mage.md) for actions, teams, and loadouts. |
-| `!spawnclone` | Spawn a clone of yourself. |
+| `!spectator` | Switches you to the specator camera, which can fly everywhere but still responds to collision. There's currently no way to toggle it back off. |
+| `!strikingdummy` | Summons a striking dummy at your location. |
 | `!togglemount <id>` | Toggles the unlock status of the specified mount ID. |
 | `!toggleglassesstyle <id>` | Toggles the unlock status of the specified GlassesStyle ID. |
 | `!toggleornament <id>` | Toggles the unlock status of the specified ornament ID. |
@@ -47,3 +49,9 @@ These special debug commands start with `!` and are custom to Kawari.
 | `!toggleaethercurrentcompflgset <id>` | Toggles the unlock status of the specified AetherCurrentCompFlgSet ID. |
 | `!toggleallcutscene` | Marks all cutscenes as seen. |
 | `!yell <id>` | Sends a debug NpcYell. |
+| `!path <id> <path id>` | Sends a particular NPC to follow a path. Not very useful. |
+| `!target` | Prints your currently targeted actor. |
+| `!treasurehunt` | Spawns a debug treasure hunt at your location. |
+| `!leve <id>` | Begins a debug levequest at your location. |
+| `!complete_duty` | Forcefully completes the current duty and makes the exit visible. |
+| `!aoetest <id>` | Spawns the AoE tester with a given action ID. |

@@ -1,8 +1,8 @@
 # Kawari
 
-Modern server emulator for FFXIV. Updates for on the project can be found [on my blog](https://redstrate.com/blog/series/kawari-progress-report/).
+Modern server emulator for FFXIV. Updates on the project can be found [on my blog](https://redstrate.com/blog/series/kawari-progress-report/).
 
-Kawari currently supports patch **7.51h2** (2026.06.18.0000.0000). We only support the Windows client. If you're looking for a 1.x server, check out our sister project [Kodama](https://codeberg.org/redstrate/Kodama).
+Kawari currently supports patch **7.57h1** (2026.10.16.0000.0000). We only support the Windows client. If you're looking for a 1.x server, check out our sister project [Kodama](https://codeberg.org/redstrate/Kodama).
 
 To get started, there is a guide to [running Kawari in our documentation](https://docs.xiv.zone/kawari/setup/overview.html).
 

@@ -4,7 +4,10 @@ use kawari::{
         ContainerType, ERR_INVENTORY_ADD_FAILED, HandlerId, INVENTORY_ACTION_ACK_SHOP,
         ItemOperationKind, LogMessageType, ObjectTypeId,
     },
-    ipc::zone::{ItemInfo, ItemOperation, SceneFlags, ServerZoneIpcData, ServerZoneIpcSegment},
+    ipc::zone::{
+        EventLogMessage, ItemInfo, ItemOperation, SceneFlags, ServerZoneIpcData,
+        ServerZoneIpcSegment,
+    },
 };
 
 use crate::{
@@ -83,7 +86,9 @@ impl ShopEventHandler {
             .remove_item(shop_id, buyback_index);
 
         // Queue up the player's adjusted gil, but we're not going to send an entire inventory update to the client.
-        let cost = item_dst_info.quantity * bb_item.price_low;
+        let cost = item_dst_info
+            .quantity
+            .saturating_mul(bb_item.price_low as i32);
         let new_gil = connection.player_data.inventory.currency.gil.quantity - cost;
         connection.player_data.inventory.currency.gil.quantity = new_gil;
 
@@ -98,19 +103,20 @@ impl ShopEventHandler {
             })),
             ServerZoneIpcSegment::new(ServerZoneIpcData::InventoryActionAck {
                 sequence: u32::MAX,
-                action_type: INVENTORY_ACTION_ACK_SHOP as u16,
+                action_type: INVENTORY_ACTION_ACK_SHOP,
+                unk1: 0,
+                equipped_items_inventory_type: ContainerType::Inventory0, // TODO: wrong!!!
             }),
             ServerZoneIpcSegment::new(ServerZoneIpcData::UpdateInventorySlot(
                 item_dst_info.clone(),
             )),
-            ServerZoneIpcSegment::new(ServerZoneIpcData::ShopLogMessage {
+            EventLogMessage {
                 handler_id: HandlerId(shop_id),
                 message_type: LogMessageType::ItemBoughtBack as u32,
-                params_count: 3,
-                item_id: bb_item.item_id,
-                item_quantity: item_dst_info.quantity,
-                total_sale_cost: item_dst_info.quantity * bb_item.price_low,
-            }),
+                params: vec![bb_item.item_id, item_dst_info.quantity as u32, cost as u32],
+            }
+            .package()
+            .unwrap(),
         ];
 
         // Finally, queue up the packets required to make the magic happen.
@@ -126,7 +132,7 @@ impl ShopEventHandler {
     ) {
         let buy_sell_mode = results[0];
         let item_index = results[1];
-        let item_quantity = results[2] as u32;
+        let item_quantity = results[2];
 
         tracing::info!(
             "Client is interacting with a shop! {:#?} {buy_sell_mode:#?} {item_quantity:#?} {item_index:#?}",
@@ -139,21 +145,25 @@ impl ShopEventHandler {
         if buy_sell_mode == BUY {
             let result;
             {
-                let mut game_data = connection.gamedata.lock();
-                result = game_data.get_gilshop_item(event.id, item_index as u16);
+                let mut game_data = connection.game_data.lock();
+                result = game_data.get_gilshop_item(event.id.0, item_index as u16);
             }
 
             if let Some(item_info) = result {
-                if connection.player_data.inventory.currency.gil.quantity
-                    >= item_quantity * item_info.price_mid
-                {
+                let cost = item_quantity.saturating_mul(item_info.price_mid as i32);
+                if connection.player_data.inventory.currency.gil.quantity >= cost {
                     if let Some(add_result) = connection
                         .player_data
                         .inventory
                         .add_in_next_free_slot(Item::new(&item_info, item_quantity))
                     {
-                        connection.player_data.inventory.currency.gil.quantity -=
-                            item_quantity * item_info.price_mid;
+                        connection.player_data.inventory.currency.gil.quantity = connection
+                            .player_data
+                            .inventory
+                            .currency
+                            .gil
+                            .quantity
+                            .saturating_sub(cost);
                         Self::send_gilshop_item_update(
                             connection,
                             ItemInfo {
@@ -165,15 +175,15 @@ impl ShopEventHandler {
                         .await;
 
                         connection
-                            .send_inventory_ack(u32::MAX, INVENTORY_ACTION_ACK_SHOP as u16)
+                            .send_inventory_ack(u32::MAX, INVENTORY_ACTION_ACK_SHOP, 0)
                             .await;
 
                         Self::send_gilshop_item_update(connection, add_result).await;
                         Self::send_gilshop_ack(
                             connection,
-                            event.id,
+                            event.id.0,
                             item_info.id,
-                            item_quantity,
+                            item_quantity as u32,
                             item_info.price_mid,
                             LogMessageType::ItemBought,
                         )
@@ -219,7 +229,7 @@ impl ShopEventHandler {
                     );
                     return;
                 };
-                let mut game_data = connection.gamedata.lock();
+                let mut game_data = connection.game_data.lock();
                 result = game_data.get_item_info(ItemInfoQuery::ById(item.item_id));
                 quantity = item.quantity;
             }
@@ -229,10 +239,10 @@ impl ShopEventHandler {
                 connection
                     .player_data
                     .buyback_list
-                    .push_item(event.id, bb_item);
+                    .push_item(event.id.0, bb_item);
 
                 connection.player_data.inventory.currency.gil.quantity +=
-                    quantity * item_info.price_low;
+                    quantity.saturating_mul(item_info.price_low as i32);
                 Self::send_gilshop_item_update(
                     connection,
                     ItemInfo {
@@ -258,14 +268,14 @@ impl ShopEventHandler {
                     src_actor_id: connection.player_data.character.actor_id,
                     src_storage_id: ContainerType::Currency,
                     src_container_index: 0,
-                    src_stack: connection.player_data.inventory.currency.gil.quantity,
-                    src_catalog_id: CurrencyKind::Gil as u32,
+                    src_stack: connection.player_data.inventory.currency.gil.quantity as u32,
+                    src_item_id: CurrencyKind::Gil as u32,
                     dst_actor_id: Default::default(),
                     dummy_container: ContainerType::DiscardingItemSentinel,
                     dst_storage_id: ContainerType::DiscardingItemSentinel,
                     dst_container_index: u16::MAX,
                     dst_stack: 0,
-                    dst_catalog_id: 0,
+                    dst_item_id: 0,
                 });
                 connection.send_ipc_self(ipc).await;
 
@@ -285,26 +295,26 @@ impl ShopEventHandler {
                     src_actor_id: connection.player_data.character.actor_id,
                     src_storage_id: storage,
                     src_container_index: index as u16,
-                    src_stack: quantity,
-                    src_catalog_id: item_info.id,
+                    src_stack: quantity as u32,
+                    src_item_id: item_info.id,
                     dst_actor_id: Default::default(),
                     dummy_container: ContainerType::DiscardingItemSentinel,
                     dst_storage_id: ContainerType::DiscardingItemSentinel,
                     dst_container_index: u16::MAX,
                     dst_stack: 0,
-                    dst_catalog_id: 0,
+                    dst_item_id: 0,
                 });
                 connection.send_ipc_self(ipc).await;
 
                 connection
-                    .send_inventory_transaction_finish(0x100, 0x300)
+                    .send_inventory_transaction_finish(ItemOperationKind::UnkTrading2, 0x300)
                     .await;
 
                 Self::send_gilshop_ack(
                     connection,
-                    event.id,
+                    event.id.0,
                     item_info.id,
-                    quantity,
+                    quantity as u32,
                     item_info.price_low,
                     LogMessageType::ItemSold,
                 )
@@ -313,7 +323,7 @@ impl ShopEventHandler {
                 let mut params = connection
                     .player_data
                     .buyback_list
-                    .as_scene_params(event.id, false);
+                    .as_scene_params(event.id.0, false);
                 params[0] = SELL as u32;
                 params[1] = 0; // The "terminator" is 0 for sell mode.
                 connection
@@ -338,14 +348,13 @@ impl ShopEventHandler {
         price_per_item: u32,
         message_type: LogMessageType,
     ) {
-        let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::ShopLogMessage {
+        let ipc = EventLogMessage {
             handler_id: HandlerId(event_id),
             message_type: message_type as u32,
-            params_count: 3,
-            item_id,
-            item_quantity,
-            total_sale_cost: item_quantity * price_per_item,
-        });
+            params: vec![item_id, item_quantity, item_quantity * price_per_item],
+        }
+        .package()
+        .unwrap();
         connection.send_ipc_self(ipc).await;
     }
 
@@ -392,7 +401,7 @@ impl EventHandler for ShopEventHandler {
         // When the client concludes business with the shop, the scene finishes and returns control to the server. The server will then have the client play scene 255 with no params.
 
         if scene == Self::SCENE_GREETING {
-            let buyback_list = Self::get_buyback_list(connection, event.id, true);
+            let buyback_list = Self::get_buyback_list(connection, event.id.0, true);
             player.play_scene(
                 Self::SCENE_SHOW_SHOP,
                 SceneFlags::NO_DEFAULT_CAMERA | SceneFlags::HIDE_HOTBAR,
@@ -403,9 +412,9 @@ impl EventHandler for ShopEventHandler {
             // It shouldn't even be possible to get into a situation where results[1] isn't BUYBACK, but we'll leave it as a guard.
             if !results.is_empty() && results[0] == buyback {
                 let item_index = results[1];
-                Self::do_gilshop_buyback(connection, event.id, item_index as u32).await;
+                Self::do_gilshop_buyback(connection, event.id.0, item_index as u32).await;
 
-                let mut buyback_list = Self::get_buyback_list(connection, event.id, false);
+                let mut buyback_list = Self::get_buyback_list(connection, event.id.0, false);
                 buyback_list[0] = buyback as u32;
                 buyback_list[1] = 100; // Unknown what this 100 represents: a terminator, perhaps? For sell mode it's 0, while buy and buyback are both 100.
                 player.play_scene(

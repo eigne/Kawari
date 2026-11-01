@@ -7,7 +7,6 @@ use binrw::binrw;
 use bitflags::bitflags;
 
 #[binrw]
-#[brw(little)]
 #[derive(Clone, Default, Debug)]
 pub struct SearchInfo {
     pub online_status: OnlineStatusMask,
@@ -19,7 +18,7 @@ pub struct SearchInfo {
     #[bw(map = write_string)]
     pub comment: String,
     #[br(count = 138)]
-    #[bw(pad_size_to = 138)]
+    #[brw(pad_size_to = 138)]
     pub unk: Vec<u8>,
 }
 
@@ -64,7 +63,6 @@ impl From<&GrandCompany> for SearchUIGrandCompanies {
 }
 
 #[binrw]
-#[brw(little)]
 #[derive(Clone, Copy, Default, Hash, PartialEq)]
 pub struct SearchUIClassJobMask {
     pub flags: [u8; 8],

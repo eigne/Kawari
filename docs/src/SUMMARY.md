@@ -6,22 +6,24 @@
   - [Windows](setup/windows.md)
   - [macOS](setup/macos.md)
   - [Linux](setup/linux.md)
-  - [Local development](setup/source.md)
+  - [Local Development](setup/source.md)
   - [Profiling](profiling.md)
 - [Contributing](contributing.md)
   - [Developer guide: architecture](development/architecture.md)
     - [Gameplay systems](development/gameplay.md)
     - [Building toward Feast 4v4](development/feast.md)
       - [Feast White Mage prototype](development/feast-white-mage.md)
-  - [Lua style guide](scripting/style_guide.md)
-  - [New Patch in-game Checklist](update_ingame_checklist.md)
-
+  - [Lua Style Guide](scripting/style_guide.md)
+- [Updating](updating.md)
+  - [In-Game Checklist](update_ingame_checklist.md)
+  
 # Usage
+- [Configuration](configuration.md)
 - [GM Commands](gm_commands.md)
 - [Debug Commands](debug_commands.md)
 - [Tips](tips.md)
 - [Patching](patching.md)
-- [Connecting From Other Machines](external_connections.md)
+- [Troubleshooting](troubleshooting.md)
 
 # Extending Kawari
 - [Extensibility](extensibility.md)
@@ -36,7 +38,7 @@
   - [Setting up TemporalStasis](packets/temporalstasis.md)
   - [Dissection](packets/dissection.md)
   - [Tips](packets/tips.md)
-  - [Sending captures](packets/sending_captures.md)
+  - [Sending Captures](packets/sending_captures.md)
   - [Opcodes](opcodes.md)
 - [Events](scripting/scripter.md)
 

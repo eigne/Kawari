@@ -14,23 +14,23 @@ This guide covers how to setup Kawari on Windows, which also includes Wine.
 
 ## Downloading Kawari
 
-Download the [latest build for Windows x86_64 from xiv.zone](https://xiv.zone/distrib/kawari/kawari-windows-x86_64.zip) (or pick a specific build from [Github Actions](https://github.com/redstrate/Kawari/actions).)
+Download the [latest build for Windows x86_64 from xiv.zone](https://xiv.zone/distrib/kawari/kawari-windows-x86_64.zip) (or pick a specific build from [the CI](https://codeberg.org/redstrate/Kawari/actions).)
 
 ## Setup
 
 Place the `oodle-network-shared.dll` from the Oodle zip you downloaded next to the Kawari executables.
 
-## Configuration
-
-{{#include configuration.md}}
-
 ## Hosts setup
 
 {{#include hosts.md}}
 
+This file is located under `C:\Windows\System32\Drivers\etc\hosts` on Windows.
+
+Run `ipconfig /flushdns` if you get network issues while trying to launch. This ensures the modifications to your hosts file is actually used. If you get a version check failed message, it means the patch servers are unreachable.
+
 ## Running
 
-Run the server by executing `kawari-run.exe`.
+Run the server by double-clicking `kawari-run.exe`.
 
 ## Logging in
 

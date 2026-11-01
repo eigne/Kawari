@@ -2,9 +2,9 @@
 
 use std::str::FromStr;
 
-use bstr::BString;
 use mlua::Function;
 use physis::equipment::EquipSlot;
+use physis::sestring::SeString;
 
 use crate::{
     Event, EventHandler, ItemInfoQuery, MessageInfo, ZoneConnection,
@@ -12,9 +12,7 @@ use crate::{
     lua::{KawariLuaState, LuaPlayer},
 };
 use kawari::{
-    common::{
-        DirectorEvent, ERR_INVENTORY_ADD_FAILED, FateState, HandlerId, HandlerType, ObjectTypeId,
-    },
+    common::{ERR_INVENTORY_ADD_FAILED, HandlerId, HandlerType, ObjectTypeId},
     config::get_config,
     ipc::zone::{
         ActorControlCategory, ChatMessage, Condition, Conditions, GameMasterRank,
@@ -127,7 +125,7 @@ impl ZoneConnection {
     /// Returns true if the debug command is handled, otherwise false.
     pub async fn process_debug_commands(
         &mut self,
-        chat_message: &BString, // TODO: Replace this with an SEString
+        chat_message: &SeString, // TODO: Replace this with an SEString
         events: &mut Vec<(Box<dyn EventHandler>, Event)>,
     ) -> bool {
         if self.player_data.character.gm_rank == GameMasterRank::NormalUser {
@@ -145,8 +143,9 @@ impl ZoneConnection {
                 if let Some((_, name)) = chat_message.split_once(' ') {
                     let item_info;
                     {
-                        let mut gamedata = self.gamedata.lock();
-                        item_info = gamedata.get_item_info(ItemInfoQuery::ByName(name.to_string()));
+                        let mut game_data = self.game_data.lock();
+                        item_info =
+                            game_data.get_item_info(ItemInfoQuery::ByName(name.to_string()));
                     }
                     if let Some(item_info) = item_info {
                         let equip_slot = EquipSlot::from(&item_info.equip_category);
@@ -179,10 +178,10 @@ impl ZoneConnection {
                 if let Some((_, name)) = chat_message.split_once(' ') {
                     let mut result = None;
                     {
-                        let mut gamedata = self.gamedata.lock();
+                        let mut game_data = self.game_data.lock();
 
                         if let Some(item_info) =
-                            gamedata.get_item_info(ItemInfoQuery::ByName(name.to_string()))
+                            game_data.get_item_info(ItemInfoQuery::ByName(name.to_string()))
                         {
                             result = self
                                 .player_data
@@ -235,82 +234,52 @@ impl ZoneConnection {
             }
             "!acs" => {
                 let parts: Vec<&str> = chat_message.split(' ').collect();
-
-                self.actor_control_self(ActorControlCategory::Unknown {
-                    category: parts.get(1).cloned().unwrap().parse().unwrap(),
-                    param1: parts
-                        .get(2)
-                        .cloned()
-                        .unwrap_or_default()
-                        .parse()
-                        .unwrap_or_default(),
-                    param2: parts
-                        .get(3)
-                        .cloned()
-                        .unwrap_or_default()
-                        .parse()
-                        .unwrap_or_default(),
-                    param3: parts
-                        .get(4)
-                        .cloned()
-                        .unwrap_or_default()
-                        .parse()
-                        .unwrap_or_default(),
-                    param4: parts
-                        .get(5)
-                        .cloned()
-                        .unwrap_or_default()
-                        .parse()
-                        .unwrap_or_default(),
-                    param5: parts
-                        .get(6)
-                        .cloned()
-                        .unwrap_or_default()
-                        .parse()
-                        .unwrap_or_default(),
-                })
-                .await;
-
-                true
-            }
-            "!fate" => {
-                if let Some((_, fate_id)) = chat_message.split_once(' ') {
-                    let fate_id = fate_id.parse().unwrap();
-
-                    self.actor_control_self(ActorControlCategory::CreateFateContext {
-                        fate_id,
-                        is_bonus: 0,
+                if parts.len() > 1 {
+                    self.actor_control_self(ActorControlCategory::Unknown {
+                        category: parts.get(1).cloned().unwrap().parse().unwrap_or_default(),
+                        param1: parts
+                            .get(2)
+                            .cloned()
+                            .unwrap_or_default()
+                            .parse()
+                            .unwrap_or_default(),
+                        param2: parts
+                            .get(3)
+                            .cloned()
+                            .unwrap_or_default()
+                            .parse()
+                            .unwrap_or_default(),
+                        param3: parts
+                            .get(4)
+                            .cloned()
+                            .unwrap_or_default()
+                            .parse()
+                            .unwrap_or_default(),
+                        param4: parts
+                            .get(5)
+                            .cloned()
+                            .unwrap_or_default()
+                            .parse()
+                            .unwrap_or_default(),
+                        param5: parts
+                            .get(6)
+                            .cloned()
+                            .unwrap_or_default()
+                            .parse()
+                            .unwrap_or_default(),
                     })
                     .await;
-
-                    self.send_ipc_self(ServerZoneIpcSegment::new(ServerZoneIpcData::UnkFate {
-                        fate_id,
-                        unk1: 0,
-                        unk2: 1774393044,
-                        unk3: 0,
-                        unk4: 900,
-                        unk5: 0,
-                    }))
-                    .await;
-
-                    self.actor_control_self(ActorControlCategory::FateInit {
-                        fate_id,
-                        fate_state: FateState::Running,
-                    })
-                    .await;
-                    self.actor_control_self(ActorControlCategory::UnkFate12 { fate_id })
-                        .await;
                 }
 
                 true
             }
             "!yell" => {
                 if let Some((_, npc_yell_id)) = chat_message.split_once(' ') {
-                    let npc_yell_id = npc_yell_id.parse().unwrap();
+                    let npc_yell_id = npc_yell_id.parse().unwrap_or_default();
 
                     let name_id;
                     {
-                        let mut game_data = self.gamedata.lock();
+                        let mut game_data = self.game_data.lock();
                         name_id = game_data
                             .get_npc_yell_name_id(npc_yell_id)
                             .unwrap_or_default();
@@ -331,105 +300,77 @@ impl ZoneConnection {
                 true
             }
             "!gate" => {
-                self.send_ipc_self(ServerZoneIpcSegment::new(ServerZoneIpcData::NpcYell {
-                    object_id: ObjectTypeId::default(),
-                    name_id: 1010448,
-                    npc_yell_id: 2450,
-                    param1: 3,
-                    param2: 7,
-                    param3: 0,
-                    param4: 0,
-                }))
-                .await;
+                if let Some((_, id)) = chat_message.split_once(' ')
+                    && let Ok(id) = id.parse()
+                {
+                    let handler_id = HandlerId::new(HandlerType::GoldSaucer, 119); // TODO: unsure how this is decided
+                    let row;
+                    let npc_yell_id = 2450; // <?:96>The limited-time event “<?:9>” is now underway <?:9>. All guests are encouraged to participate!
+                    let name_id;
+                    {
+                        let mut game_data = self.game_data.lock();
+                        let Some(gate_row) = game_data.get_gate(id) else {
+                            return true;
+                        };
+                        row = gate_row;
+                        let Some(yell_name_id) = game_data.get_npc_yell_name_id(2450) else {
+                            return true;
+                        };
+                        name_id = yell_name_id;
+                    }
 
-                self.actor_control_self(ActorControlCategory::InitDirector {
-                    handler_id: HandlerId::new(HandlerType::GoldSaucer, 1319),
-                    content_id: 10,
-                    flags: 0,
-                })
-                .await;
+                    self.send_ipc_self(ServerZoneIpcSegment::new(ServerZoneIpcData::NpcYell {
+                        object_id: ObjectTypeId::default(),
+                        name_id,
+                        npc_yell_id,
+                        param1: row.Unknown11 as u32, // TODO: Rename to Location
+                        param2: row.Type as u32,
+                        param3: 0,
+                        param4: 0,
+                    }))
+                    .await;
 
-                self.actor_control_self(ActorControlCategory::DirectorEvent {
-                    handler_id: HandlerId::new(HandlerType::GoldSaucer, 1319),
-                    event: DirectorEvent::Unknown {
-                        id: 11,
-                        arg1: 3,
-                        arg2: 0,
-                        arg3: 0,
-                        arg4: 0,
-                    },
-                })
-                .await;
+                    self.actor_control_self(ActorControlCategory::InitDirector {
+                        handler_id,
+                        content_id: 2, // TODO: ditto
+                        flags: 0,
+                    })
+                    .await;
+                }
 
-                true
-            }
-            "!ofbg" => {
-                let parts: Vec<&str> = chat_message.split(' ').collect();
-
-                // TODO: Should we reject doing this if it's attempted from other types of content?
-                // Ocean fishing uses "festival" ids of 101 & 102, set when entering the zone, but it's more convenient to set it in this command for the time being
-                self.actor_control_self(ActorControlCategory::SetFestival {
-                    festival1: 101,
-                    festival2: 102,
-                    festival3: 0,
-                    festival4: 0,
-                })
-                .await;
-                // The director sends this with a background arg and a "phase" arg when the scenery needs to change. See the IKDSpot sheet for arg1 values (the row number should be increased by 1, so Kugane Coast would be 10, not 9).
-                self.actor_control_self(ActorControlCategory::DirectorEvent {
-                    handler_id: self.content_handler_id,
-                    event: DirectorEvent::Unknown {
-                        id: 2,
-                        arg1: parts
-                            .get(1)
-                            .cloned()
-                            .unwrap_or_default()
-                            .parse()
-                            .unwrap_or_default(),
-                        arg2: parts
-                            .get(2)
-                            .cloned()
-                            .unwrap_or_default()
-                            .parse()
-                            .unwrap_or_default(),
-                        arg3: 0,
-                        arg4: 0,
-                    },
-                })
-                .await;
                 true
             }
             "!settime" => {
-                // TODO: Figure out how UTC is converted to Eorzean time and make this friendly by allowing for strings such as "6:30PM" or "18:30"
-                // TODO: Write the GM command equivalent which would just set the time offset directly as an i64/u64 (whichever this actually is)
-                let val = chat_message.split_once(' ').unwrap();
-                let val = val.1.parse::<i64>().unwrap();
-                self.set_eorzean_time(val).await;
+                if let Some((_, val)) = chat_message.split_once(' ') {
+                    // TODO: Figure out how UTC is converted to Eorzean time and make this friendly by allowing for strings such as "6:30PM" or "18:30"
+                    // TODO: Write the GM command equivalent which would just set the time offset directly as an i64/u64 (whichever this actually is)
+                    let val = val.parse::<i64>().unwrap_or_default();
+                    self.set_eorzean_time(val).await;
+                }
 
                 true
             }
             "!emptypacket" => {
                 let parts: Vec<&str> = chat_message.split(' ').collect();
-
-                self.send_arbitrary_packet(
-                    parts.get(1).unwrap().parse().unwrap(),
-                    vec![0; parts.get(2).unwrap().parse().unwrap()],
-                )
-                .await;
+                if parts.len() == 3 {
+                    self.send_arbitrary_packet(
+                        parts.get(1).unwrap().parse().unwrap_or_default(),
+                        vec![0; parts.get(2).unwrap().parse().unwrap_or_default()],
+                    )
+                    .await;
+                }
 
                 true
             }
-            "!mapeffect" => {
-                let parts: Vec<&str> = chat_message.split(' ').collect();
-
-                let ipc = ServerZoneIpcSegment::new(ServerZoneIpcData::DirectorMapEffect {
-                    handler_id: self.content_handler_id,
-                    state: parts.get(1).cloned().unwrap_or_default().parse().unwrap(),
-                    timeline_id: parts.get(2).cloned().unwrap_or_default().parse().unwrap(),
-                    index: parts.get(3).cloned().unwrap_or_default().parse().unwrap(),
-                });
-                self.send_ipc_self(ipc).await;
-
+            "!spectator" => {
+                self.actor_control_self(ActorControlCategory::InitializeSpectatorManager {
+                    row_id: 0,
+                    unk2: 0,
+                    unk3: 0,
+                })
+                .await;
+                // This ACS has to be delayed, otherwise it doesn't take effect.
+                self.hide_spectator_ui = true;
                 true
             }
             _ => false,
