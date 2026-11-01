@@ -9,7 +9,7 @@ is available through native hotbar actions. The server now implements a
 [small-team match prototype](../../docs/src/development/feast-match.md) with a
 countdown, medals and results. Matchmaking and the historical client HUD are not restored.
 
-The supported Windows client build is **2026.06.18.0000.0000 (7.51h2)**. The arena's
+The supported Windows client build is **2026.10.16.0000.0000 (7.57h1)**. The arena's
 `bg/ffxiv/pvp_xx/pvp/l1p2/level/l1p2.lvb` and its main assets still exist in this
 build, but the territory row is blank. The ZoneInit packet supplies a territory ID,
 so **the client and server both need the restored definition**. A server-only
@@ -24,7 +24,7 @@ standard library. Substitute your Python executable and game path where needed.
    and original-byte backup; it does not change the installation.
 
    ```powershell
-   python tools/feast-map/feast_map.py prepare --game "C:\Program Files (x86)\SquareEnix\FINAL FANTASY XIV - A Realm Reborn\game" --output backups/feast-map-7.51h2
+   python tools/feast-map/feast_map.py prepare --game "C:\Program Files (x86)\SquareEnix\FINAL FANTASY XIV - A Realm Reborn\game" --output backups/feast-map-7.57h1
    ```
 
 2. Close FFXIV, its launchers, and Kawari. Apply the prepared patch:
@@ -36,7 +36,7 @@ standard library. Substitute your Python executable and game path where needed.
    The helper requests normal Windows UAC elevation for the installation under
    Program Files. It can find the bundled Codex Python runtime, or use `python` on
    PATH. Pass `-Python C:\path\to\python.exe` to choose another interpreter.
-   The result is recorded in `backups/feast-map-7.51h2/install.log`.
+   The result is recorded in `backups/feast-map-7.57h1/install.log`.
 
 3. Start the server from **this checkout**, using the same `filesystem.game_path`,
    then start the client and log in with a debug GM character. In ordinary chat:
@@ -69,7 +69,7 @@ client update or an unrelated modification. A normal game repair/update may also
 replace this local modification. Recheck compatibility before reapplying it.
 
 For a writable installation without elevation, the equivalent commands are
-`python tools/feast-map/feast_map.py install --output backups/feast-map-7.51h2`
+`python tools/feast-map/feast_map.py install --output backups/feast-map-7.57h1`
 and the same command with `restore` in place of `install`.
 
 ## Scope and checks

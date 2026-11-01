@@ -5,7 +5,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$patchDirectory = Join-Path $repositoryRoot 'backups\feast-duty-7.51h2'
+$patchDirectory = Join-Path $repositoryRoot 'backups\feast-duty-7.57h1'
 $toolPath = Join-Path $PSScriptRoot 'install_feast_duty.py'
 
 if (-not $Python) {

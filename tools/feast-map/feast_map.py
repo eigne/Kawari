@@ -1,4 +1,4 @@
-"""Restore territory 745 for exploration on Kawari's 7.51h2 Windows client.
+"""Restore territory 745 for exploration on Kawari's 7.57h1 Windows client.
 
 Python 3.9+, standard library only. prepare is read-only with respect to the game.
 install/restore touch one existing SqPack allocation, with a verified backup.
@@ -13,7 +13,7 @@ import struct
 import subprocess
 import zlib
 
-BUILD = "2026.06.18.0000.0000"
+BUILD = "2026.10.16.0000.0000"
 TERRITORY = 745
 BG = "ffxiv/pvp_xx/pvp/l1p2/level/l1p2"
 HEADER_PATH = "exd/territorytype.exh"
