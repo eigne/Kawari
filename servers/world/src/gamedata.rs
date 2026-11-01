@@ -566,7 +566,7 @@ impl GameData {
                 .filter(|x| **x != 0)
                 .copied()
                 .collect();
-            let pop_range_id = fastrand::choice(locations).unwrap();
+            let pop_range_id = fastrand::choice(locations)?;
             let zone_id = row.Territory;
 
             Some((pop_range_id, zone_id))

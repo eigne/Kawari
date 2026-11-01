@@ -1515,9 +1515,12 @@ pub fn handle_zone_messages(
             let lua = lua.lock();
 
             // first, find the warp and it's destination
-            let (destination_instance_id, destination_zone_id) = game_data
-                .get_aetheryte(*aetheryte_id, *housing_aethernet)
-                .expect("Failed to find the aetheryte!");
+            let Some((destination_instance_id, destination_zone_id)) =
+                game_data.get_aetheryte(*aetheryte_id, *housing_aethernet)
+            else {
+                tracing::warn!("Aetheryte {aetheryte_id} has no destination, ignoring the warp");
+                return true;
+            };
 
             change_zone_warp_to_pop_range(
                 &mut data,
