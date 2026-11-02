@@ -68,13 +68,13 @@ mod tests {
             target: kawari::common::ObjectTypeId { object_id: id, ..Default::default() },
             ..Default::default()
         };
-        native_action(&mut instance, &network, id, &request, None);
+        native_action(&mut instance, &network, id, &request);
         assert_eq!(instance.find_actor(id).unwrap().get_common_spawn().health_points, 1000);
         instance.feast_whm.as_ref().unwrap().lua.load("feast.players[1].adrenaline=100").exec().unwrap();
-        native_action(&mut instance, &network, id, &request, None);
+        native_action(&mut instance, &network, id, &request);
         assert_eq!(instance.find_actor(id).unwrap().get_common_spawn().health_points, 11000);
         assert_eq!(instance.feast_whm.as_ref().unwrap().adrenaline(1), 0);
-        native_action(&mut instance, &network, id, &request, None);
+        native_action(&mut instance, &network, id, &request);
         assert_eq!(instance.find_actor(id).unwrap().get_common_spawn().health_points, 11000);
     }
     #[test]
@@ -138,7 +138,7 @@ mod tests {
             },
             ..Default::default()
         };
-        native_action(&mut instance, &network, id, &request, Some(57));
+        native_action(&mut instance, &network, id, &request);
         let engine = instance.feast_whm.as_ref().unwrap();
         assert!(engine.enabled(id));
         assert_eq!(engine.party_actions(id.0).unwrap(), vec![(3362, 0), (17832, 0), (18957, 0)]);
@@ -153,7 +153,7 @@ mod tests {
         );
         let mut denied = request.clone();
         denied.sequence = 43;
-        native_action(&mut instance, &network, id, &denied, Some(57));
+        native_action(&mut instance, &network, id, &denied);
         let engine = instance.feast_whm.as_ref().unwrap();
         assert_eq!(engine.native_requests[&id].sequence, 42);
         engine.function("advance").unwrap().call::<()>(2.0).unwrap();
@@ -967,11 +967,9 @@ pub fn native_action(
     network: &Arc<Mutex<NetworkState>>,
     actor: ObjectId,
     request: &kawari::ipc::zone::ActionRequest,
-    cooldown_group: Option<u32>,
 ) {
     let historical = native_action_name(request.action_id)
         .and_then(|name| job_actions().iter().find(|a| a.key == name));
-    let cooldown_group = historical.and_then(|a| u32::try_from(a.group).ok()).or(cooldown_group);
     if instance.zone.id != 745 {
         return;
     }
@@ -1037,26 +1035,9 @@ pub fn native_action(
                             cooldown_group: 57, unk1: 0, unk2: 240,
                         }), DestinationNetwork::ZoneClients);
                 }
-                if let Some(group) = cooldown_group {
-                    let engine = instance.feast_whm.as_ref().unwrap();
-                    match engine
-                        .function("recast")
-                        .and_then(|f| f.call::<(u32, u32)>((actor.0, name.unwrap(), engine.now())))
-                    {
-                        Ok((elapsed, total)) => network.lock().send_to_by_actor_id(
-                            actor,
-                            FromServer::ActorControlSelf(ActorControlCategory::SetCooldownTimer {
-                                cooldown_group: group,
-                                unk1: elapsed,
-                                unk2: total,
-                            }),
-                            DestinationNetwork::ZoneClients,
-                        ),
-                        Err(error) => {
-                            tracing::error!(%error, "Feast recast synchronization failed")
-                        }
-                    }
-                }
+                // The client already started this recast when it sent the request, using the
+                // HUD's Feast recast and charges. Resending it here arrived a round trip late and
+                // visibly rolled the hotbar sweep back; refusals and refunds still resync it.
             } else {
                 network.lock().send_to_by_actor_id(
                     actor,
