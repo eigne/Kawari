@@ -1,7 +1,7 @@
 //! Small-team Feast match rules. Time and positions are supplied by the world server.
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const COUNTDOWN: f64 = 60.0;
+pub const COUNTDOWN: f64 = 5.0;
 pub const MATCH_TIME: f64 = 360.0;
 pub const SUDDEN_DEATH: f64 = 120.0;
 // The official guide does not specify these two values. Prototype tuning.

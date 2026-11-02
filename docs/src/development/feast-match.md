@@ -1,6 +1,6 @@
 # Feast match prototype
 
-Territory 745 starts a 10-second preparation countdown when its first player
+Territory 745 starts a 5-second preparation countdown when its first player
 arrives. The server balances arrivals between Fangs and Claws, up to four on each
 side. Small teams (including solo testing) are allowed. The roster locks when the
 six-minute match begins. New arrivals wait for the next match; changing jobs during

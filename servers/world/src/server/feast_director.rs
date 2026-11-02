@@ -136,7 +136,7 @@ mod tests {
             Input { id: 2, job: 24, alive: true, position: [0.0; 3] },
         ]);
         let snapshot = Snapshot::from_match(&rules, 1.2, 1, 1501);
-        assert_eq!(snapshot.data, [0xF1, 8, 59, 0, 100, 0, 100, 0, 100, 2]);
+        assert_eq!(snapshot.data, [0xF1, 8, 4, 0, 100, 0, 100, 0, 100, 2]);
         let other = Snapshot::from_match(&rules, 1.2, 2, 0);
         assert_eq!(other.data[1], 16);
         let spectator = Snapshot::from_match(&rules, 1.2, 99, 0);

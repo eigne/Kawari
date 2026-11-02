@@ -3,7 +3,7 @@
 Enter the arena with `!feast`, then use `!feast bots`.
 This resets practice to a 4v4 match: the player and three allied bots versus four
 enemy bots, each starting with 100 medals. Setup requires exactly one real player.
-The normal 60-second preparation and match rules apply.
+The normal 5-second preparation and match rules apply.
 
 - `!feast attack off` pauses bot decisions and movement (an existing cast can finish).
 - `!feast attack on` resumes them.

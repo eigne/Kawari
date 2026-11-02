@@ -252,10 +252,10 @@ pub fn command(
         network,
         owner,
         if autonomous {
-            "Created mixed-job 4v4 practice teams using WHM, PLD, SAM and BLM. Fresh 60-second preparation. !feast attack off pauses bots; !feast bots off removes them.".into()
+            "Created mixed-job 4v4 practice teams using WHM, PLD, SAM and BLM. Fresh 5-second preparation. !feast attack off pauses bots; !feast bots off removes them.".into()
         } else {
             format!(
-                "Created {count} stationary opponents with 5000 HP and 100 medals each. You are Fangs; dummies are Claws. Fresh 60-second preparation. Use !feast attack on|off to control retaliation."
+                "Created {count} stationary opponents with 5000 HP and 100 medals each. You are Fangs; dummies are Claws. Fresh 5-second preparation. Use !feast attack on|off to control retaliation."
             )
         },
     );
