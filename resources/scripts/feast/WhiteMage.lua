@@ -3,6 +3,10 @@
 -- Potencies are fixed prototype HP amounts, not the PvE stat-based damage formula.
 local M = { actors = {}, players = {}, events = {}, now = 0 }
 local SLIDECAST_WINDOW = 0.500
+-- The client starts recasts on input and the server on receipt, so a queued
+-- action can arrive slightly early when its latency is lower than the last.
+-- New recasts chain from the previous deadline, so this never shortens them.
+local RECAST_TOLERANCE = 0.200
 local actions = {}
 M.actions = actions
 local cleanse_names = { "stun", "sleep", "bind", "heavy", "silence" }
@@ -258,10 +262,13 @@ local function definition(id,name)
 end
 local function available(p,d)
     local times=p.cooldowns[d.cooldown or d.name] or {}
-    local active={}
-    for _,time in ipairs(times) do if time>M.now then table.insert(active,time) end end
+    local active,blocking={},0
+    for _,time in ipairs(times) do
+        if time>M.now then table.insert(active,time) end
+        if time>M.now+RECAST_TOLERANCE then blocking=blocking+1 end
+    end
     p.cooldowns[d.cooldown or d.name]=active
-    return #active<d.charges
+    return blocking<d.charges
 end
 local function error_for(id,name,target,finishing,cast_origin,prepared)
     local p=M.players[id]; local a=state(id); local d=prepared or definition(id,name); local b=state(target)
@@ -293,7 +300,7 @@ local function error_for(id,name,target,finishing,cast_origin,prepared)
     if d.check then local err=d.check(a,b,p); if err then return err end end
     if not finishing then
         if p.pending then return "Already casting." end
-        if d.gcd and p.gcd>M.now then return "Global cooldown is active." end
+        if d.gcd and p.gcd>M.now+RECAST_TOLERANCE then return "Global cooldown is active." end
         if (not d.gcd or d.cooldown_recast) and not available(p,d) then return "Action is on cooldown." end
     end
 end
@@ -481,7 +488,7 @@ function M.command(id,text,target,now)
     local err=error_for(id,name,target,false,nil,d)
     if err then return err end
     p.last_input=args[1]; p.last_definition=d
-    if d.gcd then p.gcd=now+d.recast end
+    if d.gcd then p.gcd=math.max(now,p.gcd)+d.recast end
     if not d.gcd or d.cooldown_recast then
         local times=p.cooldowns[d.cooldown or name]
         table.insert(times,math.max(now,times[#times] or now)+(d.cooldown_recast or d.recast))
