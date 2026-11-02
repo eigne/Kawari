@@ -237,3 +237,18 @@ Check(client757 is {PvPHeaderRefresh:0xD62790,PvPHeaderOpen:0xD62D60,LegacyDirec
 Check(client757!.PvPHeaderOpen-client757.PvPHeaderRefresh==client751!.PvPHeaderOpen-client751.PvPHeaderRefresh,"PvP header functions keep their spacing");
 Check(NativeClient.ForHash("00")==null,"Unknown executables get no native hooks");
 Console.WriteLine("4 native client version cases passed.");
+// Server recast for a charged action: total = recast * charges, elapsed = total - (last deadline - now).
+(bool active, float elapsed, float total) Recast(float recast, int charges, float[] deadlines, float now)
+{
+    float total = recast * charges, remaining = Math.Max(0, (deadlines.Length > 0 ? deadlines[^1] : now) - now);
+    return (remaining > 0, total - remaining, total);
+}
+bool Ready(int charges, (bool active, float elapsed, float total) r) => FeastJobActions.ChargeReady(charges, r.active, r.elapsed, r.total);
+Check(Ready(2, Recast(15, 2, [], 0)), "Unused charges ready");
+Check(Ready(2, Recast(15, 2, [15], 0)), "Second of two charges ready after one use");
+Check(!Ready(2, Recast(15, 2, [15, 30], 0)), "No charge after both are spent");
+Check(Ready(2, Recast(15, 2, [15, 30], 15)), "One charge back after one recast");
+Check(Ready(3, Recast(15, 3, [15, 30], 0)) && !Ready(3, Recast(15, 3, [15, 30, 45], 1)), "Three-charge Medical Kit");
+Check(!Ready(1, Recast(15, 1, [15], 0)) && Ready(1, Recast(15, 1, [15], 15)), "Single charge unchanged");
+Check(FeastJobActions.Find(13975) is { Charges: 2 } && FeastJobActions.Find(18943) is { Charges: 3 }, "Tetragrammaton and Medical Kit charges");
+Console.WriteLine("7 charged recast cases passed.");

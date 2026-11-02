@@ -200,10 +200,22 @@ internal sealed unsafe class FeastHotbars : IDisposable
             // success during these gates starts requests the server must cancel.
             // Honor the flags: UseAction also probes without these gates to queue.
             if (casting && objects.LocalPlayer is { IsCasting: true }) return 0x244;
-            if (recast && manager->IsRecastTimerActive(type, id)) return 0x246;
+            if (recast && !RecastReady(manager, type, id)) return 0x246;
             return 0;
         }
         return status.Original(manager, type, id, target, recast, casting, extra);
+    }
+    // IsRecastTimerActive ignores charges: it reports a running timer after the first of
+    // several charges is spent. Read the charged group directly; the GCD (group 57) is the
+    // only additional group the server enforces, so it stays a hard gate.
+    private bool RecastReady(ActionManager* manager, ActionType type, uint id)
+    {
+        if (!manager->IsRecastTimerActive(type, id)) return true;
+        if (Metadata(id) is not { Charges: > 1 } action) return false;
+        var gcd = action.Secondary == 57 ? manager->GetRecastGroupDetail(57) : null;
+        if (gcd != null && !FeastJobActions.ChargeReady(1, gcd->IsActive, gcd->Elapsed, gcd->Total)) return false;
+        var detail = manager->GetRecastGroupDetail(action.Group);
+        return detail == null || FeastJobActions.ChargeReady(action.Charges, detail->IsActive, detail->Elapsed, detail->Total);
     }
     public void Update(DirectorFrame? frame)
     {

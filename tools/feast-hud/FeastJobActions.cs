@@ -19,6 +19,10 @@ public static class FeastJobActions
     public static JobAction? Find(uint id) => All.FirstOrDefault(a => a.Id == id);
     public static bool Supports(uint job) => job is 19 or 20 or 21 or 22 or 23 or 24 or 25 or 27 or 28 or 30 or 31 or 32 or 33 or 34 or 35 or 37 or 38 or 39 or 40;
     public static bool Contains(uint job, uint id) => All.Any(a => a.Job == job && a.Id == id);
+    // The server reports a charged recast as elapsed/total over all charges, recharging
+    // one at a time, so a charge is ready once a full per-charge recast has elapsed.
+    public static bool ChargeReady(int charges, bool active, float elapsed, float total)
+        => !active || total <= 0 || elapsed >= total / Math.Max(1, charges);
     public static uint[] Hotbar(uint job) => All.Where(a => a.Job == job && !Derived.Contains(a.Key)
         && a.Key is not ("full_thrust" or "fang_and_claw" or "wheeling_thrust" or "sonic_thrust" or "coerthan_torment" or "nastrond" or "maim" or "storms_path" or "steel_cyclone" or "inner_chaos" or "chaotic_cyclone")).Select(a => a.Id).ToArray();
 }
