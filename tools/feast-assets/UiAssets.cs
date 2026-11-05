@@ -81,8 +81,7 @@ internal static class UiAssets
         }
         var icons = new List<object>();
         var catalog=JsonDocument.Parse(File.ReadAllText("resources/feast-actions.json"));
-        using var whm = JsonDocument.Parse(File.ReadAllText("resources/feast-whm-icons.json"));
-        foreach (var action in catalog.RootElement.EnumerateArray().Concat(whm.RootElement.EnumerateArray()))
+        foreach (var action in catalog.RootElement.EnumerateArray())
         {
             int id=action.GetProperty("icon").GetInt32();
             string folder=$"ui/icon/{id/1000*1000:000000}/{id:000000}";

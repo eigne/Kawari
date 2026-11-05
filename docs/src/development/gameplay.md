@@ -249,4 +249,4 @@ Content lookup uses `ContentFinderCondition` and `InstanceContent`. `HandlerType
 
 `DirectorVars`, `DirectorEvent`, `DirectorTrigger`, `MapEffects`, and related actor controls coordinate the client's content UI. The ten data bytes are a wire representation, not a sensible home for an entire eight-player match model. Use explicit server-side state and derive the presentation packets from it.
 
-Continue with [the Feast roadmap](feast.md) for a concrete sequence of additions.
+Continue with [the Feast developer guide](../feast/intro.md) for how the Feast PvP mode was built on these systems.

@@ -15,7 +15,7 @@ These special debug commands start with `!` and are custom to Kawari.
 | `!fate <id>` | Starts this FATE. |
 | `!fateinfo` | Tells you information about the FATE you're standing in. |
 | `!fatecomplete`| Completes the FATE that you're standing in. |
-| `!feast [leave]` | Explore Crystal Tower Training Grounds, or return to Limsa. Requires the territory 745 metadata patch on both server and client; see [Feast setup](development/feast.md#exploration-prototype). |
+| `!feast [leave\|den\|status\|bots\|...]` | Enter the Feast PvP arena, leave it, and control its match. Requires the Feast client data patch; see [Feast commands](feast/commands.md). |
 | `!festival <id1> <id2> <id3> <id4>` | Sets the festival in the current zone. Multiple festivals can be set together to create interesting effects. |
 | `!finishevent` | Forcefully finishes the current event, useful if the script has an error and you're stuck talking to something. |
 | `!gate <id>` | Spawns a non-functional debug GATE. |
@@ -33,7 +33,7 @@ These special debug commands start with `!` and are custom to Kawari.
 | `!shortcut <id>` | Teleports to a content shortcut defined in the Lua script. |
 | `!skipintro` | Teleports you to Limsa, unlocks all features and completes all quests. |
 | `!spawnmonster <id>` | Spawn a monster for debugging. |
-| `!whm <on/off/list/status/action>` | Test the Feast-era White Mage ruleset in territory 745. See [Feast White Mage](development/feast-white-mage.md) for actions, teams, and loadouts. |
+| `!whm <text>` | Sends a command to the Feast combat engine, e.g. an action key. Feast arena only; see [Feast commands](feast/commands.md). |
 | `!spectator` | Switches you to the specator camera, which can fly everywhere but still responds to collision. There's currently no way to toggle it back off. |
 | `!strikingdummy` | Summons a striking dummy at your location. |
 | `!togglemount <id>` | Toggles the unlock status of the specified mount ID. |

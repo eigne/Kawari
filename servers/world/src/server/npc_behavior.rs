@@ -41,12 +41,14 @@ pub fn npc_behavior(
     // Feast dummies and supply boxes never move or attack; Feast crowd
     // control stops movement (bind) or actions (stun, sleep).
     let test_dummies: std::collections::HashSet<_> = instance
-        .feast_dummies
+        .feast
+        .practice
         .keys()
         .copied()
         .chain(
             instance
-                .feast_match
+                .feast
+                .arena
                 .iter()
                 .flat_map(|m| m.supplies.boxes.keys().copied()),
         )
@@ -57,7 +59,8 @@ pub fn npc_behavior(
             .keys()
             .filter(|id| {
                 instance
-                    .feast_whm
+                    .feast
+                    .combat
                     .as_ref()
                     .is_some_and(|f| f.blocked(**id, movement))
             })

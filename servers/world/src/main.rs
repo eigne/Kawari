@@ -1934,10 +1934,10 @@ async fn process_packet(
                                     let state = lua.0.app_data_ref::<KawariLuaState>().unwrap();
 
                                     // If a Lua command exists, try using that first
-                                    if let Some(command_script) =
-                                        state.command_scripts.get(command_name).filter(|_| {
-                                            !kawari_world::feast_commands::is_match_command(&msg)
-                                        })
+                                    if let Some(command_script) = state
+                                        .command_scripts
+                                        .get(command_name)
+                                        .filter(|_| !kawari_world::is_feast_match_command(&msg))
                                     {
                                         let file_name = get_config()
                                             .filesystem
@@ -3956,9 +3956,6 @@ async fn process_server_msg(
                 connection
                     .actor_control_target(actor_id, target, actor_control)
                     .await
-            }
-            FromServer::FeastDirectorProbe(enabled) => {
-                connection.feast_director_probe(enabled).await;
             }
             FromServer::SetFeastBattalion(battalion) => {
                 // The client only reads battalions from spawn packets.

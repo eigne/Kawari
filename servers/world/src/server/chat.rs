@@ -160,10 +160,10 @@ fn process_debug_commands(
     let parts: Vec<&str> = chat_message.split_whitespace().collect();
 
     match parts[0] {
-        "!feast" if crate::feast_commands::is_match_command(&chat_message) => {
+        "!feast" if super::feast::is_match_command(&chat_message) => {
             let mut data = data.lock();
             if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
-                super::feast_match::command(
+                super::feast::command(
                     instance,
                     &network,
                     from_actor_id,
@@ -175,7 +175,7 @@ fn process_debug_commands(
         "!whm" => {
             let mut data = data.lock();
             if let Some(instance) = data.find_actor_instance_mut(from_actor_id) {
-                super::feast::command(
+                super::feast::combat::command(
                     instance,
                     &network,
                     from_actor_id,

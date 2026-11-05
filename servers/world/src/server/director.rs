@@ -1055,8 +1055,8 @@ pub fn handle_director_messages(
             // A Feast respawn reloads the player, but the existing native
             // director survives. Initializing it twice leaves a second CC
             // HUD alive after the normal departure terminates the first.
-            if instance.content_finder_condition_id == 476
-                && !instance.feast_directors_sent.insert(*from_actor_id)
+            if instance.content_finder_condition_id == super::feast::CONTENT_FINDER_CONDITION
+                && !instance.feast.directors_sent.insert(*from_actor_id)
             {
                 return true;
             }
@@ -1144,9 +1144,9 @@ pub fn handle_director_messages(
                             ContentDirectorEvent::InstanceContent(
                                 InstanceContentDirectorEvent::DutyCommence {
                                     // Feast follows its match clock, which respawns and restarts change.
-                                    time_limit: super::feast_match::duty_time_left(instance)
+                                    time_limit: super::feast::arena::duty_time_left(instance)
                                         .unwrap_or(
-                                            instance.duration.unwrap_or_default().as_secs() as u32,
+                                            instance.duration.unwrap_or_default().as_secs() as u32
                                         ),
                                 },
                             ),

@@ -1079,24 +1079,27 @@ impl GameData {
     }
 
     /// The restored Feast duty must agree across all three sheets before entry.
+    /// tools/feast-map restores them; an unpatched client has none of them.
     pub fn feast_duty_metadata_ready(&self) -> bool {
-        let Some(cfc) = self.content_finder_condition_sheet.row(476) else {
+        const CFC: u16 = crate::FEAST_CONTENT_FINDER_CONDITION;
+        const TERRITORY: u16 = crate::FEAST_TERRITORY;
+        let Some(cfc) = self.content_finder_condition_sheet.row(CFC as u32) else {
             return false;
         };
         let Some(content) = self.instance_content_sheet.row(40022) else {
             return false;
         };
-        let Some(territory) = self.territory_type_sheet.row(745) else {
+        let Some(territory) = self.territory_type_sheet.row(TERRITORY as u32) else {
             return false;
         };
         cfc.Content == 40022
-            && cfc.TerritoryType == 745
+            && cfc.TerritoryType == TERRITORY
             && cfc.ShortCode.to_string() == "l1p2"
             && cfc.ContentLinkType == 1
             && content.InstanceContentType == 5
-            && content.ContentFinderCondition == 476
+            && content.ContentFinderCondition == CFC
             && content.TimeLimitmin > 0
-            && territory.ContentFinderCondition == 476
+            && territory.ContentFinderCondition == CFC
             && territory.TerritoryIntendedUse == 28
             && territory.Name.to_string() == "l1p2"
     }
@@ -1847,9 +1850,15 @@ impl mlua::UserData for GameData {
         methods.add_method("feast_entry_mode", |_, this, _: ()| {
             Ok(if this.feast_duty_metadata_ready() {
                 "duty"
-            } else if this.territory_type_sheet.row(745).is_some_and(|row| {
-                row.Name.to_string() == "l1p2" && row.TerritoryIntendedUse == 1 && row.ContentFinderCondition == 0
-            }) {
+            } else if this
+                .territory_type_sheet
+                .row(crate::FEAST_TERRITORY as u32)
+                .is_some_and(|row| {
+                    row.Name.to_string() == "l1p2"
+                        && row.TerritoryIntendedUse == 1
+                        && row.ContentFinderCondition == 0
+                })
+            {
                 "exploration"
             } else {
                 "unavailable"

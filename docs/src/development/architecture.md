@@ -8,7 +8,7 @@ Read these chapters in order:
 
 1. **Architecture and contribution workflow** — this chapter.
 2. [Gameplay systems](gameplay.md) — actors, maps, combat, jobs, scripts, and duties.
-3. [Building toward Feast 4v4](feast.md) — existing foundations, missing systems, and implementation milestones.
+3. [The Feast developer guide](../feast/intro.md) — how the Feast PvP mode was added to this fork.
 
 Throughout the guide, **existing behavior** means code is present; it does not imply retail accuracy or complete integration. Proposed designs are explicitly identified as proposals.
 
@@ -167,7 +167,7 @@ For Feast, temporary match membership and score belong in live match state; dura
 
 ## 6. Running and contributing
 
-Follow [local development](../setup/source.md), [Windows setup](../setup/windows.md), and [configuration](../setup/configuration.md) for the exact machine setup. You need the supported game files, Rust, native build dependencies, and the Oodle setup described there. Run from the repository root because many resources are addressed relative to it.
+Follow [local development](../setup/source.md), [Windows setup](../setup/windows.md), and [configuration](../configuration.md) for the exact machine setup. You need the supported game files, Rust, native build dependencies, and the Oodle setup described there. Run from the repository root because many resources are addressed relative to it.
 
 Useful explicit commands from the workspace root:
 

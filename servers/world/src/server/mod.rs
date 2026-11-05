@@ -64,11 +64,11 @@ mod chat;
 mod director;
 mod effect;
 mod feast;
-mod feast_director;
-mod feast_match;
-pub(crate) const FEAST_DUTY_DURATION: u16 = (feast_match::COUNTDOWN + feast_match::MATCH_TIME) as u16;
-mod feast_training;
-mod feast_supplies;
+/// Feast constants and chat routing used outside the world simulation.
+pub use feast::{
+    CONTENT_FINDER_CONDITION as FEAST_CONTENT_FINDER_CONDITION, TERRITORY as FEAST_TERRITORY,
+    is_match_command as is_feast_match_command,
+};
 mod instance;
 mod linkshell;
 mod network;
@@ -184,10 +184,10 @@ impl WorldServer {
                     .find_content_time_limit(instance.content_id)
                     .unwrap_or_default() as u64,
             ));
-            if content_finder_condition == 476 {
+            if content_finder_condition == feast::CONTENT_FINDER_CONDITION {
                 // The native duty timer starts on entry. Feast's match clock
                 // starts after its preparation period.
-                instance.duration = Some(Duration::from_secs(FEAST_DUTY_DURATION as u64));
+                instance.duration = Some(Duration::from_secs(feast::DUTY_DURATION as u64));
             }
 
             let id = HandlerId::new(director_type, instance.content_id);
@@ -328,9 +328,7 @@ fn server_logic_tick(
         }
 
         for instance in &mut data.instances {
-            feast_match::tick(instance, &network);
             feast::tick(instance, &network);
-            feast_training::tick(instance, &network);
             let mut haters = HashMap::new();
             npc_behavior::npc_behavior(network.clone(), game_data.clone(), instance, &mut haters);
 
@@ -563,10 +561,14 @@ fn server_logic_tick(
                     // Feast's native rosters need both teams' actors even at
                     // opposite starting gates. Keep only match participants in
                     // view; ordinary NPCs/objects retain normal distance culling.
-                    let feast_participants = instance.zone.id == 745
-                        && instance.feast_match.as_ref().is_some_and(|runtime| {
-                            runtime.rules.players.get(&id.0).is_some_and(|p| p.present)
-                                && runtime.rules.players.get(&other_id.0).is_some_and(|p| p.present)
+                    let feast_participants = feast::in_arena(instance)
+                        && instance.feast.arena.as_ref().is_some_and(|arena| {
+                            arena.rules.players.get(&id.0).is_some_and(|p| p.present)
+                                && arena
+                                    .rules
+                                    .players
+                                    .get(&other_id.0)
+                                    .is_some_and(|p| p.present)
                         });
                     let in_range = feast_participants || actor.in_range_of(other_actor);
                     let has_been_spawned = state.has_spawned(*other_id);
@@ -756,7 +758,11 @@ fn server_logic_tick(
                     // Don't heal people who are in combat or dead, please.
                     if in_combat
                         || is_dead
-                        || instance.feast_whm.as_ref().is_some_and(|f| f.enabled(*id))
+                        || instance
+                            .feast
+                            .combat
+                            .as_ref()
+                            .is_some_and(|f| f.enabled(*id))
                     {
                         continue;
                     }
@@ -1074,12 +1080,22 @@ pub async fn server_main_loop(
                                 );
                             }
                             QueuedTaskData::FeastRespawn { homepoint } => {
-                                let still_in_feast = data.lock()
+                                let still_in_feast = data
+                                    .lock()
                                     .find_actor_instance_mut(task.from_actor_id)
-                                    .is_some_and(|instance| instance.zone.id == 745);
+                                    .is_some_and(|instance| feast::in_arena(instance));
                                 if still_in_feast {
-                                    handle_zone_messages(data.clone(), network.clone(), game_data.clone(), lua.clone(),
-                                        &ToServer::ReturnAfterDeath(task.from_id, task.from_actor_id, *homepoint));
+                                    handle_zone_messages(
+                                        data.clone(),
+                                        network.clone(),
+                                        game_data.clone(),
+                                        lua.clone(),
+                                        &ToServer::ReturnAfterDeath(
+                                            task.from_id,
+                                            task.from_actor_id,
+                                            *homepoint,
+                                        ),
+                                    );
                                 }
                             }
                             QueuedTaskData::ResetCombo => {
@@ -1339,8 +1355,10 @@ pub async fn server_main_loop(
                     let mut data = data.lock();
 
                     if let Some(instance) = data.find_actor_instance_mut(actor_id) {
+                        // Bound or stunned by Feast crowd control: undo the move.
                         if instance
-                            .feast_whm
+                            .feast
+                            .combat
                             .as_ref()
                             .is_some_and(|f| f.blocked(actor_id, true))
                         {
@@ -1381,7 +1399,7 @@ pub async fn server_main_loop(
                         }
 
                         if moved {
-                            if let Some(engine) = &instance.feast_whm {
+                            if let Some(engine) = &instance.feast.combat {
                                 engine.movement(actor_id, position);
                             }
                             // Check if the actor has any in-progress actions, and cancel them if so.
@@ -2505,7 +2523,7 @@ pub async fn server_main_loop(
                             continue;
                         };
 
-                        let in_feast = instance.zone.id == 745;
+                        let in_feast = feast::in_arena(instance);
                         let Some(actor) = instance.find_actor_mut(from_actor_id) else {
                             continue;
                         };

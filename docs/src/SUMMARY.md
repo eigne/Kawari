@@ -11,12 +11,26 @@
 - [Contributing](contributing.md)
   - [Developer guide: architecture](development/architecture.md)
     - [Gameplay systems](development/gameplay.md)
-    - [Building toward Feast 4v4](development/feast.md)
-      - [Feast White Mage prototype](development/feast-white-mage.md)
   - [Lua Style Guide](scripting/style_guide.md)
 - [Updating](updating.md)
   - [In-Game Checklist](update_ingame_checklist.md)
   
+# The Feast
+- [Developer guide](feast/intro.md)
+  - [Setting up](feast/setup.md)
+  - [Architecture](feast/architecture.md)
+  - [The arena](feast/arena.md)
+  - [Match rules](feast/match-rules.md)
+  - [The combat engine](feast/combat-engine.md)
+  - [Actions, casting and timing](feast/actions-and-casting.md)
+  - [Jobs: finishing and adding them](feast/jobs.md)
+  - [The director protocol](feast/director-protocol.md)
+  - [The HUD plugin](feast/hud-plugin.md)
+  - [Practice: dummies and bots](feast/practice.md)
+  - [Commands](feast/commands.md)
+  - [Testing and debugging](feast/testing.md)
+  - [Known gaps and next steps](feast/known-gaps.md)
+
 # Usage
 - [Configuration](configuration.md)
 - [GM Commands](gm_commands.md)

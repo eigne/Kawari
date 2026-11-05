@@ -1,12 +1,18 @@
--- Final pre-6.1 PvP kits. See docs/src/development/feast-jobs.md for sources.
--- Extends the shared combat engine; no separate bot-only damage rules.
+-- Black Mage, Samurai, Paladin, Warrior and Dragoon (the first jobs after
+-- White Mage), plus the hooks every job shares: roles and additional
+-- actions, damage modifiers, shields, combos (M.resolve), job gauges for the
+-- HUD (M.job_gauge), hotbars (M.hotbar) and bot choices (M.bot_action).
+-- AdditionalJobs.lua wraps these hooks for the remaining jobs.
+-- Sources: the official job guides archived before patch 6.1.
 return function(M)
 local I=M.internal
 local add,state,has,buff,damage,heal,emit=I.add,I.state,I.has,I.buff,I.damage,I.heal,I.emit
 local enemies,allies,valid,distance=I.enemies,I.allies,I.valid,I.distance
-M.jobs={[19]=true,[21]=true,[22]=true,[25]=true,[34]=true}
+M.jobs={[19]=true,[21]=true,[22]=true,[24]=true,[25]=true,[34]=true}
 local A=M.actions
 for name,d in pairs(A) do if name~="bolt" and name~="kit" then d.job=24 end end
+-- Each role's six PvP role actions. The first is always equipped; players
+-- choose two of the other five in the Wolves' Den (their "loadout").
 local roles={
  [24]={"purify","repose","protect","rescue","largesse","attunement"},
  [25]={"phantom_dart","drain","addle","aetheric_burst","swiftcast","manaward"},

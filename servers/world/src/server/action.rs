@@ -38,15 +38,11 @@ pub fn handle_action_messages(
         {
             let mut data = data.lock();
             if let Some(instance) = data.find_actor_instance_mut(*from_actor_id)
-                && instance.zone.id == 745
+                && super::feast::in_arena(instance)
             {
-                super::feast_match::tick(instance, &network);
-                super::feast::native_action(
-                    instance,
-                    &network,
-                    *from_actor_id,
-                    request,
-                );
+                // Feast actions follow the Lua combat engine, not action scripts.
+                super::feast::arena::tick(instance, &network);
+                super::feast::combat::native_action(instance, &network, *from_actor_id, request);
                 return true;
             }
         }
@@ -132,7 +128,8 @@ pub fn execute_action(
         let data = data.lock();
         if let Some(instance) = data.find_actor_instance(from_actor_id)
             && instance
-                .feast_whm
+                .feast
+                .combat
                 .as_ref()
                 .is_some_and(|f| f.blocked(from_actor_id, false))
         {
@@ -356,7 +353,7 @@ pub fn execute_action(
                         damage_element,
                         ..
                     } => {
-                        *amount = super::feast::adjust_damage(
+                        *amount = super::feast::combat::adjust_damage(
                             instance,
                             from_actor_id,
                             request.target.object_id,

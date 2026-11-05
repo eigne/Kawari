@@ -356,13 +356,13 @@ pub fn set_shared_group_timeline_state(
 
 // Sends the ActorControls to inform the actor that they're dead.
 pub fn kill_actor(network: Arc<Mutex<NetworkState>>, instance: &mut Instance, actor_id: ObjectId) {
-    if instance.zone.id == 745
+    if super::feast::in_arena(instance)
         && matches!(
             instance.find_actor(actor_id),
             Some(NetworkedActor::Player { .. })
         )
     {
-        super::feast_match::begin_respawn_lock(instance, actor_id, std::time::Instant::now());
+        super::feast::arena::begin_respawn_lock(instance, actor_id, std::time::Instant::now());
     }
 
     let mut network = network.lock();
@@ -421,7 +421,7 @@ pub fn kill_actor(network: Arc<Mutex<NetworkState>>, instance: &mut Instance, ac
     let intended_use = instance.zone.intended_use;
 
     // Training dummies remain as corpses until the next practice setup.
-    if instance.feast_dummies.contains_key(&actor_id) {
+    if instance.feast.practice.contains_key(&actor_id) {
         return;
     }
     // Queue up despawn if this is an NPC

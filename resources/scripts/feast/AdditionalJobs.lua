@@ -1,5 +1,15 @@
--- Pre-6.1 PvP kits. Native metadata is loaded separately from the recovered
--- Action sheet; every run/check below is explicit archived-guide gameplay.
+-- The other 13 Feast jobs: Monk, Ninja, Bard, Machinist, Summoner, Red Mage,
+-- Scholar, Astrologian, Dark Knight, Gunbreaker, Reaper, Sage and Dancer.
+--
+-- D is AdditionalActionData.lua: each action's native 6.08 metadata (ID,
+-- cast, recast, range, cooldown groups), generated from the Action sheet.
+-- action(key, run, extra) combines that metadata with the effect written
+-- here, so only gameplay is hand-written. Every key in D must get an
+-- implementation (checked at the bottom), so a missing action fails at
+-- startup instead of silently doing nothing.
+--
+-- Each hook defined in Jobs.lua is wrapped, not replaced: the old version is
+-- kept in a local and called first (see M.outgoing, M.resolve, ...).
 return function(M,D)
 local I=M.internal
 local add,state,has,buff,damage,heal,emit=I.add,I.state,I.has,I.buff,I.damage,I.heal,I.emit

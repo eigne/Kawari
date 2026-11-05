@@ -1,1 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup><ItemGroup><Compile Include="../feast-hud/NativeJobGaugeData.cs" Link="NativeJobGaugeData.cs"/><Compile Include="../feast-hud/NativeAddonIdentity.cs" Link="NativeAddonIdentity.cs"/><Compile Include="../feast-hud/FeastResources.cs" Link="FeastResources.cs"/><Compile Include="../feast-hud/FeastSpells.cs" Link="FeastSpells.cs"/><Compile Include="../feast-hud/Snapshot.cs" Link="Snapshot.cs"/><Compile Include="../feast-hud/DirectorFrame.cs" Link="DirectorFrame.cs"/><Compile Include="../feast-hud/FeastJobActions.cs" Link="FeastJobActions.cs"/><Compile Include="../feast-hud/FeastActionMenu.cs" Link="FeastActionMenu.cs"/><Compile Include="../feast-hud/NativeClient.cs" Link="NativeClient.cs"/><EmbeddedResource Include="../../resources/feast-whm-icons.json" LogicalName="FeastWhmIcons.json"/><EmbeddedResource Include="../../resources/feast-actions.json" LogicalName="FeastActions.json"/><Compile Include="../feast-hud/MatchHeaderState.cs" Link="MatchHeaderState.cs"/></ItemGroup></Project>
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Plain unit tests for the HUD's pure logic: frame decoding, menus, gauges, catalog.
+       Run with dotnet run, project tools/feast-hud-tests/Tests.csproj. -->
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../feast-hud/Director/DirectorFrame.cs" Link="DirectorFrame.cs"/>
+    <Compile Include="../feast-hud/Director/NativeClient.cs" Link="NativeClient.cs"/>
+    <Compile Include="../feast-hud/Actions/FeastJobActions.cs" Link="FeastJobActions.cs"/>
+    <Compile Include="../feast-hud/Actions/FeastActionMenu.cs" Link="FeastActionMenu.cs"/>
+    <Compile Include="../feast-hud/Actions/FeastResources.cs" Link="FeastResources.cs"/>
+    <Compile Include="../feast-hud/Gauges/NativeJobGaugeData.cs" Link="NativeJobGaugeData.cs"/>
+    <Compile Include="../feast-hud/Header/MatchHeaderState.cs" Link="MatchHeaderState.cs"/>
+    <EmbeddedResource Include="../../resources/feast-actions.json" LogicalName="FeastActions.json"/>
+  </ItemGroup>
+</Project>

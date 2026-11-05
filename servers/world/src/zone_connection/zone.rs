@@ -19,22 +19,6 @@ use kawari::{
 };
 
 impl ZoneConnection {
-    /// Attach the surviving legacy PvP director without changing the installed metadata.
-    /// This is a compatibility probe, not native match-state synchronization.
-    pub async fn feast_director_probe(&mut self, enabled: bool) {
-        if self.player_data.volatile.zone_id != 745 { return; }
-        let id = HandlerId::new(kawari::common::HandlerType::InstanceContent, 40001);
-        if enabled {
-            tracing::warn!("Legacy Feast director probe activation is disabled pending duty lifecycle integration");
-            return;
-        } else if self.content_handler_id == Some(id) {
-            self.actor_control_self(ActorControlCategory::TerminateDirector { handler_id: id }).await;
-            self.content_handler_id = None;
-        }
-        // Existing zone-change cleanup terminates this content handler on leaving/respawn.
-        tracing::info!(enabled, "Legacy Feast director compatibility probe");
-    }
-
     /// Request the global server state to change our zone.
     pub async fn change_zone(
         &mut self,
@@ -495,10 +479,11 @@ impl ZoneConnection {
     }
 
     pub async fn join_content(&mut self, id: u16, settings: DutyFinderSetting) {
-        if id == 476 {
+        if id == crate::FEAST_CONTENT_FINDER_CONDITION {
             let ready = self.game_data.lock().feast_duty_metadata_ready();
             if !ready {
-                self.send_notice("Feast duty metadata is incomplete; entry refused.").await;
+                self.send_notice("Feast duty metadata is incomplete; entry refused.")
+                    .await;
                 return;
             }
         }

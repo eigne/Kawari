@@ -1,19 +1,19 @@
-# Crystal Tower Training Grounds exploration
+# Feast client data patch
 
-This prototype restores **territory 745** as an ordinary exploration area. It adds
-`!feast` to enter and `!feast leave` to return to Limsa. Accepting Return after death
-in territory 745 respawns you at the arena entry point with full HP/MP. The client
-may still name your homepoint in the confirmation; your saved homepoint is unchanged.
-An optional [Feast White Mage combat prototype](../../docs/src/development/feast-white-mage.md)
-is available through native hotbar actions. The server now implements a
-[small-team match prototype](../../docs/src/development/feast-match.md) with a
-countdown, medals and results. Matchmaking and the historical client HUD are not restored.
+Restores the Feast arena on the client: **territory 745** (Crystal Tower
+Training Grounds) and its duty (ContentFinderCondition 476, InstanceContent
+40022). Today's client still has the arena's map files, but its rows for them
+are blank, so it cannot load the arena; the server cannot supply them.
 
-The supported Windows client build is **2026.10.16.0000.0000 (7.57h1)**. The arena's
-`bg/ffxiv/pvp_xx/pvp/l1p2/level/l1p2.lvb` and its main assets still exist in this
-build, but the territory row is blank. The ZoneInit packet supplies a territory ID,
-so **the client and server both need the restored definition**. A server-only
-teleport command cannot supply the missing client map path.
+- `feast_map.py` restores the territory row (enough for "exploration mode").
+- `prepare_feast_duty.py` / `install_feast_duty.py` restore the duty rows on
+  top of that. The HUD's header and team lists need the duty.
+
+The step-by-step instructions are in the developer guide,
+[Setting up](../../docs/src/feast/setup.md). The rest of this file documents
+the territory patch tool in detail; the duty tool works the same way.
+
+The supported Windows client build is **2026.10.16.0000.0000 (7.57h1)**.
 
 ## Setup
 
@@ -45,10 +45,6 @@ standard library. Substitute your Python executable and game path where needed.
    !feast
    !feast leave
    ```
-
-   The entry position is `(-37, 1, 0)`, just above a PC arrival in the surviving
-   `planmap.lgb`. Repeating `!feast` while inside returns to that position. Leaving
-   uses the same Limsa coordinates as the existing `!skipintro` command.
 
 The chat command is Lua, so it requires no server binary rebuild. A separately
 downloaded Kawari distribution will not automatically load this checkout's scripts.

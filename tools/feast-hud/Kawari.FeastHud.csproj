@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0-windows</TargetFramework><AllowUnsafeBlocks>true</AllowUnsafeBlocks><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><AssemblyName>Kawari.FeastHud</AssemblyName><Version>0.1.0</Version><DalamudLibPath>$(MSBuildThisFileDirectory)..\..\target\dalamud-sdk</DalamudLibPath></PropertyGroup>
   <ItemGroup>
-    <EmbeddedResource Include="../../resources/feast-whm-icons.json" LogicalName="FeastWhmIcons.json"/><EmbeddedResource Include="../../resources/feast-actions.json" LogicalName="FeastActions.json"/>
+    <EmbeddedResource Include="../../resources/feast-actions.json" LogicalName="FeastActions.json"/>
     <Reference Include="Dalamud" HintPath="$(DalamudLibPath)/Dalamud.dll" Private="false"/>
     <Reference Include="Dalamud.Bindings.ImGui" HintPath="$(DalamudLibPath)/Dalamud.Bindings.ImGui.dll" Private="false"/>
     <Reference Include="FFXIVClientStructs" HintPath="$(DalamudLibPath)/FFXIVClientStructs.dll" Private="false"/>

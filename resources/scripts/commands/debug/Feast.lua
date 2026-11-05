@@ -1,5 +1,7 @@
--- Territory 745 must be restored on both server and client.
--- See tools/feast-map/README.md for the reversible metadata patch.
+-- !feast: enter the Feast arena, leave it, or travel to the Wolves' Den.
+-- Territory 745 and its duty must be restored on both server and client
+-- (tools/feast-map). Match commands such as !feast status are handled by the
+-- world server instead (servers/world/src/server/feast/commands.rs).
 required_rank = GM_RANK_DEBUG
 command_sender = "[feast] "
 local WOLVES_DEN_AETHERYTE = 55
@@ -27,18 +29,6 @@ function onCommand(player, args, name)
             return
         end
         player:register_for_content(476)
-        return
-    end
-
-    if #args == 1 and args[1] == "baseline" then
-        if not can_queue(player) then
-            printf(player, "Return to an open-world area before starting the Sastasha baseline.")
-            return
-        end
-        -- Current-client CFC 4 resolves to Sastasha / s1d1_re. Use the same
-        -- registration and acceptance path as Duty Finder, including JoinContent.
-        player:register_for_content(4)
-        printf(player, "Sastasha baseline queued. Accept the duty prompt, then use Duty Finder to leave when finished.")
         return
     end
 

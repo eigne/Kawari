@@ -125,12 +125,8 @@ pub struct Instance {
     pub directors: Vec<DirectorData>,
     /// Whether enemy AI is currently disabled.
     pub enemy_ai_disabled: bool,
-    pub feast_whm: Option<super::feast::FeastWhiteMage>,
-    pub feast_respawns: HashMap<ObjectId, Instant>,
-    pub feast_match: Option<super::feast_match::Runtime>,
-    pub feast_dummies: HashMap<ObjectId, super::feast_training::Dummy>,
-    /// Players whose native Feast director was already initialized.
-    pub feast_directors_sent: std::collections::HashSet<ObjectId>,
+    /// Feast match and combat state; empty outside the Feast arena.
+    pub feast: super::feast::FeastState,
     /// List of running/preparing FATEs.
     pub fates: Vec<FateInstance>,
     /// List of FATEs that are able to spawn.

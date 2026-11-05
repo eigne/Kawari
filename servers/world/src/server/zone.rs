@@ -1015,12 +1015,16 @@ pub fn change_zone_warp_to_entrance(
 
     let exit_position;
     let exit_rotation;
-    if target_instance.zone.id == 745 && target_instance.content_finder_condition_id == 476 {
+    if super::feast::in_arena(target_instance)
+        && target_instance.content_finder_condition_id == super::feast::CONTENT_FINDER_CONDITION
+    {
         // Feast has no dungeon entrance circle. Stage in the west jail; the
         // authoritative match runtime assigns the player's team spawn afterward.
         exit_position = Some(Position(glam::Vec3A::new(-58.0, 0.5, 0.0)));
         exit_rotation = Some(std::f32::consts::FRAC_PI_2);
-    } else if let Some(destination_object) = destiation_object.or(target_instance.zone.find_entrance()) {
+    } else if let Some(destination_object) =
+        destiation_object.or(target_instance.zone.find_entrance())
+    {
         let (_, rotation, _) =
             Affine3A::from(destination_object.transform).to_scale_rotation_translation();
         exit_position = Some(pick_point_in_pop_range(destination_object));
@@ -1185,8 +1189,7 @@ fn defer_feast_respawn(
     // an early request leaves it black indefinitely; retain it until the lock
     // expires. Retries must not schedule duplicate warps.
     if !instance.queued_task.iter().any(|task| {
-        task.from_actor_id == actor
-            && matches!(task.data, QueuedTaskData::FeastRespawn { .. })
+        task.from_actor_id == actor && matches!(task.data, QueuedTaskData::FeastRespawn { .. })
     }) {
         instance.queued_task.push(super::instance::QueuedTask {
             point: deadline,
@@ -1194,71 +1197,6 @@ fn defer_feast_respawn(
             from_actor_id: actor,
             data: QueuedTaskData::FeastRespawn { homepoint },
         });
-    }
-}
-
-#[cfg(test)]
-mod death_return_tests {
-    use super::*;
-
-    #[test]
-    fn feast_respawn_keeps_the_duty_and_other_participants() {
-        let mut instance = Instance::default();
-        instance.zone.id = 745;
-        instance.content_finder_condition_id = 476;
-        let actor = ObjectId(123);
-        let opponent = ObjectId(456);
-        instance.insert_empty_actor(actor);
-        instance.insert_empty_actor(opponent);
-        instance.find_actor_mut(actor).unwrap().get_common_spawn_mut().health_points = 42;
-        prepare_feast_respawn(&mut instance, &mut NetworkState::default(), actor);
-        assert_eq!(instance.content_finder_condition_id, 476);
-        assert_eq!(instance.actors.len(), 2);
-        assert!(instance.find_actor(opponent).is_some());
-        assert_eq!(instance.find_actor(actor).unwrap().get_common_spawn().health_points, 0);
-    }
-
-    #[test]
-    fn early_feast_return_is_retained_once_at_original_deadline() {
-        let mut instance = Instance::default();
-        let actor = ObjectId(123);
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(7);
-        defer_feast_respawn(&mut instance, ClientId::default(), actor, 2, deadline);
-        defer_feast_respawn(
-            &mut instance,
-            ClientId::default(),
-            actor,
-            2,
-            deadline + std::time::Duration::from_secs(3),
-        );
-        assert_eq!(instance.queued_task.len(), 1);
-        assert_eq!(instance.queued_task[0].point, deadline);
-        instance.cancel_actor_tasks(actor);
-        assert!(instance.queued_task.is_empty());
-    }
-
-    #[test]
-    fn return_after_death_requires_initialized_dead_player() {
-        let mut instance = Instance::default();
-        let id = ObjectId(123);
-        instance.insert_empty_actor(id);
-        let actor = instance.find_actor_mut(id).unwrap();
-        assert!(!can_return_after_death(actor));
-
-        actor.get_common_spawn_mut().max_health_points = 1500;
-        actor.get_common_spawn_mut().health_points = 1500;
-        assert!(!can_return_after_death(actor));
-
-        actor.get_common_spawn_mut().health_points = 0;
-        assert!(can_return_after_death(actor));
-
-        // The GM kill command can mark the actor dead before HP is updated.
-        actor.get_common_spawn_mut().health_points = 1500;
-        actor.get_common_spawn_mut().mode = CharacterMode::Dead;
-        assert!(can_return_after_death(actor));
-
-        actor.get_common_spawn_mut().mode = CharacterMode::Normal;
-        assert!(!can_return_after_death(actor));
     }
 }
 
@@ -1281,11 +1219,15 @@ pub fn handle_zone_messages(
             // replace the connection's actor in the table
             // A late load (e.g. after a disconnect mid-transfer) can name an actor that is no longer in any instance.
             let Some(instance) = data.find_actor_instance_mut(*from_actor_id) else {
-                tracing::warn!("Client {from_id:?} loaded a zone, but actor {from_actor_id:?} has no instance");
+                tracing::warn!(
+                    "Client {from_id:?} loaded a zone, but actor {from_actor_id:?} has no instance"
+                );
                 return true;
             };
             let Some(actor) = instance.find_actor_mut(*from_actor_id) else {
-                tracing::warn!("Client {from_id:?} loaded a zone, but actor {from_actor_id:?} is missing");
+                tracing::warn!(
+                    "Client {from_id:?} loaded a zone, but actor {from_actor_id:?} is missing"
+                );
                 return true;
             };
             *actor = NetworkedActor::Player {
@@ -1305,7 +1247,7 @@ pub fn handle_zone_messages(
                 autoattack_timing: 0,
             };
 
-            super::feast_match::on_zone_loaded(instance, *from_actor_id);
+            super::feast::arena::on_zone_loaded(instance, *from_actor_id);
 
             true
         }
@@ -1441,12 +1383,13 @@ pub fn handle_zone_messages(
                 return true;
             }
             // Return each participant to their own holding area in this match.
-            if instance.zone.id == 745 {
+            if super::feast::in_arena(instance) {
                 let now = std::time::Instant::now();
                 let until = instance
-                    .feast_respawns
+                    .feast
+                    .respawns
                     .entry(*actor_id)
-                    .or_insert(now + std::time::Duration::from_secs(10));
+                    .or_insert(now + super::feast::arena::RESPAWN_DELAY);
                 if now < *until {
                     let deadline = *until;
                     defer_feast_respawn(instance, *from_id, *actor_id, *homepoint, deadline);
@@ -1460,9 +1403,9 @@ pub fn handle_zone_messages(
                     );
                     return true;
                 }
-                instance.feast_respawns.remove(actor_id);
+                instance.feast.respawns.remove(actor_id);
                 let (feast_position, feast_rotation) =
-                    super::feast_match::respawn(instance, *actor_id);
+                    super::feast::arena::respawn_position(instance, *actor_id);
                 instance.cancel_actor_tasks(*actor_id);
                 let mut network = network.lock();
                 prepare_feast_respawn(instance, &mut network, *actor_id);
@@ -1769,5 +1712,84 @@ pub fn handle_zone_messages(
             true
         }
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod death_return_tests {
+    use super::*;
+
+    #[test]
+    fn feast_respawn_keeps_the_duty_and_other_participants() {
+        let mut instance = Instance::default();
+        instance.zone.id = crate::server::feast::TERRITORY;
+        instance.content_finder_condition_id = crate::server::feast::CONTENT_FINDER_CONDITION;
+        let actor = ObjectId(123);
+        let opponent = ObjectId(456);
+        instance.insert_empty_actor(actor);
+        instance.insert_empty_actor(opponent);
+        instance
+            .find_actor_mut(actor)
+            .unwrap()
+            .get_common_spawn_mut()
+            .health_points = 42;
+        prepare_feast_respawn(&mut instance, &mut NetworkState::default(), actor);
+        assert_eq!(
+            instance.content_finder_condition_id,
+            crate::server::feast::CONTENT_FINDER_CONDITION
+        );
+        assert_eq!(instance.actors.len(), 2);
+        assert!(instance.find_actor(opponent).is_some());
+        assert_eq!(
+            instance
+                .find_actor(actor)
+                .unwrap()
+                .get_common_spawn()
+                .health_points,
+            0
+        );
+    }
+
+    #[test]
+    fn early_feast_return_is_retained_once_at_original_deadline() {
+        let mut instance = Instance::default();
+        let actor = ObjectId(123);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(7);
+        defer_feast_respawn(&mut instance, ClientId::default(), actor, 2, deadline);
+        defer_feast_respawn(
+            &mut instance,
+            ClientId::default(),
+            actor,
+            2,
+            deadline + std::time::Duration::from_secs(3),
+        );
+        assert_eq!(instance.queued_task.len(), 1);
+        assert_eq!(instance.queued_task[0].point, deadline);
+        instance.cancel_actor_tasks(actor);
+        assert!(instance.queued_task.is_empty());
+    }
+
+    #[test]
+    fn return_after_death_requires_initialized_dead_player() {
+        let mut instance = Instance::default();
+        let id = ObjectId(123);
+        instance.insert_empty_actor(id);
+        let actor = instance.find_actor_mut(id).unwrap();
+        assert!(!can_return_after_death(actor));
+
+        actor.get_common_spawn_mut().max_health_points = 1500;
+        actor.get_common_spawn_mut().health_points = 1500;
+        assert!(!can_return_after_death(actor));
+
+        actor.get_common_spawn_mut().health_points = 0;
+        assert!(can_return_after_death(actor));
+
+        // The GM kill command can mark the actor dead before HP is updated.
+        actor.get_common_spawn_mut().health_points = 1500;
+        actor.get_common_spawn_mut().mode = CharacterMode::Dead;
+        assert!(can_return_after_death(actor));
+
+        actor.get_common_spawn_mut().mode = CharacterMode::Normal;
+        assert!(!can_return_after_death(actor));
     }
 }

@@ -357,7 +357,7 @@ impl ZoneConnection {
         content_ids: [u16; 5],
         settings: DutyFinderSetting,
     ) {
-        if content_ids.contains(&476) {
+        if content_ids.contains(&crate::FEAST_CONTENT_FINDER_CONDITION) {
             let ready = self.game_data.lock().feast_duty_metadata_ready();
             if !ready {
                 self.send_notice("Feast duty metadata is not restored. Queue refused before director initialization.")
