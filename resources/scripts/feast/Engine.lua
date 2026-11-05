@@ -16,7 +16,7 @@
 -- State:
 --   M.actors[id]   the latest snapshot of each actor, plus .statuses
 --                  (name -> {source, expires, potency, next_tick, ...})
---   M.players[id]  Feast state of each enabled player or bot: cooldowns,
+--   M.players[id]  Feast state of each enabled player: cooldowns,
 --                  gcd, pending cast, loadout, adrenaline, job resources
 --   M.actions[key] action definitions, see add() below
 --
@@ -51,7 +51,7 @@
 --   M.immune(target, status)  whether target ignores a crowd control status
 --   M.advance_job(a, p, dt)   per-tick job resources (gauges, timers)
 --   M.party_list(job)         the job's six role actions (first is fixed)
---   M.job_status(a, p), M.job_gauge(id), M.hotbar(id), M.bot_action(...)
+--   M.job_status(a, p), M.job_gauge(id), M.hotbar(id)
 --
 -- White Mage was the first job and is defined in this file; its Healing
 -- Gauge (lilies and the Blood Lily) is built into M.advance and M.command.
@@ -187,7 +187,7 @@ local function cleanse(b)
 end
 local function missing_hp_heal(a) return 3000+3000*(1-a.hp/a.max_hp) end
 -- Defines an action.
---   name    key used everywhere (feast-actions.json, commands, bots)
+--   name    key used everywhere (feast-actions.json, commands)
 --   id      historical Action sheet row (the client plays its animation)
 --   target  "self", "enemy", "ally", "other_ally", "ground" or "any"
 --   cast    cast time in seconds (0 = instant); recast in seconds
@@ -506,7 +506,7 @@ end
 function M.drain()
     local result=M.events; M.events={}; return result
 end
--- A player (or bot) uses something: an action key, or on/off/list/status/
+-- A player uses something: an action key, or on/off/list/status/
 -- team/loadout/adrenaline. Returns a chat reply ("" for none). Accepted
 -- actions start their GCD/cooldown here, at input, as the client does.
 function M.command(id,text,target,now)

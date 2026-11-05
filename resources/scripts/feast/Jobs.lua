@@ -1,7 +1,7 @@
 -- Black Mage, Samurai, Paladin, Warrior and Dragoon (the first jobs after
 -- White Mage), plus the hooks every job shares: roles and additional
 -- actions, damage modifiers, shields, combos (M.resolve), job gauges for the
--- HUD (M.job_gauge), hotbars (M.hotbar) and bot choices (M.bot_action).
+-- HUD (M.job_gauge), hotbars (M.hotbar).
 -- AdditionalJobs.lua wraps these hooks for the remaining jobs.
 -- Sources: the official job guides archived before patch 6.1.
 return function(M)
@@ -473,42 +473,5 @@ function M.job_gauge(id)
  return {a.job,resource,p.meditation,p.polyglot,
      has(id,"astral_fire") and 1 or has(id,"umbral_ice") and 2 or 0,
      p.enochian and 1 or 0,math.floor(math.max(0,15-p.poly_time)*1000)}
-end
-function M.bot_action(id,target,heal_target)
- local a=state(id); local p=player(a); local name="glare"
- local function ready(key) local d=A[key]; local times=p.cooldowns[d.cooldown or key] or {}; return not times[1] or times[1]<=M.now end
- if a.job==24 then if heal_target~=0 then name="cure2"; target=heal_target end
- elseif a.job==22 then
-  if p.eyes>=2 and ready("geirskogul") then name="geirskogul"
-  elseif (has(id,"blood_dragon") or has(id,"life_dragon")) and ready("mirage_dive") then name="mirage_dive"
-  elseif ready("high_jump") then name="high_jump" else name="raiden_thrust" end
- elseif a.job==21 then
-  if has(id,"nascent_chaos") or p.beast>=50 or has(id,"inner_release") then name="fell_cleave"
-  elseif ready("infuriate") then name="infuriate" else name="heavy_swing" end
- elseif a.job==25 then
-  if a.mp<2000 then name="blizzard"
-  elseif not has(id,"astral_fire") and not has(id,"umbral_ice") then name="fire"
-  elseif not p.enochian then name="enochian"
-  elseif p.polyglot>0 then name="xenoglossy"
-  elseif has(id,"umbral_ice") then name=a.mp<8000 and "enochian" or "fire"
-  elseif a.statuses.astral_fire.expires-M.now<4 then name="fire"
-  else name="enochian" end
- elseif a.job==34 then
-  if p.repeat_action and ready("tsubame_gaeshi") then name="tsubame_gaeshi"
-  elseif p.meditation==3 then name="shoha"
-  elseif p.kenki>=25 and a.hp<a.max_hp*0.5 and ready("chiten") then name="chiten"
-  elseif ready("midare_setsugekka") then name="midare_setsugekka"
-  elseif p.kenki>=50 then name="shinten"
-  else name="yukikaze" end
- elseif a.job==19 then
-  if a.hp<a.max_hp*0.3 and ready("hallowed_ground") then name="hallowed_ground"
-  elseif a.mp<3000 and ready("requiescat") then name="requiescat"
-  elseif p.oath>=50 then name="confiteor"
-  elseif has(id,"requiescat") or a.mp>=5000 then name="holy_spirit"
-  elseif ready("intervene") then name="intervene"
-  else name="fast_blade" end
- end
- name=M.resolve(a,name)
- return name,target,math.floor(M.effective(a,A[name]).cast*1000)
 end
 end

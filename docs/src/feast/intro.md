@@ -39,7 +39,7 @@ fork rebuilds the missing pieces around what survived.
 | Combat for all 19 Feast jobs | Lua, `resources/scripts/feast/` | [The combat engine](combat-engine.md) |
 | Casting, recasts, animations | server + Lua + HUD | [Actions and casting](actions-and-casting.md) |
 | The Feast UI: header, team lists, gauges, hotbars | Dalamud plugin, `tools/feast-hud` | [The HUD plugin](hud-plugin.md) |
-| Practice bots and dummies | `server/feast/practice.rs` | [Practice](practice.md) |
+| Practice dummies | `server/feast/practice.rs` | [Practice](practice.md) |
 
 The **server is the authority** for everything: rules, damage, cooldowns,
 medals. The client is today's unmodified game plus two things: a small patch

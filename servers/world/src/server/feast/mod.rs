@@ -8,7 +8,7 @@
 //! - `actions`: the historical action catalog (resources/feast-actions.json).
 //! - `supplies`: supply boxes and the kits they drop.
 //! - `director`: per-player match snapshots for the HUD plugin.
-//! - `practice`: training dummies and bots.
+//! - `practice`: training dummies.
 //! - `commands`: the `!feast` match commands.
 //!
 //! Everything Feast-specific about an instance lives in `Instance::feast`.
@@ -75,7 +75,7 @@ pub struct FeastState {
     pub combat: Option<combat::CombatEngine>,
     /// The current match, created when the first player arrives.
     pub arena: Option<arena::Arena>,
-    /// Practice dummies and bots, by actor.
+    /// Practice dummies, by actor.
     pub practice: HashMap<ObjectId, practice::PracticeActor>,
     /// When each KO'd player may return.
     pub respawns: HashMap<ObjectId, Instant>,
@@ -85,7 +85,7 @@ pub struct FeastState {
     pub directors_sent: HashSet<ObjectId>,
 }
 
-/// Runs one world tick of the arena: match, combat engine, then practice actors.
+/// Runs one world tick of the arena: match, combat engine, then practice dummies.
 pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     arena::tick(instance, network);
     combat::tick(instance, network);
@@ -157,7 +157,7 @@ fn has_spawned_for(network: &NetworkState, viewer: ObjectId, actor: ObjectId) ->
         .any(|(handle, state)| handle.actor_id == viewer && state.has_spawned(actor))
 }
 
-/// Adds a battle NPC with no AI script (supply boxes, practice actors).
+/// Adds a battle NPC with no AI script (supply boxes, practice dummies).
 fn insert_npc(instance: &mut Instance, id: ObjectId, spawn: SpawnNpc) {
     instance.actors.insert(
         id,

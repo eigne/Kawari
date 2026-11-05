@@ -87,11 +87,6 @@ local rows=m.hotbar(1); eq(#rows>20,true)
 local gauge=m.job_gauge(1); eq(gauge[1],25); eq(gauge[5],1)
 for _,job in ipairs({19,25,34}) do
  local engine=setup(job)
- local n,target,cast=engine.bot_action(1,2,0)
- eq(engine.actions[n].job,job); eq(target,2); eq(cast>=0,true)
-end
-for _,job in ipairs({19,25,34}) do
- local engine=setup(job)
  for name,d in pairs(engine.actions) do
   if d.job==job then eq(type(d.id),"number"); eq(d.id>0,true) end
  end

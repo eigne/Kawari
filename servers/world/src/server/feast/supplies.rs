@@ -56,12 +56,6 @@ pub struct Supplies {
     fading: HashMap<ObjectId, f64>,
 }
 impl Supplies {
-    pub fn kit_positions(&self, team: Team) -> impl Iterator<Item = [f32; 3]> + '_ {
-        self.kits
-            .values()
-            .filter(move |kit| kit.team == team)
-            .map(|kit| kit.position)
-    }
     pub fn record_damage(&mut self, source: u32, target: ObjectId, amount: u32) {
         if let Some(b) = self.boxes.get_mut(&target) {
             *b.damage.entry(source).or_default() += u64::from(amount);

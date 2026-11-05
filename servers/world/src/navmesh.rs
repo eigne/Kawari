@@ -255,31 +255,3 @@ impl Navmesh {
         !self.navmesh.is_null()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // Generated meshes are a local cache, so this only runs where one exists.
-    // Regenerate with `kawari-navimesh 745 <path>` after deleting an old copy.
-    #[test]
-    fn feast_jails_connect_to_the_arena() {
-        let path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../../navimesh/bg/ffxiv/pvp_xx/pvp/l1p2/navimesh/l1p2.nvm"
-        );
-        let Ok(buffer) = std::fs::read(path) else {
-            return;
-        };
-        let navmesh = Navmesh::from_existing(&buffer).unwrap();
-        let centre = Vec3A::new(0.0, -2.5, 0.0);
-        for jail in [-58.0, 58.0] {
-            let path = navmesh.calculate_path(Vec3A::new(jail, 0.5, 0.0), centre);
-            let end = path.last().copied().unwrap_or(Vec3A::new(jail, 0.5, 0.0));
-            assert!(
-                (end - centre).with_y(0.0).length() < 2.0,
-                "path from the jail at x={jail} stops at {end}"
-            );
-        }
-    }
-}

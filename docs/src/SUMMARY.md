@@ -26,7 +26,7 @@
   - [Jobs: finishing and adding them](feast/jobs.md)
   - [The director protocol](feast/director-protocol.md)
   - [The HUD plugin](feast/hud-plugin.md)
-  - [Practice: dummies and bots](feast/practice.md)
+  - [Practice dummies](feast/practice.md)
   - [Commands](feast/commands.md)
   - [Testing and debugging](feast/testing.md)
   - [Known gaps and next steps](feast/known-gaps.md)

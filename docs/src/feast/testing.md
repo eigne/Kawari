@@ -35,9 +35,6 @@ tests in `server/feast/combat.rs`. Each returns how many checks it ran:
 The pattern in all three: build an engine, `sync` a few actors, `command` an
 action, `advance` time, and check HP, MP, statuses and players' resources.
 
-`navmesh.rs` has a test that the jails connect to the centre of the arena;
-it only runs if you have generated the navmesh.
-
 ## In game
 
 Things only a client can confirm. After a change, check the ones it touches:
@@ -56,8 +53,9 @@ Things only a client can confirm. After a change, check the ones it touches:
   your jail at full HP.
 - Leaving the arena restores your normal hotbars and UI.
 
-`!feast bots` gives you a full match alone; `!feast supply` tests supply
-boxes without waiting.
+For a real match, log in a second character on another account and queue
+both with `!feast`. `!feast dummies` gives you targets alone; `!feast supply`
+tests supply boxes without waiting.
 
 ## Logs
 

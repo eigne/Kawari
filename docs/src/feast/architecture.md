@@ -22,8 +22,8 @@ stays empty outside the arena.
 | `actions.rs` | The historical action catalog, read from `resources/feast-actions.json`. |
 | `supplies.rs` | Supply boxes, the kits they drop, and who gets them. |
 | `director.rs` | Per-player match frames for the HUD, sent through the duty director. |
-| `practice.rs` | `!feast dummies` and `!feast bots`. |
-| `commands.rs` | The `!feast` match commands (`status`, `restart`, `bots`, ...). |
+| `practice.rs` | `!feast dummies`. |
+| `commands.rs` | The `!feast` match commands (`status`, `restart`, `dummies`, ...). |
 
 The rest of the server calls into this module from a handful of places.
 Search for `feast::` to find them all:
@@ -33,9 +33,9 @@ Search for `feast::` to find them all:
 | `server/mod.rs` | `feast::tick` every world tick; keeps all participants in each other's view; no natural HP regeneration in the arena; crowd control undoes movement; records movement for interrupting casts; restarts the duty timer length. |
 | `server/action.rs` | In the arena, every `ActionRequest` goes to `combat::native_action` instead of the normal action scripts. Damage from scripted actions passes through `combat::adjust_damage`. |
 | `server/zone.rs` | Entering stages players in the west jail; `ReturnAfterDeath` respawns them in their own jail after the ten-second wait; zone loads reset per-viewer state (`arena::on_zone_loaded`). |
-| `server/actor.rs` | A KO starts the respawn wait; practice actors stay as corpses. |
+| `server/actor.rs` | A KO starts the respawn wait; practice dummies stay as corpses. |
 | `server/director.rs` | The duty director is initialized only once per player; the duty timer follows the match clock. |
-| `server/npc_behavior.rs` | Practice actors and supply boxes have no AI; crowd control stops NPCs too. |
+| `server/npc_behavior.rs` | Practice dummies and supply boxes have no AI; crowd control stops NPCs too. |
 | `server/chat.rs` | Routes `!feast <match command>` and `!whm` here. |
 | `server/party.rs` | `disband_party`, used to split a party across the two teams. |
 | `zone_connection/actor.rs`, `main.rs` | The player's own spawn carries their team battalion (`SetFeastBattalion`). |
@@ -47,7 +47,7 @@ Search for `feast::` to find them all:
 | File | What it does |
 |---|---|
 | `Engine.lua` | The engine: state, damage/healing, statuses, casts, cooldowns, the public functions the server calls, and the White Mage kit. Its header comment is the reference for the engine's API. |
-| `Jobs.lua` | Black Mage, Samurai, Paladin, Warrior, Dragoon, plus the hooks every job shares (roles, damage modifiers, combos, job gauges, hotbars, bot choices). |
+| `Jobs.lua` | Black Mage, Samurai, Paladin, Warrior, Dragoon, plus the hooks every job shares (roles, damage modifiers, combos, job gauges, hotbars). |
 | `AdditionalJobs.lua` | The other 13 jobs. Wraps the hooks from `Jobs.lua`. |
 | `AdditionalActionData.lua` | Generated metadata (IDs, cast and recast times, ranges, cooldown groups) for `AdditionalJobs.lua`. |
 
@@ -64,7 +64,6 @@ is the `!feast` command that moves players in and out of the arena.
 | `tools/feast-header-loader-tests` | Checks the built HUD loads its header textures and matches the SDK's gauge layouts. |
 | `tools/feast-map` | The client data patch (territory and duty rows). |
 | `tools/feast-assets` | Read-only audits of which Feast assets survive in the client, and the scripts that built `feast-actions.json`. The `*.json` files there are recorded audit results. |
-| `tools/navimesh` | Kawari's navmesh generator, which skips the jail gates. |
 
 ### Shared data: `resources/feast-actions.json`
 
@@ -78,7 +77,7 @@ and the client's timing questions. See [Actions and casting](actions-and-casting
 The world server ticks every instance about twice a second
 (`server_logic_tick` in `server/mod.rs`). For the arena, `feast::tick` runs:
 
-1. **`arena::tick`**: collect every participant (players and practice actors)
+1. **`arena::tick`**: collect every participant (players and practice dummies)
    as a `rules::Input`, then `Match::step` the rules. Afterwards make the world
    match the rules:
    - restart the native duty timer if the phase changed;
@@ -88,10 +87,10 @@ The world server ticks every instance about twice a second
    - open or close the jail gates and place new players in their jail;
    - spawn, animate and remove medal piles, dimmed per viewer;
    - send announcements, and director frames four times a second.
-2. **`combat::tick`**: enable Feast rules for newly arrived players and bots,
+2. **`combat::tick`**: enable Feast rules for newly arrived players,
    then advance the Lua engine to now (finishing casts, ticking statuses) and
    apply its events.
-3. **`practice::tick`**: dummies attack, bots move and act.
+3. **`practice::tick`**: dummies hit back if `!feast attack on`.
 
 The arena takes itself out of the instance while it works
 (`instance.feast.arena.take()`) and puts itself back at the end. That lets it

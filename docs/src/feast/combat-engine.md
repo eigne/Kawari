@@ -48,7 +48,7 @@ these three steps; `effects::apply` applies the events in order.
 - **`M.actors[id]`**: the latest snapshot, plus `statuses`: a table from
   status name to `{source, expires, potency, next_tick, ...}`. Statuses are
   plain names (`"protect"`, `"sleep"`, `"thunder_<caster id>"`), not game IDs.
-- **`M.players[id]`**: the Feast state of every player or bot with Feast rules
+- **`M.players[id]`**: the Feast state of every player with Feast rules
   enabled ("on"): team, `cooldowns` (action key → list of deadlines, one per
   charge used), `gcd` (deadline), `pending` (the cast in progress), `loadout`
   (the two chosen additional actions), `adrenaline` (0–100), `combat_until`,
@@ -156,7 +156,6 @@ Job files change the engine's behaviour by defining optional functions on
 | `M.initialize`, `M.reset_job`, `M.advance_job` | Job resources: set up, cleared, and ticked. |
 | `M.party_list`, `M.allowed` | Each role's six role actions; which a job may use. |
 | `M.job_gauge`, `M.hotbar` | What the HUD shows (see [Director protocol](director-protocol.md)). |
-| `M.bot_action` | What a bot does next. |
 
 `Jobs.lua` defines these hooks first. `AdditionalJobs.lua` *wraps* them so
 both files' jobs keep working:
@@ -199,11 +198,3 @@ Job gauges (lilies, Beast Gauge, Kenki, ...) are fields on the player,
 changed by actions (`gauge(a, "kenki", 10)`) and ticked by `M.advance_job`.
 White Mage's lilies are ticked in `M.advance` itself. `M.job_gauge`
 packs them for the HUD, which writes them into the game's own gauge widgets.
-
-## Bots
-
-Bots go through the same `M.command` as players, so every rule applies to
-them. `M.bot_action(id, target, heal_target)` picks their next action: a
-simple priority list per job (heal a low teammate, spend resources, use
-cooldowns, otherwise the basic combo). The server's `practice.rs` handles
-movement and targeting; see [Practice](practice.md).

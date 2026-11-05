@@ -35,8 +35,6 @@ The real preparation was longer; 5 seconds is a development convenience.
 - **Weather** changes that came with Marked for Culling.
 - **Original UI windows** other than the header: the Feast's PvP Actions
   window and result screen were rebuilt or left out.
-- **Bots** for jobs other than White Mage, Paladin, Samurai and Black Mage beyond
-  their basic combo.
 
 ## Updating to a new client version
 

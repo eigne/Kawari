@@ -13,8 +13,8 @@ use super::{arena, combat, practice, rules::Phase, supplies};
 use crate::server::{instance::Instance, network::NetworkState};
 
 /// The subcommands handled by the world server rather than Feast.lua.
-const MATCH_COMMANDS: [&str; 11] = [
-    "status", "hud", "restart", "dummies", "bots", "attack", "ground", "actions", "loadout", "job",
+const MATCH_COMMANDS: [&str; 10] = [
+    "status", "hud", "restart", "dummies", "attack", "ground", "actions", "loadout", "job",
     "supply",
 ];
 
@@ -27,7 +27,8 @@ pub fn is_match_command(text: &str) -> bool {
             .is_some_and(|word| MATCH_COMMANDS.contains(&word))
 }
 
-const USAGE: &str = "Use !feast status, !feast restart, !feast bots [on|off], !feast dummies [1-3], or !feast attack on|off.";
+const USAGE: &str =
+    "Use !feast status, !feast restart, !feast dummies [1-3], or !feast attack on|off.";
 
 /// Runs `text`, the words after `!feast`, for `id`.
 pub fn command(
@@ -71,7 +72,7 @@ pub fn command(
         ["loadout", ..] => engine_command(instance, network, id, text),
         ["actions"] => engine_command(instance, network, id, "list"),
         ["job"] => engine_command(instance, network, id, "status"),
-        ["dummies", ..] | ["attack", ..] | ["bots", ..] => practice::command(instance, network, id, &words),
+        ["dummies", ..] | ["attack", ..] => practice::command(instance, network, id, &words),
         // Polled by the HUD for the respawn countdown when it receives no
         // director frames (exploration mode). Private, hidden by the HUD.
         ["hud"] => super::notice(
@@ -143,9 +144,7 @@ fn restart(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, id: Obje
         );
         return;
     }
-    if instance.feast.practice.values().any(|d| d.autonomous) {
-        practice::command(instance, network, id, &["bots"]);
-    } else if !instance.feast.practice.is_empty() {
+    if !instance.feast.practice.is_empty() {
         let count = instance.feast.practice.len().to_string();
         practice::command(instance, network, id, &["dummies", &count]);
     } else {
@@ -184,8 +183,6 @@ mod tests {
             "!feast   status ",
             "!feast\trestart",
             "!feast dummies 3",
-            "!feast bots",
-            "!feast bots off",
             "!feast attack off",
             "!feast supply",
             "!feast supply heart",

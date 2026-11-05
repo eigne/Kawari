@@ -155,17 +155,6 @@ impl CombatEngine {
         self.function("job_gauge")?.call(id)
     }
 
-    /// A bot's next action: (key, target, cast time in ms).
-    pub fn bot_action(
-        &self,
-        id: ObjectId,
-        target: ObjectId,
-        heal: Option<ObjectId>,
-    ) -> mlua::Result<(String, u32, u64)> {
-        self.function("bot_action")?
-            .call((id.0, target.0, heal.map_or(0, |id| id.0)))
-    }
-
     /// Each hotbar action as (base ID, ID it currently becomes, cast ms, recast ms).
     pub fn hotbar(&self, id: u32) -> mlua::Result<Vec<(u16, u16, u16, u16)>> {
         self.lua.from_value(self.function("hotbar")?.call(id)?)
@@ -225,14 +214,10 @@ fn actor_snapshots(instance: &Instance) -> Vec<ActorSnapshot> {
         .filter_map(|(id, actor)| {
             let (player, invulnerable) = match actor {
                 NetworkedActor::Player { .. } => (true, false),
-                // Bots count as players so the engine gives them a job kit.
                 NetworkedActor::Npc {
                     currently_invulnerable,
                     ..
-                } => (
-                    instance.feast.practice.get(id).is_some_and(|d| d.autonomous),
-                    *currently_invulnerable,
-                ),
+                } => (false, *currently_invulnerable),
                 _ => return None,
             };
             let s = actor.get_common_spawn();
@@ -384,7 +369,7 @@ pub fn native_action(
 
 /// Runs a text command in the engine for `actor`, against their current
 /// target: an action key (`"glare"`), or `on`, `list`, `status`, `loadout a b`.
-/// Used by bots, `!feast actions/job/loadout`, `!whm`, and tests.
+/// Used by `!feast actions/job/loadout`, `!whm`, and tests.
 pub fn command(
     instance: &mut Instance,
     network: &Arc<Mutex<NetworkState>>,
@@ -480,7 +465,7 @@ pub fn ground_action(
 }
 
 /// Advances the engine to now: finishes casts, ticks statuses and gauges.
-/// Also turns Feast rules on for players and bots who just arrived.
+/// Also turns Feast rules on for players who just arrived.
 pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     if !super::in_arena(instance) {
         return;
@@ -489,13 +474,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         .actors
         .iter()
         .filter(|(id, actor)| {
-            let player = matches!(actor, NetworkedActor::Player { .. })
-                || instance
-                    .feast
-                    .practice
-                    .get(id)
-                    .is_some_and(|d| d.autonomous);
-            player
+            matches!(actor, NetworkedActor::Player { .. })
                 && super::is_feast_job(actor.get_common_spawn().class_job)
                 && !instance
                     .feast

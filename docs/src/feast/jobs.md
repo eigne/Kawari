@@ -17,7 +17,6 @@ are](#how-faithful-the-kits-are) before trusting a number.
 | Role actions | `roles` in `Jobs.lua` (tank, melee, caster, healer) and `AdditionalJobs.lua` (job → role, plus physical ranged); mirrored in the HUD's `FeastActionMenu.RoleActions` |
 | Job gauge | player fields, `M.job_gauge`, and the HUD's `NativeJobGaugeData` / `JobGaugeManagerSync` |
 | Medal limit | `rules::medal_limit` (server) and `Participant.MedalCapacity` (HUD) |
-| Bot rotation | `M.bot_action` |
 
 ## How faithful the kits are
 
@@ -38,8 +37,6 @@ describe actions in words, so some details had to be chosen:
 - **Presentation.** Only crowd control, Dia, Temperance, Wolf's Heart and
   Bolt show native status icons. Other buffs and debuffs work but are
   invisible, and many animations have not been checked in game.
-- **Bots** play White Mage, Paladin, Samurai and Black Mage with real
-  rotations; other jobs only use their basic combo.
 
 Search the Lua for "approximation", "provisional" and "guide specifies" to
 find each of these choices.

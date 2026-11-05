@@ -220,7 +220,7 @@ pub fn can_act(instance: &Instance, actor: ObjectId) -> bool {
     })
 }
 
-/// Players and practice actors that can take part in the match.
+/// Players and practice dummies that can take part in the match.
 fn participants(instance: &Instance) -> Vec<Input> {
     instance
         .actors
@@ -719,7 +719,7 @@ fn sync_medal_piles(
 }
 
 /// Starts a new match whose roster is everyone currently in the arena,
-/// with practice actors on their assigned teams and players as Fangs.
+/// with practice dummies as Claws and players as Fangs.
 pub fn start_practice_match(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     end_match(instance, network);
     let mut rules = Match::new(0.0);
@@ -733,11 +733,11 @@ pub fn start_practice_match(instance: &mut Instance, network: &Arc<Mutex<Network
         rules.players.insert(
             id.0,
             super::rules::Player {
-                team: instance
-                    .feast
-                    .practice
-                    .get(id)
-                    .map_or(Team::Fang, |d| d.team),
+                team: if instance.feast.practice.contains_key(id) {
+                    Team::Claw
+                } else {
+                    Team::Fang
+                },
                 job: s.class_job,
                 medals: super::rules::STARTING_MEDALS,
                 position: s.position.0.to_array(),

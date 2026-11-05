@@ -26,11 +26,6 @@ use recastnavigation_sys::{
     rcFilterWalkableLowHeightSpans, rcHeightfield, rcMarkWalkableTriangles, rcRasterizeTriangles,
 };
 
-/// Shared groups that the server opens and closes during play, such as the
-/// Feast jail barriers in the Crystal Tower Training Grounds. Baking their
-/// collision in would wall off whatever is behind them for good.
-const DYNAMIC_SHARED_GROUPS: [u32; 2] = [7403947, 7403946];
-
 fn main() {
     tracing_subscriber::fmt::init();
 
@@ -640,9 +635,6 @@ fn walk_layer(
                 }
             }
             LayerEntryData::SharedGroup(sgb) => {
-                if DYNAMIC_SHARED_GROUPS.contains(&object.instance_id) {
-                    continue;
-                }
                 match resolver.parsed::<Sgb>(&sgb.asset_path.value) {
                     Ok(sgb) => {
                         for group in &sgb.sections[0].layer_groups {

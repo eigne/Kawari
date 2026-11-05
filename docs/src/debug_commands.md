@@ -15,7 +15,7 @@ These special debug commands start with `!` and are custom to Kawari.
 | `!fate <id>` | Starts this FATE. |
 | `!fateinfo` | Tells you information about the FATE you're standing in. |
 | `!fatecomplete`| Completes the FATE that you're standing in. |
-| `!feast [leave\|den\|status\|bots\|...]` | Enter the Feast PvP arena, leave it, and control its match. Requires the Feast client data patch; see [Feast commands](feast/commands.md). |
+| `!feast [leave\|den\|status\|...]` | Enter the Feast PvP arena, leave it, and control its match. Requires the Feast client data patch; see [Feast commands](feast/commands.md). |
 | `!festival <id1> <id2> <id3> <id4>` | Sets the festival in the current zone. Multiple festivals can be set together to create interesting effects. |
 | `!finishevent` | Forcefully finishes the current event, useful if the script has an error and you're stuck talking to something. |
 | `!gate <id>` | Spawns a non-functional debug GATE. |

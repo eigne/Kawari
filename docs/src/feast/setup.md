@@ -54,16 +54,6 @@ activity at `info` level (`Feast match`, `Feast damage`, ...). The Lua scripts
 in `resources/scripts` are read from disk, so script changes apply without a
 rebuild: command scripts on next use, the combat engine at the next match.
 
-Practice bots walk the arena with a navigation mesh. Generate it once:
-
-```powershell
-cargo run --bin kawari-navimesh -- 745 navimesh/bg/ffxiv/pvp_xx/pvp/l1p2/navimesh/l1p2.nvm
-```
-
-The mesh generator leaves out the jail gates, which open and close during
-play (`DYNAMIC_SHARED_GROUPS` in `tools/navimesh/src/main.rs`). Without a mesh
-the bots walk in straight lines.
-
 ## 3. Install Dalamud and the HUD
 
 The HUD is a Dalamud plugin, built against the Dalamud SDK files copied into
@@ -100,7 +90,7 @@ character needs the rank those require. In any town or open-world zone:
 
 ```text
 !feast            queue for the Feast (accept the duty pop)
-!feast bots       fill both teams with bots for a solo 4v4
+!feast dummies    spawn a practice target next to you
 !feast status     clock, scores and your medals
 !feast restart    start the next match after a result
 !feast leave      leave the arena

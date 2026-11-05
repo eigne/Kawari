@@ -633,11 +633,4 @@ for key,d in pairs(D) do
   end
  end end
 end
-local bot=M.bot_action
-function M.bot_action(id,target,heal_target)
- local a=state(id); if not a or not roles[a.job] then return bot(id,target,heal_target) end
- local basic=({[20]='bootshine',[30]='spinning_edge',[23]='burst_shot',[31]='heated_split_shot',[38]='cascade',[27]='ruin_iii',[35]='verstone',[28]='broil_iii',[33]='malefic_iv',[32]='hard_slash',[37]='keen_edge',[39]='slice',[40]='dosis_iii'})[a.job]
- if heal_target~=0 then local cure=({[28]='physick',[33]='benefic',[40]='diagnosis'})[a.job]; if cure then basic=cure; target=heal_target end end
- local key=M.resolve(a,basic); return key,target,math.floor(M.effective(a,A[key]).cast*1000)
-end
 end

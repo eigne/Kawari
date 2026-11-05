@@ -110,8 +110,8 @@ battalions to count.
    (`arena::split_parties`). The party handlers tolerate a party disappearing
    while a member is still loading.
 
-Practice bots use the same battalions, so they are enemies (or allies) for
-the same reasons.
+Practice dummies use the Claws' battalion, so they are enemies for the same
+reasons.
 
 ## Respawning
 
@@ -141,5 +141,3 @@ with full HP.
   The value is provisional; see [Known gaps](known-gaps.md).
 - **No regeneration.** Players with Feast rules enabled do not regenerate HP
   outside combat; the engine owns their HP.
-- **Navmesh.** Generated with the jail gates left out (they open), so bots
-  can path out of the jails.

@@ -18,9 +18,8 @@ character needs the rank Kawari requires for those.
 |---|---|
 | `!feast status` | The clock, both scores, and your team, medals and limit. |
 | `!feast restart` | After a result: starts the next match (practice setups are recreated). |
-| `!feast bots [on\|off]` | Solo 4v4 against bots, or removes them. See [Practice](practice.md). |
-| `!feast dummies [1-3]` | Stationary practice opponents. |
-| `!feast attack on\|off` | Makes dummies and bots act, or pauses them. |
+| `!feast dummies [1-3]` | Stationary practice opponents. See [Practice](practice.md). |
+| `!feast attack on\|off` | Makes dummies hit back, or stops them. |
 | `!feast supply [heart]` | Spawns an adrenaline (or Wolf's Heart) supply wave now. Testing only. |
 | `!feast actions` | Lists your job's Feast action keys. |
 | `!feast job` | Shows your job resources (gauge values). |

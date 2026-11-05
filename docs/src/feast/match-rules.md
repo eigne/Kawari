@@ -98,4 +98,4 @@ Supply boxes spawn at 1:30 (adrenaline), 3:00 (Wolf's Heart) and 4:30
 - Every rule has a test in the same file. Run `cargo test -p kawari-world
   feast` after a change, and add a test for the new behaviour.
 - The rules only see `Input`s, so they work the same for players and
-  practice bots.
+  practice dummies.
