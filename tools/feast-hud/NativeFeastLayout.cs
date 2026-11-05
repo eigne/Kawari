@@ -91,13 +91,14 @@ internal sealed unsafe class NativeFeastLayout
             Hide(c->GetNodeById(21));
             Hide(c->GetNodeById(11));
             string? label = actor == null ? null : NativeRoster.DisplayName(players[row],actor,row);
+            bool casting = false;
             if (actor is { IsCasting: true })
             {
                 var castName = data.GetExcelSheet<Lumina.Excel.Sheets.Action>()?
                     .GetRowOrDefault(actor.CastActionId)?.Name.ToString();
-                if (!string.IsNullOrWhiteSpace(castName)) label = castName;
+                if (!string.IsNullOrWhiteSpace(castName)) { label = castName; casting = true; }
             }
-            labels.Update(address,c,label);
+            labels.Update(address,c,label,casting);
         }
         addon->UpdateCollisionNodeList(false);
     }

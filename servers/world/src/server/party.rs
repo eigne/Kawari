@@ -372,6 +372,26 @@ pub fn update_party_position(
     }
 }
 
+/// Disbands `party_id`, as if `targets` had used /partycmd breakup.
+pub fn disband_party(network: &mut NetworkState, party_id: u64, targets: PartyUpdateTargets) {
+    let msg = FromServer::PartyUpdate(targets, PartyUpdateStatus::DisbandingParty, None);
+
+    // Finally, tell everyone in the party about the update.
+    network.send_to_party(party_id, None, msg, DestinationNetwork::ZoneClients);
+
+    // Tell their chat connections they're no longer in a party.
+    network.send_to_party(
+        party_id,
+        None,
+        FromServer::SetPartyChatChannel(0),
+        DestinationNetwork::ChatClients,
+    );
+
+    // We don't need to keep track of this party anymore.
+    network.parties.remove(&party_id);
+    network.commit_parties = true;
+}
+
 pub fn handle_party_messages(
     data: Arc<Mutex<WorldServer>>,
     network: Arc<Mutex<NetworkState>>,
@@ -582,7 +602,11 @@ pub fn handle_party_messages(
         ) => {
             let data = data.lock();
             let mut network = network.lock();
-            let party = network.parties.get(party_id).unwrap();
+            // The server can disband a party (e.g. a Feast match splitting it
+            // across teams) while a member is still loading into the zone.
+            let Some(party) = network.parties.get(party_id) else {
+                return true;
+            };
 
             let party_list = build_party_list(party, &data);
 
@@ -759,33 +783,16 @@ pub fn handle_party_messages(
             true
         }
         ToServer::PartyDisband(party_id, execute_account_id, execute_content_id, execute_name) => {
-            let mut network = network.lock();
-
-            let msg = FromServer::PartyUpdate(
+            disband_party(
+                &mut network.lock(),
+                *party_id,
                 PartyUpdateTargets {
                     execute_account_id: *execute_account_id,
                     execute_content_id: *execute_content_id,
                     execute_name: execute_name.clone(),
                     ..Default::default()
                 },
-                PartyUpdateStatus::DisbandingParty,
-                None,
             );
-
-            // Finally, tell everyone in the party about the update.
-            network.send_to_party(*party_id, None, msg, DestinationNetwork::ZoneClients);
-
-            // Tell their chat connections they're no longer in a party.
-            network.send_to_party(
-                *party_id,
-                None,
-                FromServer::SetPartyChatChannel(0),
-                DestinationNetwork::ChatClients,
-            );
-
-            // We don't need to keep track of this party anymore.
-            network.parties.remove(party_id);
-            network.commit_parties = true;
 
             true
         }
@@ -799,7 +806,9 @@ pub fn handle_party_messages(
         ) => {
             let data = data.lock();
             let mut network = network.lock();
-            let party = network.parties.get_mut(party_id).unwrap();
+            let Some(party) = network.parties.get_mut(party_id) else {
+                return true;
+            };
 
             let Some(member) = party.get_member_by_content_id(*target_content_id) else {
                 return true;

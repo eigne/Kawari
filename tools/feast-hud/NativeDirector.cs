@@ -6,6 +6,7 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace Kawari.FeastHud;
 
@@ -27,11 +28,12 @@ internal sealed unsafe class NativeDirector : IDisposable
     private readonly nint legacyVtable;
     private readonly DirectorFrames frames = new();
     private readonly NativeRecast recast = new();
+    private readonly NativeBattalionMode battalionMode;
     private readonly NativeFeastLayout layout = new();
     private readonly NativeMatchHeader? header;
     private bool replacedRefresh;
     private bool headerFailed;
-    private static readonly string[] Names = ["PvPMKSHeader", "PvPMKSPartyList1", "PvPMKSPartyList3"];
+    private static readonly string[] Names = ["PvPMKSHeader", "PvPMKSPartyList1", "PvPMKSPartyList3", "_TargetInfo", "_TargetInfoMainTarget", "_FocusTargetInfo"];
     public DirectorFrame? Frame => frames.Current;
     public long Received { get; private set; }
     public bool InArena => client.IsLoggedIn && client.TerritoryType == 745;
@@ -44,6 +46,7 @@ internal sealed unsafe class NativeDirector : IDisposable
     {
         this.client = client; this.objects = objects; this.lifecycle = lifecycle; this.log = log;
         this.targets = targets; this.data = data;
+        battalionMode = new(log);
         var module = Process.GetCurrentProcess().MainModule!;
         imageBase = module.BaseAddress;
         var native = NativeClient.Current;
@@ -102,6 +105,7 @@ internal sealed unsafe class NativeDirector : IDisposable
     }
     public void Update()
     {
+        if (InArena) battalionMode.Update();
         if (!InArena) { header?.Clear(); headerFailed = false; recast.Clear(); layout.Clear(); frames.Clear(); Received = 0; replacedRefresh = false; }
     }
     private void OnAddon(AddonEvent ev, AddonArgs args)
@@ -122,6 +126,16 @@ internal sealed unsafe class NativeDirector : IDisposable
             }
             return;
         }
+        if (InArena && args.AddonName is "_TargetInfo" or "_TargetInfoMainTarget" or "_FocusTargetInfo")
+        {
+            if (ev is AddonEvent.PreDraw && Frame is { } targetFrame)
+            {
+                var target = args.AddonName == "_FocusTargetInfo" ? targets.FocusTarget : targets.Target;
+                var participant = target == null ? null : targetFrame.Players.FirstOrDefault(p => p.Id == target.EntityId);
+                NativeTargetMedals.Update((AtkUnitBase*)(nint)args.Addon, participant);
+            }
+            return;
+        }
         if (InArena && args.AddonName is "PvPMKSPartyList1" or "PvPMKSPartyList3" && Frame is { } frame)
         {
             // These widgets are player/enemy, whereas director rosters are Fang/Claw.
@@ -137,7 +151,7 @@ internal sealed unsafe class NativeDirector : IDisposable
     }
     public void Dispose()
     {
-        refresh.Dispose(); setData.Dispose();
+        refresh.Dispose(); setData.Dispose(); battalionMode.Dispose();
         lifecycle.UnregisterListener(OnAddon);
         header?.Clear();
         recast.Clear();

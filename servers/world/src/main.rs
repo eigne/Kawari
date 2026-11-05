@@ -198,6 +198,7 @@ async fn initial_setup(
                     initial_login: true,
                     fate_motivation_npcs: HashMap::new(),
                     content_handler_id: None,
+                    feast_battalion: 0,
                     can_share_teleport: false,
                 };
 
@@ -3958,6 +3959,11 @@ async fn process_server_msg(
             }
             FromServer::FeastDirectorProbe(enabled) => {
                 connection.feast_director_probe(enabled).await;
+            }
+            FromServer::SetFeastBattalion(battalion) => {
+                // The client only reads battalions from spawn packets.
+                connection.feast_battalion = battalion;
+                connection.respawn_player(false).await;
             }
             FromServer::ActorControlSelf(actor_control) => {
                 connection.actor_control_self(actor_control).await

@@ -117,6 +117,8 @@ pub enum FromServer {
     ActorControlSelf(ActorControlCategory),
     /// Opt-in legacy Feast director compatibility probe.
     FeastDirectorProbe(bool),
+    /// The player's Feast team battalion changed; respawn them with it.
+    SetFeastBattalion(u8),
     /// Update an actor's model IDs.
     ActorEquip(
         ObjectId,

@@ -205,6 +205,8 @@ pub struct ZoneConnection {
     pub fate_motivation_npcs: HashMap<ObjectId, u16>,
     /// Used only for the local player's PlayerSpawn.
     pub content_handler_id: Option<HandlerId>,
+    /// Battalion of the player's Feast team, used only inside the arena.
+    pub feast_battalion: u8,
     /// Whether the player can offer this teleport to their party.
     pub can_share_teleport: bool, // TODO: remove this and add more teleport reasons
 }

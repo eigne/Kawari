@@ -2505,10 +2505,16 @@ pub async fn server_main_loop(
                             continue;
                         };
 
+                        let in_feast = instance.zone.id == 745;
                         let Some(actor) = instance.find_actor_mut(from_actor_id) else {
                             continue;
                         };
-
+                        let common = actor.get_common_spawn_mut();
+                        // Entering the arena swaps in the standard Feast maximum; start full.
+                        if in_feast && common.max_health_points != new_parameters.hp {
+                            common.health_points = new_parameters.hp;
+                        }
+                        common.health_points = common.health_points.min(new_parameters.hp);
                         actor.get_common_spawn_mut().level = level;
                         actor.get_common_spawn_mut().max_health_points = new_parameters.hp;
                         actor.get_common_spawn_mut().max_resource_points = new_parameters.mp as u16;

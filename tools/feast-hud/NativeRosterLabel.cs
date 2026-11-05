@@ -10,7 +10,7 @@ internal sealed unsafe class NativeRosterLabel
     private sealed record Entry(nint Addon, nint Component, nint Text);
     private readonly Dictionary<nint, Entry> entries = [];
 
-    public void Update(nint addon, AtkComponentBase* component, string? label)
+    public void Update(nint addon, AtkComponentBase* component, string? label, bool casting = false)
     {
         if (!entries.TryGetValue((nint)component, out var entry))
         {
@@ -42,6 +42,9 @@ internal sealed unsafe class NativeRosterLabel
         }
         var node = (AtkTextNode*)entry.Text;
         node->ToggleVisibility(label != null);
+        // A cast name sits right-aligned just below the cast bar, as in native PvP.
+        node->AlignmentFontType = (byte)((node->AlignmentFontType & 0xF0) | (casting ? 2 : 0));
+        node->SetPositionFloat(74, casting ? 24 : 22);
         if (label != null && node->NodeText.ToString() != label) node->SetText(label);
     }
 

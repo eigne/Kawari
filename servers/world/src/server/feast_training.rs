@@ -23,6 +23,11 @@ use std::{
 const ATTACK_INTERVAL: Duration = Duration::from_millis(2500);
 const ATTACK_RANGE: f32 = 3.0;
 const ATTACK_DAMAGE: u16 = 1000;
+/// Player run speed. Bots move at most once per world tick (500ms), so each
+/// step covers the time since the last one; the client animates at this speed.
+const RUN_SPEED: f32 = 6.0;
+/// Longest gap one step makes up, so a bot that paused does not jump ahead.
+const MAX_STEP_TIME: Duration = Duration::from_millis(600);
 
 #[derive(Debug)]
 pub struct Dummy {
@@ -32,6 +37,7 @@ pub struct Dummy {
     pub autonomous: bool,
     next_attack: Instant,
     next_move: Instant,
+    last_move: Instant,
     cast_until: Instant,
     respawn_at: Option<Instant>,
 }
@@ -161,11 +167,7 @@ pub fn command(
         common.target_id = ObjectTypeId::default();
         common.combat_tagger_id = ObjectTypeId::default();
         common.owner_id = ObjectId::default();
-        common.battalion = if team == feast_match::Team::Fang {
-            0
-        } else {
-            4
-        };
+        common.battalion = feast_match::team_battalion(team);
         common.mode = CharacterMode::Normal;
         common.mode_arg = 0;
         common.health_points = 5000;
@@ -229,6 +231,7 @@ pub fn command(
                 team,
                 next_attack: Instant::now() + ATTACK_INTERVAL,
                 next_move: Instant::now(),
+                last_move: Instant::now(),
                 cast_until: Instant::now(),
                 respawn_at: None,
             },
@@ -454,7 +457,10 @@ fn tick_bots(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, now: I
         {
             continue;
         }
-        instance.feast_dummies.get_mut(&id).unwrap().next_move = now + Duration::from_millis(200);
+        let bot = instance.feast_dummies.get_mut(&id).unwrap();
+        bot.next_move = now + Duration::from_millis(200);
+        let step_time = now.saturating_duration_since(bot.last_move).min(MAX_STEP_TIME);
+        bot.last_move = now;
         let destination = destination.unwrap();
         if pickup.is_none() && distance(destination) <= combat_range * combat_range {
             continue;
@@ -472,7 +478,7 @@ fn tick_bots(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, now: I
         };
         if let Some(waypoint) = waypoint {
             let delta = waypoint - position;
-            let step = delta.clamp_length_max(1.2); // 6 yalms/s, 200ms updates.
+            let step = delta.clamp_length_max(RUN_SPEED * step_time.as_secs_f32());
             let rotation = delta.x.atan2(delta.z);
             move_bot(instance, network, id, position + step, rotation);
         }
@@ -622,7 +628,8 @@ mod tests {
         tick_bots(&mut instance, &network, Instant::now());
         assert_eq!(instance.find_actor(enemy).unwrap().position(), initial);
         instance.feast_dummies.get_mut(&enemy).unwrap().attacking = true;
-        tick_bots(&mut instance, &network, Instant::now());
+        // One world tick (500ms) after the last move covers three yalms.
+        tick_bots(&mut instance, &network, Instant::now() + Duration::from_millis(500));
         assert!(
             instance
                 .find_actor(enemy)

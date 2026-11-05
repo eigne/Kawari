@@ -28,6 +28,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private readonly FeastHotbars hotbars;
     private readonly NativeActionDetail actionDetail;
     private readonly NativeResourceGauges resourceGauges;
+    private readonly NativeNamePlateMedals namePlateMedals;
     private readonly IDalamudPluginInterface pi;
     private readonly IAddonLifecycle lifecycle;
     private readonly IPlayerState player;
@@ -46,7 +47,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
     public Plugin(IDalamudPluginInterface pi, IClientState client, IFramework framework,
         IChatGui chat, ICommandManager commands, IGameGui gameGui, IObjectTable objects,
         IGameInteropProvider interop, IAddonLifecycle lifecycle, IPluginLog log, IPlayerState player, ITargetManager targets, IDataManager data,
-        ITextureProvider textures)
+        ITextureProvider textures, INamePlateGui namePlates)
     {
         this.pi = pi; this.lifecycle = lifecycle; this.player = player;
         this.gameGui = gameGui; this.objects = objects;
@@ -59,6 +60,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
         catch { hotbars.Dispose(); native.Dispose(); throw; }
         try { resourceGauges = new NativeResourceGauges(native, objects, lifecycle, interop, log); }
         catch { actionDetail.Dispose(); hotbars.Dispose(); native.Dispose(); throw; }
+        namePlateMedals = new NativeNamePlateMedals(namePlates, native);
         actionsWindow = new FeastActionsWindow(client, player, gameGui, textures, data, hotbars);
         windows.AddWindow(actionsWindow);
         pi.UiBuilder.Draw += windows.Draw;
@@ -115,6 +117,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
     private void Update(IFramework _)
     {
         native.Update();
+        namePlateMedals.Update();
         resourceGauges.Update();
         if (actionsWindow.IsOpen && !actionsWindow.InDen) { actionsWindow.IsOpen = false; openedByProfile = false; }
         CloseProfileOutsideDen();
@@ -174,6 +177,7 @@ public sealed unsafe class Plugin : IDalamudPlugin
         lifecycle.UnregisterListener(AddonEvent.PreFinalize, "PvpProfile", OnProfile);
         pi.UiBuilder.Draw -= windows.Draw; pi.UiBuilder.OpenMainUi -= ToggleActions;
         windows.RemoveAllWindows(); commands.RemoveHandler("/feastactions");
+        namePlateMedals.Dispose();
         resourceGauges.Dispose();
         actionDetail.Dispose();
         native.Dispose();

@@ -431,7 +431,7 @@ use super::{
     instance::Instance,
     network::{DestinationNetwork, NetworkState},
 };
-use crate::FromServer;
+use crate::{FromServer, common::PartyUpdateTargets};
 use kawari::{
     common::{
         ContentDirectorEvent, DirectorEvent, InstanceContentDirectorEvent, ObjectId, Position,
@@ -539,6 +539,91 @@ pub fn respawn(instance: &Instance, actor: ObjectId) -> (Position, f32) {
         .map(|p| p.team)
         .unwrap_or(Team::Fang);
     team_spawn(team, 1)
+}
+
+/// Battalions 1-3 are mutually hostile in the Battalion sheet (the Frontline
+/// Grand Companies). The client derives player hostility from them, so each
+/// team takes one and opposing players become targetable enemies. The client
+/// only compares player battalions when the territory's BattalionMode is 4;
+/// territory 745 now ships with 1, which the Feast HUD restores.
+pub fn team_battalion(team: Team) -> u8 {
+    match team {
+        Team::Fang => 1,
+        Team::Claw => 2,
+    }
+}
+
+/// Teams are assigned after players have spawned, and the client only reads
+/// battalions from spawn packets, so a change respawns the player everywhere.
+fn sync_battalions(
+    instance: &mut Instance,
+    network: &Arc<Mutex<NetworkState>>,
+    rules: &Match,
+    inputs: &[Input],
+) {
+    for input in inputs {
+        let id = ObjectId(input.id);
+        let battalion = rules.players.get(&input.id).map_or(0, |p| team_battalion(p.team));
+        let Some(actor @ NetworkedActor::Player { .. }) = instance.find_actor_mut(id) else {
+            continue;
+        };
+        let spawn = actor.get_common_spawn_mut();
+        if spawn.battalion == battalion {
+            continue;
+        }
+        spawn.battalion = battalion;
+        tracing::info!(actor = input.id, battalion, "Feast team battalion changed");
+        let mut network = network.lock();
+        network.send_to_by_actor_id(
+            id,
+            FromServer::SetFeastBattalion(battalion),
+            DestinationNetwork::ZoneClients,
+        );
+        // Despawn for everyone else; the view update spawns it again with the new battalion.
+        for (handle, state) in network.clients.values_mut() {
+            if handle.actor_id == id {
+                continue;
+            }
+            if let Some(spawn_index) = state.actor_allocator.free(id) {
+                let _ = handle.send(FromServer::DeleteActor(id, spawn_index));
+            }
+        }
+    }
+}
+
+/// The client classifies party members as allies before it checks battalions,
+/// so a party spanning both teams would hide its opponents. Such a party is
+/// only the custom-match invite; disband it once teams are assigned.
+fn split_parties(network: &Arc<Mutex<NetworkState>>, rules: &Match) {
+    let mut network = network.lock();
+    let mixed: Vec<_> = network
+        .parties
+        .iter()
+        .filter(|(_, party)| {
+            let mut teams = party
+                .members
+                .iter()
+                .filter_map(|m| rules.players.get(&m.actor_id.0).map(|p| p.team));
+            teams.next().is_some_and(|first| teams.any(|team| team != first))
+        })
+        .map(|(id, party)| {
+            let leader = party.get_member_by_actor_id(party.leader_id).unwrap_or_default();
+            (*id, leader)
+        })
+        .collect();
+    for (party_id, leader) in mixed {
+        tracing::info!(party_id, "Disbanding a party split across Feast teams");
+        super::party::disband_party(
+            &mut network,
+            party_id,
+            PartyUpdateTargets {
+                execute_account_id: leader.account_id,
+                execute_content_id: leader.content_id,
+                execute_name: leader.name,
+                ..Default::default()
+            },
+        );
+    }
 }
 
 fn sync_jails(
@@ -787,6 +872,8 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
         }
     }
     super::feast_supplies::tick(instance, network, &runtime.rules, &mut runtime.supplies, now);
+    sync_battalions(instance, network, &runtime.rules, &inputs);
+    split_parties(network, &runtime.rules);
     sync_jails(instance, network, &mut runtime, &inputs);
     let expired: Vec<_> = runtime
         .fading

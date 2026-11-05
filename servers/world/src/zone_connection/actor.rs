@@ -249,6 +249,11 @@ impl ZoneConnection {
             mode_arg: self.player_data.volatile.mode_arg as u8,
             glasses_ids: self.player_data.equipped_glasses_ids,
             handler_id: self.content_handler_id.unwrap_or_default(),
+            battalion: if self.player_data.volatile.zone_id == 745 {
+                self.feast_battalion
+            } else {
+                0
+            },
             ..Default::default()
         }
     }
