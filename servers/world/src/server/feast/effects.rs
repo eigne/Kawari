@@ -53,14 +53,7 @@ pub struct Hit {
     pub healing: bool,
 }
 
-/// Status IDs of the 6.08 PvP crowd control the engine may show natively:
-/// stun, heavy, bind, silence, sleep and Ninja's two stealth statuses.
-const NATIVE_CONTROL_STATUSES: [u16; 7] = [1343, 1344, 1345, 1347, 1348, 1315, 1316];
-const HEAVY: u16 = 1344;
 const SPRINT: u16 = 50;
-const WOLFS_HEART: u16 = 1149;
-const DIA: u16 = 2035;
-const TEMPERANCE: u16 = 1872;
 /// Holmgang's caster/target effects and the original bind.
 const HOLMGANG_STATUSES: [u16; 3] = [88, 1304, 1305];
 /// The client's action result packet holds at most eight targets.
@@ -114,31 +107,23 @@ pub fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events
             }
             // Stops queued server-side actions (e.g. scripted NPC casts).
             "interrupt" => instance.cancel_actor_tasks(target),
-            "wolfs_heart" => set_status(
-                instance,
-                network,
-                target,
-                WOLFS_HEART,
-                event.amount as f32,
-                None,
-            ),
-            // Native icon for a Lua crowd control status; message = status ID,
-            // amount = remaining milliseconds (0 removes it).
-            "control_visual" => {
-                let Ok(status) = event.message.parse::<u16>() else {
+            // The native icon of a Lua status (see `M.status_icons`):
+            // message = status ID or "ID:param", amount = ms left (0 removes it).
+            "status_visual" => {
+                let (status, param) = event
+                    .message
+                    .split_once(':')
+                    .unwrap_or((event.message.as_str(), "0"));
+                let (Ok(status), Ok(param)) = (status.parse::<u16>(), param.parse::<u16>()) else {
                     continue;
                 };
-                if !NATIVE_CONTROL_STATUSES.contains(&status) {
-                    continue;
-                }
                 if let Some(effects) = instance
                     .find_actor_mut(target)
                     .and_then(|a| a.status_effects_mut())
                 {
                     if event.amount > 0 {
                         let seconds = event.amount as f32 / 1000.0;
-                        // Heavy's param is its slow percentage.
-                        effects.add(status, if status == HEAVY { 50 } else { 0 }, seconds);
+                        effects.add(status, param, seconds);
                         effects.add_from(status, seconds, ObjectId(event.actor));
                     } else {
                         effects.remove(status);
@@ -146,23 +131,6 @@ pub fn apply(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, events
                 }
                 send_effects_list(network.clone(), instance, target);
             }
-            // Native status icons; amount = seconds (0 removes it).
-            "dia_visual" => set_status(
-                instance,
-                network,
-                target,
-                DIA,
-                event.amount as f32,
-                Some(event.actor),
-            ),
-            "temperance_visual" => set_status(
-                instance,
-                network,
-                target,
-                TEMPERANCE,
-                event.amount as f32,
-                Some(event.actor),
-            ),
             // New HP or MP value for the target.
             "hp" | "mp" => {
                 if let Some(actor) = instance.find_actor_mut(target) {
@@ -291,28 +259,6 @@ fn send_cooldown(
         }),
         DestinationNetwork::ZoneClients,
     );
-}
-
-/// Adds (seconds > 0) or removes (0) a native status icon.
-fn set_status(
-    instance: &mut Instance,
-    network: &Arc<Mutex<NetworkState>>,
-    target: ObjectId,
-    status: u16,
-    seconds: f32,
-    source: Option<u32>,
-) {
-    if let Some(effects) = instance
-        .find_actor_mut(target)
-        .and_then(|a| a.status_effects_mut())
-    {
-        match (seconds > 0.0, source) {
-            (true, Some(source)) => effects.add_from(status, seconds, ObjectId(source)),
-            (true, None) => effects.add(status, 0, seconds),
-            (false, _) => effects.remove(status),
-        }
-    }
-    send_effects_list(network.clone(), instance, target);
 }
 
 fn remove_statuses(

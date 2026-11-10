@@ -134,14 +134,13 @@ spells. The server asks it before accepting player movement and before
 NPC AI acts.
 
 The client needs native statuses to show icons and to slow or root the
-player. `AdditionalJobs.lua`'s `sync_controls` mirrors each Lua crowd control
-status to its 6.08 PvP status ID (stun 1343, heavy 1344, bind 1345, silence
-1347, sleep 1348) through `control_visual` events. The engine also respects
-native crowd control applied by other means (`native_cc` in `Engine.lua`),
-but ignores the mirrors it sent itself (`M.owns_native_status`).
-
-A few other statuses get native icons the same way: Dia, Temperance, Wolf's
-Heart, Bolt's sprint.
+player. Every Lua status listed in `M.status_icons` is mirrored to its
+Status sheet row through `status_visual` events (stun 1343, heavy 1344,
+bind 1345, silence 1347, sleep 1348, and about 80 buffs and debuffs); see
+[Status icons](jobs.md#status-icons). The engine also respects native crowd
+control applied by other means (`native_cc` in `Engine.lua`), but ignores
+the copies it sent itself (`sent_icons`). Bolt's sprint is sent separately,
+as a `speed` event.
 
 ## Hooks
 

@@ -136,8 +136,17 @@ with full HP.
 - **Everyone in view.** Normally actors far apart are despawned for each
   other. The team lists need every participant loaded, so match participants
   always see each other (`server/mod.rs`, "feast_participants").
-- **Standard HP.** Every player has the same maximum HP in the arena
-  (`FEAST_MAX_HP` in `zone_connection/stats.rs`) and arrives at full HP.
-  The value is provisional; see [Known gaps](known-gaps.md).
+- **HP by role.** In the arena a player's maximum HP depends only on their
+  role, not their level or gear, and they arrive at full HP:
+
+  | Role | Maximum HP |
+  |---|---|
+  | Tank (PLD, WAR, DRK, GNB) | 20,000 |
+  | Healer (WHM, SCH, AST, SGE) | 17,500 |
+  | Melee (MNK, DRG, NIN, SAM, RPR) | 17,500 |
+  | Physical ranged (BRD, MCH, DNC) | 16,000 |
+  | Caster (BLM, SMN, RDM) | 15,000 |
+
+  The table is `rules::max_hp`; `zone_connection/stats.rs` applies it.
 - **No regeneration.** Players with Feast rules enabled do not regenerate HP
   outside combat; the engine owns their HP.

@@ -60,10 +60,11 @@ test("glare fixed Feast potency",function()
 end)
 test("dia debuff increases subsequent hits and expires",function()
     local m=fresh();m.command(1,"dia",3,0);eq(m.actors[3].hp,19200)
+    local function visual() local r={};for _,e in ipairs(m.drain()) do if e.kind=="status_visual" and e.message=="2035" then table.insert(r,e) end end;return r end
+    local shown=visual();eq(#shown,1);eq(shown[1].amount,15000);eq(shown[1].target,3);eq(shown[1].actor,1)
     eq(m.modify_damage(1,3,1000,1),1100);eq(m.modify_damage(1,3,1000,15),1000)
     m.advance(15);eq(m.actors[3].hp,19200,"Dia is not a DoT")
-    local visual={};for _,e in ipairs(m.drain()) do if e.kind=="dia_visual" then table.insert(visual,e) end end
-    eq(#visual,2);eq(visual[1].amount,15);eq(visual[1].target,3);eq(visual[2].amount,0)
+    local removed=visual();eq(#removed,1);eq(removed[1].amount,0)
 end)
 test("Assize presentation includes damage and healing recipients",function()
     local m=fresh();m.command(1,"assize",0,0)
@@ -238,10 +239,10 @@ end)
 test("Temperance emits native visual start and expiry",function()
     local m=fresh();m.drain();m.command(1,"temperance",0,0)
     local starts=0
-    for _,e in ipairs(m.drain()) do if e.kind=="temperance_visual" then starts=starts+1;eq(e.amount,15) end end
+    for _,e in ipairs(m.drain()) do if e.kind=="status_visual" and e.message=="1872" then starts=starts+1;eq(e.amount,15000) end end
     eq(starts,1);m.advance(15)
     local stops=0
-    for _,e in ipairs(m.drain()) do if e.kind=="temperance_visual" then stops=stops+1;eq(e.amount,0) end end
+    for _,e in ipairs(m.drain()) do if e.kind=="status_visual" and e.message=="1872" then stops=stops+1;eq(e.amount,0) end end
     eq(stops,1)
 end)
 test("match countdown, results, and teams constrain combat",function()

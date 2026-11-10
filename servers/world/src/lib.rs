@@ -25,7 +25,7 @@ pub use status_effects::StatusEffects;
 
 mod server;
 pub use server::{
-    FEAST_CONTENT_FINDER_CONDITION, FEAST_TERRITORY, Party, is_feast_match_command,
+    FEAST_CONTENT_FINDER_CONDITION, FEAST_TERRITORY, Party, feast_max_hp, is_feast_match_command,
     server_main_loop,
 };
 

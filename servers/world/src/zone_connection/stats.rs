@@ -14,10 +14,6 @@ use kawari::{
 };
 use mlua::{UserData, UserDataMethods};
 
-/// Provisional: the historical per-job Feast HP table has not been recovered.
-/// Feast potencies deal their value as fixed HP, roughly 1,000-3,000 per hit.
-const FEAST_MAX_HP: u32 = 15_000;
-
 /// Every BaseParam row, some of them may be useless.
 #[derive(Default, Debug, Clone)]
 pub struct BaseParameters {
@@ -459,7 +455,7 @@ impl ZoneConnection {
 
         // Feast attributes are standardised regardless of level and gear.
         if self.player_data.volatile.zone_id == i32::from(crate::FEAST_TERRITORY) {
-            base_parameters.hp = FEAST_MAX_HP;
+            base_parameters.hp = crate::feast_max_hp(self.player_data.classjob.current_class as u8);
         }
 
         base_parameters

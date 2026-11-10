@@ -32,8 +32,9 @@
 --   interrupt                  stop the target's server-side actions
 --   move                       teleport the target to x, y, z
 --   speed                      Bolt's sprint on (amount > 100) or off
---   dia_visual, temperance_visual, wolfs_heart, control_visual,
---   cleanse, remove_holmgang   native status icons only
+--   status_visual              a native status icon; message = status ID or
+--                              "ID:param", amount = ms left (0 removes it)
+--   cleanse, remove_holmgang   remove native statuses the server applied
 --   notice                     a chat message for actor
 --
 -- Hooks. Job files customise the engine by defining these optional
@@ -70,6 +71,8 @@ local cleanse_names = { "stun", "sleep", "bind", "heavy", "silence" }
 local native_cc = { [2]="stun", [3]="sleep", [13]="bind", [14]="heavy", [7]="silence",
     [1343]="stun", [1344]="heavy", [1345]="bind", [1347]="silence", [1348]="sleep" }
 
+-- Status icons each client has been sent; see sync_icons above M.drain.
+local sent_icons={}
 local function emit(kind, actor, target, amount, message)
     table.insert(M.events, { kind=kind, actor=actor, target=target or actor,
         amount=amount or 0, message=message or "" })
@@ -115,7 +118,6 @@ local function buff(source,target,name,duration,potency)
     if M.immune and M.immune(target,name) then return end
     target.statuses[name]={source=source.id,expires=M.now+duration,
         potency=potency,next_tick=M.now+3}
-    if name=="dia" then emit("dia_visual",source.id,target.id,duration) end
 end
 local function outgoing(id, healing)
     local scale=has(id,"temperance") and 1.2 or 1
@@ -237,7 +239,6 @@ add("assize",9620,"self",0,30,0,0,function(a)
 end)
 add("temperance",17794,"self",0,60,0,0,function(a)
     buff(a,a,"temperance",15)
-    emit("temperance_visual",a.id,a.id,15)
 end)
 add("purify",1584,"ally",0,30,0,30,function(a,b)
     heal(a,b,cleanse(b) and 4000 or 2000)
@@ -308,11 +309,9 @@ function M.sync(snapshots,now)
         M.actors[snap.id]=snap; present[snap.id]=true
         if M.players[snap.id] and snap.match_team then M.players[snap.id].team=snap.match_team end
         if snap.match_active==false and snap.statuses.wolfs_heart then
-            snap.statuses.wolfs_heart=nil; emit("wolfs_heart",snap.id,snap.id,0)
+            snap.statuses.wolfs_heart=nil
         end
         if snap.hp<=0 then
-            if snap.statuses.temperance then emit("temperance_visual",snap.id,snap.id,0) end
-            if snap.statuses.wolfs_heart then emit("wolfs_heart",snap.id,snap.id,0) end
             if snap.statuses.bolt then emit("speed",snap.id,snap.id,100) end
             snap.statuses={}
             local p=M.players[snap.id]
@@ -357,7 +356,7 @@ local function error_for(id,name,target,finishing,cast_origin,prepared)
     if has(id,"attunement") then return "Attunement prevents actions." end
     if not d.usable_while_cc and M.blocked(id,false,d.weapon) then return "Crowd control prevents this action." end
     for _,status in ipairs(a.native_statuses or {}) do
-        if not (M.owns_native_status and M.owns_native_status(id,status)) and not d.usable_while_cc and (native_cc[status]=="stun" or native_cc[status]=="sleep"
+        if not (sent_icons[id] and sent_icons[id][status]~=nil) and not d.usable_while_cc and (native_cc[status]=="stun" or native_cc[status]=="sleep"
             or (native_cc[status]=="silence" and not d.weapon)) then return "Crowd control prevents this action." end
     end
     if not valid(b) then return "Select a living target in this arena." end
@@ -437,10 +436,7 @@ function M.advance(now)
                 end
             end
             if s.expires<=now then
-                if name=="wolfs_heart" then emit("wolfs_heart",id,id,0) end
-                if name=="temperance" then emit("temperance_visual",id,id,0) end
                 if name=="bolt" then emit("speed",id,id,100) end
-                if name=="dia" then emit("dia_visual",s.source,id,0) end
                 a.statuses[name]=nil
             end
         end
@@ -503,7 +499,114 @@ function M.party_actions(id,now)
     end
     return result
 end
+-- Native status icons. Each Lua status with an entry here is shown on the
+-- client as that Status sheet row, with its remaining time. Statuses a
+-- caster applies once per source ("bio_12") are looked up without the
+-- suffix. Statuses without an entry still work but are invisible. The IDs
+-- were chosen by name and description from the client's Status sheet,
+-- preferring the PvP rows; see the developer guide (Jobs).
+M.status_icons={
+    -- Crowd control and stealth: the client also enforces these.
+    stun=1343, heavy=1344, bind=1345, silence=1347, sleep=1348,
+    kakuremi=1315, hidden=1316,
+    -- Shared, role and adrenaline statuses.
+    wolfs_heart=1149, swiftcast=1987, bloodbath=1982, fetter_ward=1983,
+    arms_length=1984, arms_debuff=2181, addle=1988, feint=2185, rampart=1978,
+    reprisal=2101, manaward=1989, phantom_dart=1986, terminal_velocity=1409,
+    aegis_boon=655, cometeor=1408, concentrate=2186, aetheric_burst=2187,
+    -- White Mage.
+    dia=2035, temperance=1872, solace_regen=2036, rapture_regen=2036,
+    protect=2053, largesse=2188, attunement=1990,
+    -- Paladin.
+    sword_oath=1991, requiescat=1369, confiteor=2076, hallowed_ground=1302,
+    intervention=2020,
+    -- Warrior.
+    inner_release=1303, nascent_chaos=1897, nascent_flash=2061,
+    nascent_glint=2062, holmgang=409, chaos_vulnerability=1312,
+    -- Dark Knight.
+    darkside=751, dark_arts=3034, delirium=1996, blackest_night=1308,
+    dark_missionary=2171,
+    -- Gunbreaker.
+    brutal_shell=1997, ready_rip=2002, ready_tear=2003, ready_gouge=2004,
+    -- Monk.
+    riddle_of_fire=1413, riddle_of_earth=2008, brotherhood=2174,
+    -- Dragoon.
+    life_surge=2175, left_eye=1454, right_eye=1453,
+    -- Ninja.
+    huton=500, three_mudra=1317, bunshin=2010, trick_attack=2014,
+    -- Samurai.
+    chiten=1240,
+    -- Reaper.
+    soul_reaver=2587, enshrouded=2593, threshold=2595, harpe_instant=2859,
+    enhanced_gibbet=2588, enhanced_gallows=2589, enhanced_void_reaping=2590,
+    enhanced_cross_reaping=2591, arcane_crest=2596, crest_regen=2598,
+    -- Bard.
+    wanderers_minuet=2215, armys_paeon=2214, natures_minne=1202,
+    -- Machinist.
+    overheated=2688, wildfire=1323, bioblaster=2019, lightning_bonus=2392,
+    -- Dancer.
+    standard_finish=2024, technical_finish=2050, flourishing_fan=2021,
+    fan_dance_iii=2052, en_avant=2048, saber_dance=2022, engagement=2033,
+    -- Black Mage.
+    thunder=1324, thundercloud=1365,
+    -- Summoner.
+    bio=1326, dreadwyrm_trance=3228, firebird_trance=3229,
+    -- Red Mage.
+    dualcast=1393, embolden=2282,
+    -- Scholar.
+    biolysis=2039, galvanize=1331, excogitation=2182, dissipation=2069,
+    tactician=2177,
+    -- Astrologian.
+    combust=2041, neutral_sect=2044, aspected_regen=2042,
+    aspected_barrier=2043, celestial_regen=2070, celestial_barrier=2071,
+    draw_power=2063, draw_fortitude=2064, lord_of_crowns=1876,
+    lady_of_crowns=1452, divination=2034,
+    -- Sage.
+    eukrasia=2606, eukrasian_dosis=2614, eukrasian_barrier=2607, haima=2612,
+    pneuma=2623, focalization=2072,
+    -- Several jobs.
+    abridged=1335, shake_it_off=1993, testudo=2179, retaliation=2184,
+    aurora_regen=2065,
+}
+-- The number shown on an icon: Heavy's slow, or the stacks of the statuses
+-- whose Status row has stacks.
+local stacked_icons={bunshin=true,soul_reaver=true}
+local function icon_param(name,s)
+    if name=="heavy" then return 50 end
+    return stacked_icons[name] and s.stacks or 0
+end
+-- Compares each actor's statuses with what its client was last sent
+-- (sent_icons[actor][status ID]) and emits only the differences.
+local function sync_icons()
+    for id,a in pairs(M.actors) do
+        local want={}
+        for name,s in pairs(a.statuses or {}) do
+            local icon=M.status_icons[(name:gsub("_%d+$",""))]
+            if icon and s.expires>M.now and not (want[icon] and want[icon].deadline>=s.expires) then
+                want[icon]={deadline=s.expires,param=icon_param(name,s),source=s.source}
+            end
+        end
+        -- sent[icon] is false once removed, so the engine still knows the
+        -- client's stale copy of it came from here (see check()).
+        local sent=sent_icons[id] or {}; sent_icons[id]=sent
+        for icon,w in pairs(want) do
+            local old=sent[icon]
+            if not old or old.deadline~=w.deadline or old.param~=w.param then
+                local message=w.param>0 and string.format("%d:%d",icon,w.param) or tostring(icon)
+                emit("status_visual",w.source or id,id,math.ceil((w.deadline-M.now)*1000),message)
+                sent[icon]=w
+            end
+        end
+        for icon in pairs(sent) do
+            if sent[icon] and not want[icon] then emit("status_visual",id,id,0,tostring(icon)); sent[icon]=false end
+        end
+    end
+    for id in pairs(sent_icons) do if not M.actors[id] then sent_icons[id]=nil end end
+end
+-- Returns (and clears) the events since the last call. Status icons are
+-- brought up to date first, so any call that changed a status shows it.
 function M.drain()
+    sync_icons()
     local result=M.events; M.events={}; return result
 end
 -- A player uses something: an action key, or on/off/list/status/
@@ -524,7 +627,6 @@ function M.command(id,text,target,now)
         return "Feast rules enabled (team "..M.players[id].team.."). Additional actions are chosen in the Wolves' Den (!feast den)."
     end
     if name=="off" then
-        if has(id,"temperance") then emit("temperance_visual",id,id,0) end
         cancel_cast(id)
         if has(id,"bolt") then emit("speed",id,id,100) end
         M.players[id]=nil; a.statuses={}; return "Feast White Mage disabled."
@@ -591,7 +693,6 @@ function M.supply(id,wolfs_heart,now)
     if wolfs_heart then
         buff(a,a,"wolfs_heart",60)
         a.statuses.wolfs_heart.next_tick=now+1
-        emit("wolfs_heart",id,id,60)
     else
         p.adrenaline=math.min(100,p.adrenaline+25)
     end

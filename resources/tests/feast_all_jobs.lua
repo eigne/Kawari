@@ -128,9 +128,9 @@ m.advance(30); eq(c.hp,29000); eq(c.statuses.haima,nil)
 -- every frame. A cleared native sleep snapshot must not re-block an action.
 m,a,b,p,c=setup(23); m.drain()
 use(m,'head_graze',2,0)
-local count=0; for _,e in ipairs(m.drain()) do if e.kind=='control_visual' and e.message=='1347' then count=count+1; eq(e.amount,2000) end end; eq(count,1)
-m.advance(1); count=0; for _,e in ipairs(m.drain()) do if e.kind=='control_visual' then count=count+1 end end; eq(count,0)
-m.advance(2); count=0; for _,e in ipairs(m.drain()) do if e.kind=='control_visual' and e.message=='1347' then count=count+1; eq(e.amount,0) end end; eq(count,1)
+local count=0; for _,e in ipairs(m.drain()) do if e.kind=='status_visual' and e.message=='1347' then count=count+1; eq(e.amount,2000) end end; eq(count,1)
+m.advance(1); count=0; for _,e in ipairs(m.drain()) do if e.kind=='status_visual' and e.message=='1347' then count=count+1 end end; eq(count,0)
+m.advance(2); count=0; for _,e in ipairs(m.drain()) do if e.kind=='status_visual' and e.message=='1347' then count=count+1; eq(e.amount,0) end end; eq(count,1)
 m.actors[2].native_statuses={1347}; use(m,'burst_shot',2,2.1)
 eq(m.command(2,'glare',1,2.1):find('Casting Feast')~=nil,true)
 -- Ranged adrenaline bypasses player damage buffs, respects barriers, consumes

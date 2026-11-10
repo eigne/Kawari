@@ -697,10 +697,11 @@ mod tests {
             &mut instance,
             &network,
             vec![Event {
-                kind: "dia_visual".into(),
+                kind: "status_visual".into(),
                 actor: 1,
                 target: 2,
-                amount: 15,
+                amount: 15000,
+                message: "2035".into(),
                 ..Default::default()
             }],
         );
@@ -711,10 +712,10 @@ mod tests {
             &mut instance,
             &network,
             vec![Event {
-                kind: "dia_visual".into(),
+                kind: "status_visual".into(),
                 actor: 1,
                 target: 2,
-                amount: 0,
+                message: "2035".into(),
                 ..Default::default()
             }],
         );
@@ -723,11 +724,11 @@ mod tests {
             &mut instance,
             &network,
             vec![Event {
-                kind: "control_visual".into(),
+                kind: "status_visual".into(),
                 actor: 1,
                 target: 2,
                 amount: 5000,
-                message: "1344".into(),
+                message: "1344:50".into(),
                 ..Default::default()
             }],
         );
@@ -740,7 +741,7 @@ mod tests {
             &mut instance,
             &network,
             vec![Event {
-                kind: "control_visual".into(),
+                kind: "status_visual".into(),
                 actor: 1,
                 target: 2,
                 message: "1344".into(),

@@ -15,24 +15,6 @@ local I=M.internal
 local add,state,has,buff,damage,heal,emit=I.add,I.state,I.has,I.buff,I.damage,I.heal,I.emit
 local allies,enemies,valid,distance=I.allies,I.enemies,I.valid,I.distance
 local A=M.actions
--- Retained 6.08 statuses drive native movement restrictions/stealth as well as
--- party-list icons. Lua remains authoritative for action eligibility.
-local native_controls={stun=1343,heavy=1344,bind=1345,silence=1347,sleep=1348,kakuremi=1315,hidden=1316}
-local sent_controls={}
-function M.owns_native_status(id,status) return sent_controls[id] and sent_controls[id][status]~=nil end
-local function sync_controls()
- for id,a in pairs(M.actors) do
-  local sent=sent_controls[id] or {}; sent_controls[id]=sent
-  for key,status in pairs(native_controls) do
-   local s=a.statuses[key]; local deadline=s and s.expires>M.now and s.expires or 0
-   if deadline~=(sent[status] or 0) then
-    emit('control_visual',s and s.source or id,id,math.ceil(math.max(0,deadline-M.now)*1000),tostring(status))
-    sent[status]=deadline
-   end
-  end
- end
- for id in pairs(sent_controls) do if not M.actors[id] then sent_controls[id]=nil end end
-end
 local function p(a) return M.players[a.id] end
 local function gain(a,key,n,cap) p(a)[key]=math.max(0,math.min(cap or 100,(p(a)[key] or 0)+n)) end
 local function mp(a,n) a.mp=math.max(0,math.min(10000,a.mp+n)); emit('mp',a.id,a.id,a.mp) end
@@ -579,11 +561,6 @@ function M.advance(now)
   end
  end end
  advance(now)
- sync_controls()
-end
-local command=M.command
-function M.command(id,text,target,now)
- local result=command(id,text,target,now); sync_controls(); return result
 end
 local status=M.job_status
 function M.job_status(a,s)

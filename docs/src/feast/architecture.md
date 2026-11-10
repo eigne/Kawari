@@ -39,7 +39,7 @@ Search for `feast::` to find them all:
 | `server/chat.rs` | Routes `!feast <match command>` and `!whm` here. |
 | `server/party.rs` | `disband_party`, used to split a party across the two teams. |
 | `zone_connection/actor.rs`, `main.rs` | The player's own spawn carries their team battalion (`SetFeastBattalion`). |
-| `zone_connection/stats.rs` | Everyone has the same maximum HP in the arena (`FEAST_MAX_HP`). |
+| `zone_connection/stats.rs` | Maximum HP in the arena depends only on role (`feast_max_hp`). |
 | `zone_connection/zone.rs`, `zone_connection/mod.rs`, `gamedata.rs` | Refuse the Feast duty if the client data patch is missing (`feast_duty_metadata_ready`). |
 
 ### Combat engine: `resources/scripts/feast/`

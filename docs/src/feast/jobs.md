@@ -26,7 +26,7 @@ describe actions in words, so some details had to be chosen:
 - **Damage is potency as HP.** A 1200-potency Glare deals 1200 HP before
   modifiers. The real game scaled potency with stats; since every Feast player
   had the same stats, this keeps the ratios right but the absolute numbers are
-  a guess, and so is the shared maximum HP (`FEAST_MAX_HP`).
+  a guess. Maximum HP is by role (see [The arena](arena.md#other-arena-rules)).
 - **Shapes.** Cones are 90 degrees and lines two yalms wide; the guides give
   only the range.
 - **Scaling curves.** Proximity bonuses (dance finishes, Pneuma) and
@@ -34,12 +34,41 @@ describe actions in words, so some details had to be chosen:
 - **Assists.** Ninja and Dark Knight cooldown resets count anyone who damaged
   the target in the last ten seconds.
 - **No line of sight or collision** for dashes and knockbacks.
-- **Presentation.** Only crowd control, Dia, Temperance, Wolf's Heart and
-  Bolt show native status icons. Other buffs and debuffs work but are
-  invisible, and many animations have not been checked in game.
+- **Status icons** are Status sheet rows chosen by name and description
+  (see below). A row that looks right may still differ from the one the
+  Feast used, and many animations have not been checked in game.
 
 Search the Lua for "approximation", "provisional" and "guide specifies" to
 find each of these choices.
+
+## Status icons
+
+Lua statuses are names (`"sword_oath"`). `M.status_icons` in `Engine.lua`
+maps each name to a row of the client's Status sheet, and the engine keeps
+the client in step: whenever the server drains events, `sync_icons` compares
+every actor's statuses with what it last sent and emits `status_visual` for
+each one that started, changed or ended. `effects.rs` turns that into a
+native status with the remaining time. Statuses applied once per caster
+(`"bio_12"`) are looked up without the `_12`.
+
+To choose an ID, list the Status sheet (for example with Lumina, as in
+`tools/feast-assets`) and search for the status's name. Most names have
+several rows, from PvE and from different PvP eras. Prefer:
+
+1. the row whose description matches the Feast tooltip;
+2. among equals, the PvP rows: roughly 1300–1420 (older PvP), 1978–2190 (the
+   Feast's last kits), 2580–2625 for Reaper and Sage. Rows above about 2800
+   are later Crystalline Conflict versions.
+
+Be careful with rows that change how the client behaves, not just what it
+shows. Crowd control (stun, heavy, bind, silence, sleep) is meant to: the
+client enforces it. But a row that speeds you up, binds you or shortens
+casts will do that too, so pick one whose effect matches what the engine
+does. That is why Holmgang uses row 409 (HP cannot drop below 1) and not
+1304, which would also root the Warrior.
+
+A number on the icon is the status's param: Heavy's 50 (% slow), or the
+stacks of the statuses listed in `stacked_icons`.
 
 ## Implementing or fixing an action
 
@@ -72,9 +101,8 @@ to change it.
 4. **Make buffs matter.** A new status only does something if a hook reads
    it: add it to `M.outgoing` (damage dealt), `M.incoming` (damage taken),
    `M.effective` (cast/recast/MP), `M.healing_received` or `M.immune`.
-5. **Show it.** For a native status icon, emit an event the server turns into
-   a status (see how `dia_visual` works in `Engine.lua` and `effects.rs`). The
-   6.08 PvP status IDs still exist in the client.
+5. **Show it.** Add the status to `M.status_icons` in `Engine.lua` with its
+   Status sheet row ID. See [Status icons](#status-icons).
 6. **Test it** in `resources/tests/feast_all_jobs.lua` (or `feast_jobs.lua`
    for the five jobs in `Jobs.lua`): set up actors, use the action, check HP
    and statuses. Then `cargo test -p kawari-world feast`.

@@ -9,7 +9,6 @@ patch 6.08).
 
 | Value | Now | Where |
 |---|---|---|
-| Maximum HP of every player | 15,000 | `FEAST_MAX_HP`, `zone_connection/stats.rs` |
 | Damage | potency as HP | the Lua engine |
 | Supply box HP | 5,000 | `BOX_HP`, `feast/supplies.rs` |
 | Untouched kit lifetime | 60 s | `KIT_LIFETIME`, `feast/supplies.rs` |
@@ -30,8 +29,10 @@ The real preparation was longer; 5 seconds is a development convenience.
 - **The location-action packet**: ground-targeted actions go through a chat
   command sent by the HUD.
 - **Line of sight and collision** for actions and dashes.
-- **Native status icons** for most job buffs and debuffs (they work, but are
-  invisible).
+- **Native icons for a few statuses** that have no matching Status row
+  (internal ones such as Riddle of Fire's weaponskill bonus, Scorch Ready,
+  Verfinisher, Astral Fire and the Dragoon gauge states). They work but are
+  invisible; the job gauge shows the gauge states.
 - **Weather** changes that came with Marked for Culling.
 - **Original UI windows** other than the header: the Feast's PvP Actions
   window and result screen were rebuilt or left out.

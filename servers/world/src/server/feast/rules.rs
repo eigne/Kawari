@@ -51,6 +51,19 @@ pub fn medal_limit(job: u8) -> Option<u16> {
     }
 }
 
+/// Maximum HP in the arena, by role: tanks 20,000, healers and melee
+/// 17,500, physical ranged 16,000, casters 15,000. Every player of a role
+/// has the same HP, whatever their level and gear.
+pub fn max_hp(job: u8) -> u32 {
+    match job {
+        19 | 21 | 32 | 37 => 20_000,
+        24 | 28 | 33 | 40 => 17_500,
+        20 | 22 | 30 | 34 | 39 | 41 => 17_500,
+        23 | 31 | 38 => 16_000,
+        _ => 15_000,
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Phase {
     /// Preparation: players are jailed, teams and jobs can still change.
@@ -593,6 +606,13 @@ pub(super) mod tests {
             ),
             (Some(200), Some(175), Some(150), Some(125))
         );
+    }
+
+    #[test]
+    fn max_hp_follows_role() {
+        // Paladin, White Mage, Samurai, Bard, Black Mage.
+        let hp = [19, 24, 34, 23, 25].map(max_hp);
+        assert_eq!(hp, [20_000, 17_500, 17_500, 16_000, 15_000]);
     }
 
     #[test]

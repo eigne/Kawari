@@ -67,7 +67,7 @@ mod feast;
 /// Feast constants and chat routing used outside the world simulation.
 pub use feast::{
     CONTENT_FINDER_CONDITION as FEAST_CONTENT_FINDER_CONDITION, TERRITORY as FEAST_TERRITORY,
-    is_match_command as is_feast_match_command,
+    is_match_command as is_feast_match_command, rules::max_hp as feast_max_hp,
 };
 mod instance;
 mod linkshell;
