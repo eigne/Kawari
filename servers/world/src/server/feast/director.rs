@@ -201,12 +201,14 @@ mod tests {
                     job: 24,
                     alive: true,
                     position: [0.0; 3],
+                    team: None,
                 },
                 Input {
                     id: 2,
                     job: 24,
                     alive: true,
                     position: [0.0; 3],
+                    team: None,
                 },
             ],
         );

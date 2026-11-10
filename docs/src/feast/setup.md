@@ -92,7 +92,10 @@ character needs the rank those require. In any town or open-world zone:
 !feast            queue for the Feast (accept the duty pop)
 !feast dummies    spawn a practice target next to you
 !feast status     clock, scores and your medals
-!feast restart    start the next match after a result
+!feast teams      custom match: show the teams
+!feast swap 2 6   custom match, host: exchange players 2 and 6
+!feast start      custom match, host: begin
+!feast restart    set up the next match after a result
 !feast leave      leave the arena
 !feast den        travel to the Wolves' Den to choose PvP actions
 ```
@@ -102,6 +105,8 @@ Your job must be one of the 19 that existed before 6.1. In the Wolves' Den,
 additional actions and arrange your hotbars. The full list of commands is in
 [Commands](commands.md).
 
-To play with others, everyone needs the client patch and the HUD. Party up
-and queue with `!feast`; the server splits the party into the two teams once
-the match assigns them.
+To play with others, everyone needs the client patch and the HUD. Form a
+party of up to eight; the leader uses `!feast` and everyone accepts the duty
+pop. The first half of the party list is one team and the rest the other.
+The leader can rearrange them with `!feast swap` and begins the match with
+`!feast start`. See [Custom matches](arena.md#custom-matches).

@@ -2376,6 +2376,25 @@ pub async fn server_main_loop(
                         zone_id = game_data.find_zone_for_content(content_id);
                     }
 
+                    // A party enters the Feast as a custom match, which its
+                    // leader hosts.
+                    if content_id == feast::CONTENT_FINDER_CONDITION {
+                        let leader = {
+                            let network = network.lock();
+                            get_party_id_from_actor_id(&network, from_actor_id)
+                                .and_then(|party_id| network.parties.get(&party_id))
+                                .map(|party| party.leader_id)
+                        };
+                        if leader.is_some_and(|leader| leader != from_actor_id) {
+                            feast::notice(
+                                &network,
+                                from_actor_id,
+                                "Only the party leader can take the party into the Feast.".into(),
+                            );
+                            continue;
+                        }
+                    }
+
                     let mut actor_ids = Vec::new();
 
                     // Send all party members to this instanced content

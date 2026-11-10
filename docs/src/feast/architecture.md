@@ -23,6 +23,7 @@ stays empty outside the arena.
 | `supplies.rs` | Supply boxes, the kits they drop, and who gets them. |
 | `director.rs` | Per-player match frames for the HUD, sent through the duty director. |
 | `practice.rs` | `!feast dummies`. |
+| `lobby.rs` | Custom matches: the teams from party order, the host, `!feast teams` / `swap` / `start`, and the team parties. |
 | `commands.rs` | The `!feast` match commands (`status`, `restart`, `dummies`, ...). |
 
 The rest of the server calls into this module from a handful of places.
@@ -37,7 +38,7 @@ Search for `feast::` to find them all:
 | `server/director.rs` | The duty director is initialized only once per player; the duty timer follows the match clock. |
 | `server/npc_behavior.rs` | Practice dummies and supply boxes have no AI; crowd control stops NPCs too. |
 | `server/chat.rs` | Routes `!feast <match command>` and `!whm` here. |
-| `server/party.rs` | `disband_party`, used to split a party across the two teams. |
+| `server/party.rs` | `disband_party` and `form_party`, used to give each team its own party and to reunite the group after the result. |
 | `zone_connection/actor.rs`, `main.rs` | The player's own spawn carries their team battalion (`SetFeastBattalion`). |
 | `zone_connection/stats.rs` | Maximum HP in the arena depends only on role (`feast_max_hp`). |
 | `zone_connection/zone.rs`, `zone_connection/mod.rs`, `gamedata.rs` | Refuse the Feast duty if the client data patch is missing (`feast_duty_metadata_ready`). |
@@ -77,13 +78,15 @@ and the client's timing questions. See [Actions and casting](actions-and-casting
 The world server ticks every instance about twice a second
 (`server_logic_tick` in `server/mod.rs`). For the arena, `feast::tick` runs:
 
-1. **`arena::tick`**: collect every participant (players and practice dummies)
+1. **`arena::tick`**: let the lobby give new arrivals a team (`lobby::plan`),
+   collect every participant (players and practice dummies)
    as a `rules::Input`, then `Match::step` the rules. Afterwards make the world
    match the rules:
    - restart the native duty timer if the phase changed;
    - set Marked for Culling stacks;
    - tick supply boxes;
-   - give each player their team's battalion and split mixed parties;
+   - give each player their team's battalion and make the parties match the
+     teams (`lobby::sync_parties`);
    - open or close the jail gates and place new players in their jail;
    - spawn, animate and remove medal piles, dimmed per viewer;
    - send announcements, and director frames four times a second.

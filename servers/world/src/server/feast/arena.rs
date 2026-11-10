@@ -22,7 +22,6 @@ use parking_lot::Mutex;
 use super::rules::{Input, Match, Phase, Team};
 use crate::{
     FromServer,
-    common::PartyUpdateTargets,
     server::{
         actor::NetworkedActor,
         instance::Instance,
@@ -62,6 +61,8 @@ pub struct Arena {
     /// Pile look each (viewer, pile) last received.
     medal_viewers: BTreeMap<(u32, u32), SharedGroupTimelineState>,
     next_director_snapshot: f64,
+    /// Preparation was held for the lobby's host on the last tick.
+    held: bool,
 }
 
 impl Arena {
@@ -77,6 +78,7 @@ impl Arena {
             gate_viewers: BTreeMap::new(),
             medal_viewers: BTreeMap::new(),
             next_director_snapshot: 0.0,
+            held: false,
         }
     }
 
@@ -241,6 +243,7 @@ fn participants(instance: &Instance) -> Vec<Input> {
                 job: s.class_job,
                 alive: s.health_points > 0,
                 position: s.position.0.to_array(),
+                team: instance.feast.lobby.teams.get(&id.0).copied(),
             })
         })
         .collect()
@@ -256,6 +259,7 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     if !super::in_arena(instance) {
         return;
     }
+    super::lobby::plan(instance, network);
     let inputs = participants(instance);
     let has_players = instance
         .actors
@@ -283,14 +287,47 @@ pub fn tick(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     let now = arena.now();
     arena.empty_since = None;
     let previous_phase = arena.rules.phase;
+    let previous_teams: Vec<_> = arena
+        .rules
+        .players
+        .iter()
+        .map(|(id, p)| (*id, p.team))
+        .collect();
+    // A custom match stays in preparation until its host starts it.
+    let started = arena.held && !instance.feast.lobby.waiting;
+    arena.held = instance.feast.lobby.waiting && previous_phase == Phase::Countdown;
+    if arena.held {
+        arena.rules.hold(now);
+    } else if started {
+        arena.rules.announcements.push(format!(
+            "The host started the match. It begins in {} seconds.",
+            arena.rules.seconds_left(now)
+        ));
+    }
     arena.rules.step(now, &inputs);
-    if previous_phase != arena.rules.phase && !matches!(arena.rules.phase, Phase::Finished(_)) {
+    if started
+        || previous_phase != arena.rules.phase && !matches!(arena.rules.phase, Phase::Finished(_))
+    {
         restart_duty_timer(instance, network, &arena.rules, now, &inputs);
+    }
+    // A player moved to the other team goes to that team's jail.
+    for (id, team) in previous_teams {
+        if arena.rules.players.get(&id).is_some_and(|p| p.team != team) {
+            arena.placed.remove(&id);
+        }
+    }
+    // The lobby remembers the teams for the next match.
+    if arena.rules.phase == Phase::Countdown {
+        for (id, player) in &arena.rules.players {
+            if is_player(instance, ObjectId(*id)) {
+                instance.feast.lobby.teams.insert(*id, player.team);
+            }
+        }
     }
     sync_culling(instance, network, &arena.rules, now, &inputs);
     super::supplies::tick(instance, network, &arena.rules, &mut arena.supplies, now);
     sync_battalions(instance, network, &arena.rules, &inputs);
-    split_parties(network, &arena.rules);
+    super::lobby::sync_parties(instance, network, arena.rules.phase);
     sync_jails(instance, network, &mut arena, &inputs);
     sync_medal_piles(instance, network, &mut arena, now, &inputs);
     for message in arena.rules.announcements.drain(..) {
@@ -321,6 +358,7 @@ fn tick_empty_arena(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>)
     }
     arena.despawn(instance, network);
     instance.feast.combat = None;
+    instance.feast.lobby = Default::default();
     let practice: Vec<_> = instance.feast.practice.keys().copied().collect();
     for id in practice {
         network.lock().remove_actor(instance, id);
@@ -426,45 +464,6 @@ fn sync_battalions(
                 let _ = handle.send(FromServer::DeleteActor(id, spawn_index));
             }
         }
-    }
-}
-
-/// The client classifies party members as allies before it checks battalions,
-/// so a party spanning both teams would hide its opponents. Such a party is
-/// only the custom-match invite; disband it once teams are assigned.
-fn split_parties(network: &Arc<Mutex<NetworkState>>, rules: &Match) {
-    let mut network = network.lock();
-    let mixed: Vec<_> = network
-        .parties
-        .iter()
-        .filter(|(_, party)| {
-            let mut teams = party
-                .members
-                .iter()
-                .filter_map(|m| rules.players.get(&m.actor_id.0).map(|p| p.team));
-            teams
-                .next()
-                .is_some_and(|first| teams.any(|team| team != first))
-        })
-        .map(|(id, party)| {
-            let leader = party
-                .get_member_by_actor_id(party.leader_id)
-                .unwrap_or_default();
-            (*id, leader)
-        })
-        .collect();
-    for (party_id, leader) in mixed {
-        tracing::info!(party_id, "Disbanding a party split across Feast teams");
-        crate::server::party::disband_party(
-            &mut network,
-            party_id,
-            PartyUpdateTargets {
-                execute_account_id: leader.account_id,
-                execute_content_id: leader.content_id,
-                execute_name: leader.name,
-                ..Default::default()
-            },
-        );
     }
 }
 
@@ -723,6 +722,7 @@ fn sync_medal_piles(
 pub fn start_practice_match(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>) {
     end_match(instance, network);
     let mut rules = Match::new(0.0);
+    let mut teams = Vec::new();
     for (id, actor) in &instance.actors {
         if !matches!(actor, NetworkedActor::Player { .. })
             && !instance.feast.practice.contains_key(id)
@@ -730,14 +730,16 @@ pub fn start_practice_match(instance: &mut Instance, network: &Arc<Mutex<Network
             continue;
         }
         let s = actor.get_common_spawn();
+        let team = if instance.feast.practice.contains_key(id) {
+            Team::Claw
+        } else {
+            Team::Fang
+        };
+        teams.push((id.0, team));
         rules.players.insert(
             id.0,
             super::rules::Player {
-                team: if instance.feast.practice.contains_key(id) {
-                    Team::Claw
-                } else {
-                    Team::Fang
-                },
+                team,
                 job: s.class_job,
                 medals: super::rules::STARTING_MEDALS,
                 position: s.position.0.to_array(),
@@ -746,6 +748,12 @@ pub fn start_practice_match(instance: &mut Instance, network: &Arc<Mutex<Network
             },
         );
     }
+    for (id, team) in teams {
+        if is_player(instance, ObjectId(id)) {
+            instance.feast.lobby.teams.insert(id, team);
+        }
+    }
+    instance.feast.lobby.waiting = false;
     instance.feast.arena = Some(Arena::new(rules));
 }
 

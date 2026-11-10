@@ -57,7 +57,7 @@ function onCommand(player, args, name)
     end
 
     if #args ~= 0 then
-        printf(player, "Usage: !feast to enter, !feast den for the Wolves' Den, !feast leave to exit, !feast status for medals/time, !feast restart after a result.")
+        printf(player, "Usage: !feast to enter, !feast den for the Wolves' Den, !feast leave to exit, !feast status for medals/time, !feast teams / swap / start for a party's custom match, !feast restart after a result.")
         return
     end
 

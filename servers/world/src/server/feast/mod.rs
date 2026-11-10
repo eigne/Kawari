@@ -8,6 +8,7 @@
 //! - `actions`: the historical action catalog (resources/feast-actions.json).
 //! - `supplies`: supply boxes and the kits they drop.
 //! - `director`: per-player match snapshots for the HUD plugin.
+//! - `lobby`: custom matches: teams, the host and the team parties.
 //! - `practice`: training dummies.
 //! - `commands`: the `!feast` match commands.
 //!
@@ -42,6 +43,7 @@ pub mod combat;
 mod commands;
 mod director;
 mod effects;
+mod lobby;
 mod practice;
 pub mod rules;
 mod supplies;
@@ -77,6 +79,8 @@ pub struct FeastState {
     pub arena: Option<arena::Arena>,
     /// Practice dummies, by actor.
     pub practice: HashMap<ObjectId, practice::PracticeActor>,
+    /// Teams and host, kept across the matches of this instance.
+    pub lobby: lobby::Lobby,
     /// When each KO'd player may return.
     pub respawns: HashMap<ObjectId, Instant>,
     /// Players whose native duty director was already initialized. A respawn

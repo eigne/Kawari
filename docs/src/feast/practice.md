@@ -20,5 +20,6 @@ engine does not give them a job kit: they are targets, not players.
 
 For anything closer to a real match (casts against a moving target, healing,
 crowd control on a player, the team lists), log in a second character on
-another account and queue both with `!feast`. A party that queued together is
-split into the two teams automatically; see [The arena](arena.md#hostility-who-is-an-enemy).
+another account, invite it to a party and use `!feast` as the leader. The
+party is split into the two teams, and the match starts with `!feast start`;
+see [Custom matches](arena.md#custom-matches).

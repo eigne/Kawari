@@ -42,7 +42,8 @@ Things only a client can confirm. After a change, check the ones it touches:
 - `!feast` pops the duty; you arrive in a jail; the header and team lists
   appear; the gates open after the countdown and close for the next match.
 - Opponents' names are red, Tab targets them, enemy-only actions work on
-  them; a party that queued together is split.
+  them; a party that entered together waits for `!feast start`, has one
+  party per team during the match and is one party again after the result.
 - Casting: the cast bar and animation play; moving early cancels, moving in
   the last half second does not; the recast sweep matches the server (no
   rollback when an action is accepted); queued actions are not refused.
@@ -61,7 +62,7 @@ tests supply boxes without waiting.
 
 - **Server**: the console of `kawari-run`. Feast lines include `Feast match`
   (announcements), `Feast damage` / `Feast healing`, `Feast team battalion
-  changed`, `Disbanding a party split across Feast teams`, and errors from the
+  changed`, `Formed a Feast party`, and errors from the
   Lua engine (`Feast tick failed`, `Feast command failed`) with the Lua stack.
 - **HUD**: Dalamud's log (`%APPDATA%\astra\log\dalamud.log` with Astra).
   Every line from the plugin starts with "Feast".

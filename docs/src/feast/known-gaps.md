@@ -24,8 +24,9 @@ The real preparation was longer; 5 seconds is a development convenience.
 ## Not implemented
 
 - **Matchmaking and ranks**: no queue that forms teams of four from separate
-  players, no ranked tiers, seasons, rewards or result screen. Teams are formed
-  from whoever is in the instance during preparation.
+  players, no ranked tiers, seasons, rewards or result screen. Groups are
+  formed by hand, as [custom matches](arena.md#custom-matches); the Party
+  Finder is a stub, so players invite each other directly.
 - **The location-action packet**: ground-targeted actions go through a chat
   command sent by the HUD.
 - **Line of sight and collision** for actions and dashes.

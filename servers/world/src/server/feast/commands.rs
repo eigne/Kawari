@@ -9,13 +9,13 @@ use std::{sync::Arc, time::Instant};
 use kawari::common::ObjectId;
 use parking_lot::Mutex;
 
-use super::{arena, combat, practice, rules::Phase, supplies};
+use super::{arena, combat, lobby, practice, rules::Phase, supplies};
 use crate::server::{instance::Instance, network::NetworkState};
 
 /// The subcommands handled by the world server rather than Feast.lua.
-const MATCH_COMMANDS: [&str; 10] = [
+const MATCH_COMMANDS: [&str; 13] = [
     "status", "hud", "restart", "dummies", "attack", "ground", "actions", "loadout", "job",
-    "supply",
+    "supply", "teams", "swap", "start",
 ];
 
 /// Whether a chat message is a `!feast` command for the running match.
@@ -27,8 +27,7 @@ pub fn is_match_command(text: &str) -> bool {
             .is_some_and(|word| MATCH_COMMANDS.contains(&word))
 }
 
-const USAGE: &str =
-    "Use !feast status, !feast restart, !feast dummies [1-3], or !feast attack on|off.";
+const USAGE: &str = "Use !feast status, !feast teams, !feast swap, !feast start, !feast restart, !feast dummies [1-3], or !feast attack on|off.";
 
 /// Runs `text`, the words after `!feast`, for `id`.
 pub fn command(
@@ -80,6 +79,9 @@ pub fn command(
             id,
             format!("KFEASTRESPAWN1|{}", arena::respawn_remaining(instance, id, Instant::now())),
         ),
+        ["teams"] => lobby::teams(instance, network, id),
+        ["swap", numbers @ ..] => lobby::swap(instance, network, id, numbers),
+        ["start"] => lobby::start(instance, network, id),
         ["restart"] => restart(instance, network, id),
         ["status"] => status(instance, network, id),
         _ => super::notice(network, id, USAGE.into()),
@@ -128,9 +130,13 @@ fn spawn_supply_wave(
     }
 }
 
-/// `!feast restart`: starts the next match after a result. Practice
-/// sessions are set up again with the same opponents.
+/// `!feast restart`: the host starts the next match after a result. Practice
+/// sessions are set up again with the same opponents; a custom match waits
+/// for `!feast start` again.
 fn restart(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, id: ObjectId) {
+    if !lobby::host_only(instance, network, id) {
+        return;
+    }
     let finished = instance
         .feast
         .arena
@@ -149,6 +155,7 @@ fn restart(instance: &mut Instance, network: &Arc<Mutex<NetworkState>>, id: Obje
         practice::command(instance, network, id, &["dummies", &count]);
     } else {
         arena::end_match(instance, network);
+        lobby::rematch(instance, network);
         arena::tick(instance, network);
     }
 }

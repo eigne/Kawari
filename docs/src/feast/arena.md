@@ -32,7 +32,8 @@ three rows agree (`GameData::feast_duty_metadata_ready`); `Feast.lua` asks
 
 - **Duty mode:** registers for content 476, exactly like the Duty Finder.
   The client gets a duty pop; accepting it creates an arena instance and
-  zones the party into it. A party queues and enters together.
+  zones the party into it. A party enters together, as a
+  [custom match](#custom-matches).
 - **Exploration mode:** teleports straight to territory 745.
 
 Either way the player arrives in the west jail (`change_zone_warp_to_entrance`
@@ -58,6 +59,39 @@ the Feast's ([The HUD plugin](hud-plugin.md)).
 - A respawn reloads the zone, but the director must be initialized only once
   per player (`FeastState::directors_sent`); doing it twice leaves a second
   CC header on screen.
+
+## Custom matches
+
+A party that enters together plays a custom match (`server/feast/lobby.rs`).
+This is how eight people play 4v4: form a party of up to eight with ordinary
+invitations, and the leader uses `!feast`.
+
+- **Only the leader** can take the party in (`ToServer::JoinContent` in
+  `server/mod.rs` refuses other members).
+- **Teams follow the party list.** The first half of the list is the Fangs,
+  the rest the Claws (members 1–4 and 5–8 of a full party). Any size up to
+  4v4 works, even or not.
+- **The leader is the host.** Preparation does not run out while the lobby is
+  `waiting`: `arena::tick` calls `Match::hold` every tick until the host uses
+  `!feast start`, then the usual countdown runs. If the host leaves, the
+  lowest-ID player present takes over.
+- **`!feast teams`** lists both teams with a number per player. The host
+  moves one player with `!feast swap <number>` or exchanges two with
+  `!feast swap <number> <number>`, before a match or after its result. The
+  lobby passes each player's team to the rules as `Input::team`.
+- **Parties.** While the host arranges the teams, and again after the
+  result, everyone is in one party. During the match each team has its own
+  party (see [Hostility](#hostility-who-is-an-enemy)). So the group is still
+  together when it leaves the arena after a result; players who leave
+  mid-match are in their team's party.
+- **Rematch.** After the result the host uses `!feast restart`; the teams are
+  kept, and the lobby waits for `!feast start` again.
+
+The lobby lives in `FeastState`, not in the `Arena`, so it survives from one
+match to the next. It is reset when the instance empties.
+
+Players who enter without a party are not a custom match: they join the
+smaller team and the countdown starts on its own.
 
 ## Jails and gates
 
@@ -105,9 +139,10 @@ battalions to count.
    memory to 4 (the value PvP territories use) while in the arena
    (`NativeBattalionMode.cs`).
 3. **Parties.** Party members are always allies, before battalions are
-   checked. A party queued together spans both teams, so the server disbands
-   any party whose members ended up on different teams
-   (`arena::split_parties`). The party handlers tolerate a party disappearing
+   checked. A party that entered together spans both teams, so during a
+   match the server disbands any party whose members are on different teams
+   and forms one party per team instead (`lobby::sync_parties`, with
+   `party::form_party`). The party handlers tolerate a party disappearing
    while a member is still loading.
 
 Practice dummies use the Claws' battalion, so they are enemies for the same

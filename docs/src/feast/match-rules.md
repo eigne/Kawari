@@ -28,7 +28,7 @@ Countdown ──(5 s)──► Active ──(6 min)──► Finished(winner)
 
 | Phase | What happens |
 |---|---|
-| `Countdown` | Preparation (`COUNTDOWN`, 5 s). Players are jailed. New arrivals join; jobs can still change. |
+| `Countdown` | Preparation (`COUNTDOWN`, 5 s; a [custom match](arena.md#custom-matches) holds it until the host starts). Players are jailed. New arrivals join; teams and jobs can still change. |
 | `Active` | The match (`MATCH_TIME`, 360 s). Jobs lock: a player who changes job can no longer act or collect. |
 | `SuddenDeath` | If regulation ends tied (`SUDDEN_DEATH`, 120 s). The first medal pickup wins; time running out is a draw. |
 | `Finished(team)` | The result. Nothing changes until `!feast restart`. |

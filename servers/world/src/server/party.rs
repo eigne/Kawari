@@ -7,8 +7,8 @@ use crate::{
     ClientId, FromServer, ToServer,
     common::PartyUpdateTargets,
     server::{
-        DestinationNetwork, WorldServer, actor::NetworkedActor, network::NetworkState,
-        set_character_mode,
+        DestinationNetwork, WorldServer, actor::NetworkedActor, instance::Instance,
+        network::NetworkState, set_character_mode,
     },
 };
 use kawari::{
@@ -390,6 +390,108 @@ pub fn disband_party(network: &mut NetworkState, party_id: u64, targets: PartyUp
     // We don't need to keep track of this party anymore.
     network.parties.remove(&party_id);
     network.commit_parties = true;
+}
+
+/// Creates a party of `members`, all players in `instance`, led by `leader`,
+/// as if each had accepted an invitation. Returns the new party's ID, or
+/// `None` if fewer than two of them are players there.
+pub fn form_party(
+    network: &mut NetworkState,
+    instance: &Instance,
+    leader: ObjectId,
+    members: &[ObjectId],
+) -> Option<u64> {
+    let mut party = Party {
+        chatchannel_id: fastrand::u32(..),
+        leader_id: leader,
+        ..Default::default()
+    };
+    let mut party_list = Vec::new();
+    for id in members {
+        let Some(spawn) = instance.find_actor(*id).and_then(|a| a.get_player_spawn()) else {
+            continue;
+        };
+        party.members.push(PartyMember {
+            actor_id: *id,
+            content_id: spawn.content_id,
+            account_id: spawn.account_id,
+            world_id: spawn.home_world_id,
+            name: spawn.common.name.clone(),
+            position: spawn.common.position,
+            ..Default::default()
+        });
+        party_list.push(PartyMemberEntry {
+            account_id: spawn.account_id,
+            content_id: spawn.content_id,
+            name: spawn.common.name.clone(),
+            actor_id: *id,
+            classjob_id: spawn.common.class_job,
+            classjob_level: spawn.common.level,
+            health_points: spawn.common.health_points,
+            max_health_points: spawn.common.max_health_points,
+            resource_points: spawn.common.resource_points,
+            max_resource_points: spawn.common.max_resource_points,
+            current_zone_id: instance.zone.id,
+            home_world_id: spawn.home_world_id,
+            sync_positions: 1,
+            unk2: 1,
+            ..Default::default()
+        });
+    }
+    if party.members.len() < 2 {
+        return None;
+    }
+    let leader = party
+        .get_member_by_actor_id(leader)
+        .unwrap_or_else(|| party.members[0].clone());
+    party.leader_id = leader.actor_id;
+    // NOTE: we store i64 in the database, hence why its chosen here.
+    let party_id = fastrand::i64(..) as u64;
+
+    let mut to_remove = Vec::new();
+    let mut to_remove_chat = Vec::new();
+    for member in &mut party.members {
+        // Everyone is told they joined, with the whole party list.
+        let msg = FromServer::PartyUpdate(
+            PartyUpdateTargets {
+                execute_account_id: leader.account_id,
+                execute_content_id: leader.content_id,
+                execute_name: leader.name.clone(),
+                target_account_id: member.account_id,
+                target_content_id: member.content_id,
+                target_name: member.name.clone(),
+            },
+            PartyUpdateStatus::JoinParty,
+            Some((
+                party_id,
+                party.chatchannel_id,
+                leader.actor_id,
+                party_list.clone(),
+            )),
+        );
+        for (id, (handle, _)) in &mut network.clients {
+            if handle.actor_id == member.actor_id {
+                member.zone_client_id = *id;
+                if handle.send(msg.clone()).is_err() {
+                    to_remove.push(*id);
+                }
+            }
+        }
+        let msg = FromServer::SetPartyChatChannel(party.chatchannel_id);
+        for (id, (handle, _)) in &mut network.chat_clients {
+            if handle.actor_id == member.actor_id {
+                member.chat_client_id = *id;
+                if handle.send(msg.clone()).is_err() {
+                    to_remove_chat.push(*id);
+                }
+            }
+        }
+    }
+    network.to_remove.append(&mut to_remove);
+    network.to_remove_chat.append(&mut to_remove_chat);
+    network.parties.insert(party_id, party);
+    network.commit_parties = true;
+    Some(party_id)
 }
 
 pub fn handle_party_messages(

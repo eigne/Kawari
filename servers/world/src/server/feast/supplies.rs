@@ -380,6 +380,7 @@ mod tests {
                 job: 24,
                 alive: true,
                 position: [50.0, 0.0, 0.0],
+                team: None,
             })
             .collect();
         rules.step(0.0, &inputs);

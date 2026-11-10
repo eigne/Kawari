@@ -37,6 +37,13 @@ impl Team {
             Self::Claw => "claw",
         }
     }
+
+    pub fn other(self) -> Self {
+        match self {
+            Self::Fang => Self::Claw,
+            Self::Claw => Self::Fang,
+        }
+    }
 }
 
 /// How many medals a job can carry. Tanks carry the most, healers the fewest.
@@ -92,6 +99,8 @@ pub struct Input {
     pub job: u8,
     pub position: [f32; 3],
     pub alive: bool,
+    /// The team the lobby chose for this player. `None` joins the smaller team.
+    pub team: Option<Team>,
 }
 
 /// A pile of medals on the ground.
@@ -145,6 +154,18 @@ impl Match {
             pickups: Vec::new(),
             last_knockout: now + COUNTDOWN,
         }
+    }
+
+    /// Keeps preparation from running out, while the lobby waits for its host.
+    pub fn hold(&mut self, now: f64) {
+        if self.phase == Phase::Countdown {
+            self.deadline = now + COUNTDOWN;
+            self.last_knockout = self.deadline;
+        }
+    }
+
+    fn team_size(&self, team: Team) -> usize {
+        self.players.values().filter(|p| p.team == team).count()
     }
 
     /// Medals held by (Fangs, Claws). Medals on the ground count for nobody.
@@ -330,27 +351,38 @@ impl Match {
         self.clock(now);
     }
 
-    /// New arrivals join the smaller team (Fangs on a tie), up to four a side.
-    /// Players who leave during the countdown lose their place.
+    /// New arrivals join the team the lobby chose for them, or else the
+    /// smaller team (Fangs on a tie), up to four a side. The lobby can still
+    /// move a player to the other team. Players who leave during the
+    /// countdown lose their place.
     fn join_during_countdown(&mut self, inputs: &BTreeMap<u32, &Input>, now: f64) {
         for (&id, input) in inputs {
-            if self.players.contains_key(&id) || medal_limit(input.job).is_none() {
+            if medal_limit(input.job).is_none() {
                 continue;
             }
-            let fangs = self
-                .players
-                .values()
-                .filter(|p| p.team == Team::Fang)
-                .count();
+            if let Some(player) = self.players.get_mut(&id) {
+                // The lobby keeps its teams to four, also when it exchanges
+                // two players of full teams.
+                if let Some(team) = input.team
+                    && team != player.team
+                {
+                    player.team = team;
+                    self.announcements
+                        .push(format!("Player {id} moved to {}.", team.name()));
+                }
+                continue;
+            }
+            let fangs = self.team_size(Team::Fang);
             let claws = self.players.len() - fangs;
             if fangs + claws == 8 {
                 continue;
             }
-            let team = if fangs <= claws {
+            let chosen = input.team.filter(|team| self.team_size(*team) < 4);
+            let team = chosen.unwrap_or(if fangs <= claws {
                 Team::Fang
             } else {
                 Team::Claw
-            };
+            });
             self.players.insert(
                 id,
                 Player {
@@ -503,12 +535,14 @@ pub(super) mod tests {
                 job: 24,
                 position: [0.0; 3],
                 alive: true,
+                team: None,
             },
             Input {
                 id: 2,
                 job: 24,
                 position: [10.0, 0.0, 0.0],
                 alive: true,
+                team: None,
             },
         ]
     }
@@ -593,6 +627,7 @@ pub(super) mod tests {
             job: 19,
             position: [0.0; 3],
             alive: true,
+            team: None,
         });
         m.step(COUNTDOWN + 1.0, &p);
         assert!(!m.players.contains_key(&3));
@@ -606,6 +641,29 @@ pub(super) mod tests {
             ),
             (Some(200), Some(175), Some(150), Some(125))
         );
+    }
+
+    #[test]
+    fn lobby_chooses_teams_and_holds_the_countdown() {
+        let mut m = Match::new(0.0);
+        let mut p = inputs();
+        p[0].team = Some(Team::Claw);
+        p[1].team = Some(Team::Claw);
+        m.step(0.0, &p);
+        assert_eq!(m.players[&1].team, Team::Claw);
+        assert_eq!(m.players[&2].team, Team::Claw);
+        // The lobby can still move a player, and hold the start.
+        p[1].team = Some(Team::Fang);
+        m.hold(COUNTDOWN * 3.0);
+        m.step(COUNTDOWN * 3.0, &p);
+        assert_eq!(m.phase, Phase::Countdown);
+        assert_eq!(m.players[&2].team, Team::Fang);
+        m.step(COUNTDOWN * 4.0, &p);
+        assert_eq!(m.phase, Phase::Active);
+        // Not once the match is on.
+        p[1].team = Some(Team::Claw);
+        m.step(COUNTDOWN * 4.0 + 1.0, &p);
+        assert_eq!(m.players[&2].team, Team::Fang);
     }
 
     #[test]
