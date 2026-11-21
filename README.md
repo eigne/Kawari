@@ -1,29 +1,3 @@
 # Kawari
 
-Modern server emulator for FFXIV. Updates on the project can be found [on my blog](https://redstrate.com/blog/series/kawari-progress-report/).
-
-Kawari currently supports patch **7.57h1** (2026.10.16.0000.0000). We only support the Windows client. If you're looking for a 1.x server, check out our sister project [Kodama](https://codeberg.org/redstrate/Kodama).
-
-To get started, there is a guide to [running Kawari in our documentation](https://docs.xiv.zone/kawari/setup/overview.html).
-
-## Features
-
-It's hard to write down what we support, since the project is always in flux. But here's a basic idea of where we're at:
-* The opening sequence
-* Basic zone exploration
-* Multiplayer
-* Instanced content
-
-If you want to implement something that's missing, [see our Contributing guide](https://docs.xiv.zone/kawari/contributing.html)!
-
-## Credits & Thank You
-
-* [Sapphire](https://github.com/SapphireServer/Sapphire) for reference.
-* [iolite](https://github.com/0xbbadbeef/iolite) for inspiration & reference.
-* [TemporalStasis](https://github.com/NotNite/TemporalStasis) for tooling and reference.
-* [Project Chronofoil](https://github.com/ProjectChronofoil/) for easy packet capture.
-* [FFXIVClientStructs](https://github.com/aers/FFXIVClientStructs/) for being an invaluable resource for the client's internals.
-
-## License
-
-This project is licensed under the [GNU Affero General Public License 3](LICENSE). Some code or assets may be licensed differently.
+Fork solely for The Feast (patch 6.0)
